@@ -1,0 +1,19 @@
+ALL ADS MANAGER — DEPLOY UPDATE
+
+This archive is based on All-Ads-Manager-Corrected-Build-v2.
+
+Verified source changes in this package:
+1. Status view endpoint now allows a customer to mark another customer's Status as viewed only when the viewer follows that Status owner. Customers can still view their own Status.
+2. Added dedicated PNG app icons at 180x180, 192x192, and 512x512. Updated the web manifest and Apple touch icon reference.
+
+Checks run locally:
+- 121/121 existing social contract checks passed.
+- 96 JavaScript files passed Node syntax checks.
+
+Important:
+- These are source-level checks, not a live Netlify deployment or end-to-end phone test.
+- The 14 genuine AI voice models and automated video-overlay cleaner are not included in this update.
+- No payment, email-sending, customer-login, or Supabase credential configuration was intentionally changed.
+- The Status table migration has already been run separately by the site owner; no new SQL is required for the changes in this update.
+
+Netlify configuration is included in netlify.toml. For manual deploy, extract this ZIP and deploy the project folder with Netlify CLI or connect the repository. Do not deploy only the public folder; Netlify needs netlify.toml and netlify/functions as well.

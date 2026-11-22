@@ -1,0 +1,9 @@
+CHAT INTERFACE UPDATE
+
+This update changes the existing private conversation screen to use a full-viewport, mobile-first layout. It preserves the existing chat API, message rendering, voice-note recording, attachment upload, and LiveKit call controls.
+
+Deployment: deploy the complete project root as usual. No new database migration or environment variable is introduced by this chat layout change.
+
+Verification performed: social.js JavaScript syntax check and the repository social contract test script. These are source-level checks only. They do not verify live Supabase messaging, browser camera permissions, LiveKit connectivity between two devices, or device-specific performance.
+
+The LiveKit camera/video call and avatar engine still require live two-device debugging and testing. This update does not claim those issues are fixed.

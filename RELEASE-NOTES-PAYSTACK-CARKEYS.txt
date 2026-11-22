@@ -1,0 +1,30 @@
+ALL ADS MANAGER — WALLET, PAYSTACK AND NEXOTP SOURCE CORRECTIONS
+
+Applied in this working source tree:
+1. Replaced the active customer verification-number page with the NexOTP catalogue, order, SMS polling, order history and eligible rejection/refund flow.
+2. Added server-side NexOTP customer/admin catalogue and order functions. NEXOTP_API_KEY is used only on the Netlify server.
+3. Added the NexOTP wallet-order database migration. Customer charges are computed server-side using the agreed fixed country markups; supplier prices and markup are not exposed to customers.
+4. Replaced the Admin Wallet's old verification supplier catalogue and order-status action with NexOTP.
+5. Removed the old verification-provider Netlify functions and UI references from the active source tree.
+6. Removed the forced 15-second countdown from customer wallet funding and service-payment Paystack initialization. Both now start immediately and are bounded by 12-second server-side network timeouts and a 25-second browser timeout.
+7. Updated the customer balance error display to show Unavailable with a retry action rather than silently showing a false zero.
+8. Updated the Admin System Check to inspect NexOTP and the customer-wallet tables/RPC rather than retired provider variables or obsolete mail-variable checks.
+9. Added supabase/ALL_ADS_MANAGER_WALLETS_SETUP.sql containing the existing customer and administrator wallet migrations for repeatable setup if migration status is uncertain.
+10. Bumped the service-worker cache version and frontend asset versions.
+
+Validation performed:
+- All Netlify function .mjs files passed node --check.
+- Public index inline JavaScript passed node --check.
+- funding-overrides.js, social.js, document-editor.js, admin-wallet inline JavaScript and sw.js passed node --check.
+- Existing social contract suite: 121/121 passed.
+- NexOTP catalogue and order flow passed mocked server-side tests, including country markup and wallet reservation amounts.
+- Source scan found no remaining references to the retired verification provider in active app, Netlify function or migration files.
+
+Not yet verified:
+- No live NexOTP API order was placed.
+- No live Supabase migration was applied or live wallet balance read.
+- No live Paystack payment was initiated or credited.
+- No Netlify deployment was performed.
+- End-to-end browser/iPhone tests remain outstanding.
+
+Do not treat syntax and contract tests as proof of live payment or supplier operation. Apply the NexOTP migration before enabling number purchases, then deploy and verify the live functions and wallet flows.

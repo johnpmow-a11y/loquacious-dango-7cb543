@@ -1,0 +1,116 @@
+PASS coin balances are split into free and purchased
+PASS new customers receive 30 free coins
+PASS one-time video unlock spends Money Coins before Free Coins
+PASS legacy balances are preserved as free, not treated as cash
+PASS all existing customers receive a zeroed coin balance row when missing
+PASS follow rewards are 35 and 60 free coins
+PASS referral reward is 500 free coins
+PASS Paystack-verified purchases credit purchased coins only
+PASS coin credit RPC rejects failed or initialization-failed payment rows
+PASS admin earnings are created only when a purchased coin is spent
+PASS only administrator-marked videos are paid; API and customer videos are free
+PASS signup referral is retained until after 18+ confirmation
+PASS social feed, discovery, chat, notifications and coin checkout enforce server-side 18+ confirmation
+PASS public creator identity replaces admin-role display names with the app brand
+PASS customer-facing social posting guidance does not expose admin wording for paid videos
+PASS admin creator profile displays real likes from its loaded posts instead of a fabricated count
+PASS admin coin accounting paginates all sales, earnings and customer balances beyond 1000 rows
+PASS 18+ confirmation RPC uses valid paired PostgreSQL dollar quotes
+PASS 18+ screen loads before requesting the protected social feed
+PASS customer can explicitly confirm 18+ before social features
+PASS follow, referral and paid-video unlock require adult confirmation
+PASS only administrator-authored videos can ever be paid
+PASS feed only marks admin-authored videos as paid
+PASS paid administrator videos appear as paid cards inside the normal Home feed and unlock in place
+FAIL only administrator videos explicitly marked paid are locked
+PASS admin and customer profiles respect the paid-video flag
+PASS customer API returns Free Coins and Money Coins separately
+PASS coin purchase starts only at ₦500 and requires live Paystack
+PASS coin verification confirms amount and currency before credit
+PASS Paystack webhook handles coin purchases idempotently
+PASS Paystack webhook verifies the returned transaction reference
+PASS customer UI offers enabled coin packages from 500
+PASS customer UI displays Free Coins and Money Coins separately
+PASS admin UI displays verified coin sales and paid-video earnings
+PASS optional referral code is applied after signup
+PASS customer signup requires and saves an email address
+PASS customer history is redesigned and shows the saved account email
+PASS customer History shows sender names without admin or customer role labels
+PASS social discovery uses friend language for people
+PASS customer support and History avoid admin/customer role labels
+PASS social customer screens identify people as friends
+PASS message APIs provide display names instead of role labels
+PASS private text messages email the saved customer address using existing Gmail settings
+PASS order status updates attempt customer email without changing email configuration
+PASS social coins remain separate from tools wallet
+PASS private messages email the saved customer address
+PASS consignment video completion emails the customer
+PASS media editing status emails the customer
+PASS delivery status emails the customer
+PASS Facebook and TikTok open provider-gated campaign workspaces instead of old fixed-price forms
+PASS Snapchat has a separate clearly unconnected campaign workspace
+PASS admin paid-video checkbox is connected to the upload request
+FAIL API-sourced and customer-uploaded videos are clearly free
+PASS Zangi Ads and TikTok Dollar Funding remain available
+PASS admin feed never invents engagement counts
+PASS admin creator profile never invents engagement counts
+PASS support replies are saved to History before best-effort email notification
+PASS Manager Promotion has its own campaign records and review states
+PASS Manager Promotion payments deduct purchased Money Coins only
+PASS Manager Promotion submission does not debit coins before approved pricing
+PASS Manager Promotion API validates customer sessions and secures image uploads
+PASS Manager Promotion admin pricing requires an authenticated admin session
+PASS customer profile exposes Manager Promotion and its Money-Coin-only balance
+PASS administrator dashboard exposes promotion review and approval is provider-gated
+PASS promotion payment cannot proceed before provider readiness
+PASS LiveKit call creation requires two 18+ confirmed customers and an existing direct chat
+PASS LiveKit room tokens are issued only to accepted active call participants
+PASS LiveKit call records are protected by RLS and service-role-only access
+PASS customer private chat exposes audio/video call controls and incoming-call polling
+PASS administrator calls use a separate verified admin identity, not a customer impersonation
+PASS administrator can start and end audio/video calls from customer management
+PASS incoming calls are polled globally so administrator calls reach customers outside an open chat
+PASS administrator call status checks send the session token in a POST body, not a URL
+PASS customer call polling sends the session token in a POST body, not a URL
+PASS unanswered administrator calls expire after 45 seconds and close their invitation
+PASS failed administrator LiveKit connections close the server call and clear stale admin call state
+PASS database migration enforces one active call per customer and closes stale participant rows
+PASS missed, declined and ended calls close all remaining active participant rows
+PASS global and chat call polling cannot overlap slow requests
+PASS customer call API rejects calls when either person already has an active invitation or call
+PASS administrator call API prevents overlapping admin calls and calls to busy customers
+PASS customer and administrator call buttons block rapid duplicate call creation
+PASS database active-call uniqueness conflicts return HTTP 409 instead of server errors
+PASS unexpected LiveKit disconnect closes the server-side call for both customers and admins
+PASS administrator calls have a database-enforced one-active-call limit and friendly conflict response
+PASS incoming call answers are protected against rapid duplicate taps and overlapping calls
+PASS one-run Supabase call setup bundles all five migrations in dependency order
+PASS one-run Supabase setup includes customer email storage and the corrected email validator
+PASS Wireface avatar lab creates a local photo face and applies it to a full-body character
+PASS Wireface avatar lab uses live microphone audio for lip sync and voice-reactive body gestures
+PASS Wireface avatar lab saves and reloads multiple photo characters locally
+PASS LiveKit video calls can select and switch among locally saved photo avatars without another avatar charge
+PASS saved avatar controls are hidden and reset when the LiveKit call ends or disconnects
+PASS call microphone, camera and audio-enable controls are hidden and reset after call end or disconnect
+PASS normal call hangup removes the full-screen incoming-call overlay immediately
+PASS customer photo avatars require 1,500 purchased Money Coins and never spend Free Coins
+PASS photo avatar charges are limited to an accepted participant in an active video call
+PASS customer avatar coins are charged only after the avatar publishes successfully, and a failed payment tears down the uncharged avatar
+PASS LiveKit avatar payment endpoint requires an authenticated customer session
+PASS LiveKit calls offer original, female-style, male-style, echo and robot voice processing
+PASS voice effects restore the original microphone when disabled and stop on call end
+PASS voice effects preserve microphone mute and unmute state without replacing the active processed track
+PASS LiveKit photo avatars use the Wireface 3D body kit and voice-driven mouth and gesture animation
+PASS photo avatars use on-device pose and hand landmarks to animate torso, arms, legs, knees and fingers
+PASS photo avatars mirror facial expressions with a separately throttled FaceLandmarker and Wireface moods
+PASS body tracking is optional with explicit camera consent and the raw camera track is unpublished while the avatar is sent
+PASS avatar camera rollback marks the original track restored after the fallback camera is enabled
+PASS avatar shutdown does not stop the live microphone track used by the ongoing call
+PASS customer photo avatar is charged once per call, administrator avatar is free, and photos can be switched
+PASS avatar callers can choose a male or female 3D body for their uploaded photograph
+PASS social feed, profile, chat and promotion navigation show loading feedback before network requests
+PASS slow account, delivery, consignment and management screens render a loading state before fetching
+PASS login and signup show immediate busy feedback and load independent account data in parallel
+PASS customer-facing app copy avoids website-only wording and local dashboard labels
+PASS social submit/payment/chat/profile actions ignore rapid duplicate taps and release their locks after completion
+PASS avatar runtime is pinned to the no-charge commercial-use Wireface release with third-party notices
