@@ -550,3 +550,14 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-social-post-audio{display:block;width:calc(100% - 24px);max-width:100%;margin:10px 12px}
 .aam-post-sound-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0}
 .aam-post-sound-row small{font-size:12px;opacity:.75;overflow-wrap:anywhere}
+
+.aam-profile-grid-item{position:relative;display:block;width:100%;aspect-ratio:1/1;overflow:hidden;padding:0;border:0;background:#101827}
+.aam-profile-grid-item img{display:block;width:100%;height:100%;object-fit:cover}
+.aam-profile-grid-item>span{position:absolute;right:8px;bottom:7px;color:#fff;text-shadow:0 1px 5px #000;font-size:18px}
+.aam-profile-post-viewer{position:fixed;inset:0;z-index:100700;background:#05070b;color:#fff;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
+.aam-profile-post-viewer header{display:flex;align-items:center;gap:14px;padding:10px 0}
+.aam-profile-post-viewer header button{border:0;border-radius:50%;width:40px;height:40px;background:#202c3f;color:#fff;font-size:22px}
+.aam-profile-post-viewer-media{flex:1;min-height:0;display:grid;place-items:center}
+.aam-profile-post-viewer-media img,.aam-profile-post-viewer-media video{max-width:100%;max-height:100%;object-fit:contain}
+.aam-profile-post-viewer audio{width:100%;margin:10px 0}
+.aam-profile-post-viewer p{max-height:20vh;overflow:auto}
