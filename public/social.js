@@ -369,7 +369,7 @@ async function connectCall(callId,callType='audio',authToken=null,preparedCamera
   const listSignals=after=>isAdmin
    ?adminCallAction('signal_list',callId,{after})
    :callAction('signal_list',callId,{after});
-  const module=await import('./aam-webrtc-call.js');
+  const module=await import('./aam-webrtc-call.js?v=20261125webrtc1');
   aamWebRtcSession=await module.createAamWebRtcCall({
    callId,callType,supabase:socialDb,localStream:aamLocalCallStream,localIdentity:identity,
    sendSignal,listSignals,initiator:!!initiator||isAdmin,
