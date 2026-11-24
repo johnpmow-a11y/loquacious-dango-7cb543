@@ -506,7 +506,7 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-profile-topbar>strong{text-align:center;font-size:18px}
 .aam-profile-icon{width:42px;height:42px;border:1px solid var(--aam-border,#293548);border-radius:50%;background:var(--aam-card,#111827);color:inherit;font-size:21px}
 .aam-profile-centered{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 14px}
-.aam-profile-centered h2{margin:5px 0 0;font-size:23px}
+.aam-profile-centered h2{margin:5px 0 0;font-size:23px}.aam-profile-name-row{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}.aam-profile-name-row h2{margin:5px 0 0;font-size:23px}.aam-profile-edit-icon{width:34px;height:34px;font-size:17px;flex:0 0 auto}
 .aam-profile-bio{margin:0 auto;max-width:480px;white-space:pre-wrap;overflow-wrap:anywhere}
 .aam-profile-avatar-wrap{position:relative;margin:0 auto}
 .aam-profile-avatar-wrap .aam-profile-avatar{width:112px;height:112px;object-fit:cover;border-radius:50%}
