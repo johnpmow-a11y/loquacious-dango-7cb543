@@ -206,7 +206,7 @@ async function profile(){
    api('/.netlify/functions/social-core'),
    api('/.netlify/functions/social-discover?profile_id='+encodeURIComponent(customer())).catch(()=>({posts:[]}))
   ]);
-  const p=d.profile||{},prefs=d.preferences||{};notificationSoundChoice=Number(prefs.notification_sound||1);
+  const p=d.profile||{},prefs=d.preferences||{};window.aamCurrentWallpaperUrl=prefs.custom_wallpaper_url||null;notificationSoundChoice=Number(prefs.notification_sound||1);
   const sounds=Array.from({length:15},(_,i)=>'<option value="'+(i+1)+'"'+(Number(prefs.notification_sound||1)===i+1?' selected':'')+'>Calm sound '+(i+1)+'</option>').join('');
   const wallpapers=['default',...Array.from({length:20},(_,i)=>'theme-'+String(i+1).padStart(2,'0')),'custom'].map(v=>'<option value="'+v+'"'+((prefs.chat_wallpaper||'default')===v?' selected':'')+'>'+(v==='default'?'Default':v==='custom'?'Custom upload':'Wallpaper '+v.slice(-2))+'</option>').join('');
   const avatar=p.avatar_url?'<img class="aam-social-avatar aam-profile-avatar" src="'+esc(p.avatar_url)+'" alt="Profile picture">':'<div class="aam-profile-avatar aam-profile-avatar-empty">'+esc((p.display_name||customer()||'A').slice(0,1).toUpperCase())+'</div>';
