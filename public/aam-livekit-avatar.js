@@ -233,6 +233,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
   let fingerRigs = [], legRigs = [], audioContext, stopLipSync, micStream, videoTrack, preview;
   let published = false, stopped = false, trackingAvailable = false, cameraUnpublished = false;
   let lastFrame = 0, elapsed = 0, lastDetection = 0, lastFaceDetection = 0, lastVideoTime = -1, lastFaceVideoTime = -1, latestHands = null, targetPose = null, currentFaceMood = 'neutral';
+  let neutralFaceQuaternion = null, targetHeadRotation = { x: 0, y: 0, z: 0 };
 
   const makePhotoCharacter = file => createCharacter(file, {
     kind: '3d', detector: 'local',
@@ -285,7 +286,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
         const vision = await visionModule.FilesetResolver.forVisionTasks(VISION_BASE + '/wasm');
         poseLandmarker = await makeLandmarker(visionModule.PoseLandmarker, vision, POSE_MODEL, { numPoses: 1, minPoseDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
         try { handLandmarker = await makeLandmarker(visionModule.HandLandmarker, vision, HAND_MODEL, { numHands: 2, minHandDetectionConfidence: 0.5, minTrackingConfidence: 0.5 }); } catch (_) { handLandmarker = null; }
-        try { faceLandmarker = await makeLandmarker(visionModule.FaceLandmarker, vision, FACE_MODEL, { numFaces: 1, outputFaceBlendshapes: true }); } catch (_) { faceLandmarker = null; }
+        try { faceLandmarker = await makeLandmarker(visionModule.FaceLandmarker, vision, FACE_MODEL, { numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true }); } catch (_) { faceLandmarker = null; }
         trackingAvailable = !!poseLandmarker;
       } catch (_) {
         trackingAvailable = false;
@@ -319,6 +320,20 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
               currentFaceMood = nextMood.mood;
               figure?.face?.mood(currentFaceMood, nextMood.intensity);
             }
+            const transformData = faceResult.facialTransformationMatrixes?.[0]?.data;
+            if (transformData?.length === 16 && figure?.head) {
+              const faceMatrix = new THREE.Matrix4().fromArray(Array.from(transformData));
+              const faceQuaternion = new THREE.Quaternion();
+              faceMatrix.decompose(new THREE.Vector3(), faceQuaternion, new THREE.Vector3());
+              if (!neutralFaceQuaternion) neutralFaceQuaternion = faceQuaternion.clone();
+              const relativeFaceRotation = neutralFaceQuaternion.clone().invert().multiply(faceQuaternion);
+              const faceEuler = new THREE.Euler().setFromQuaternion(relativeFaceRotation, 'YXZ');
+              targetHeadRotation = {
+                x: clamp(faceEuler.x, -0.38, 0.38),
+                y: clamp(faceEuler.y, -0.58, 0.58),
+                z: clamp(faceEuler.z, -0.42, 0.42)
+              };
+            }
           } catch (_) {}
         }
       }
@@ -337,7 +352,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
           figure.body.rotation.z = smooth(figure.body.rotation.z, targetPose.torsoZ, 0.18);
           figure.body.rotation.x = smooth(figure.body.rotation.x, targetPose.torsoX, 0.18);
         }
-        if (figure.head) figure.head.rotation.z = smooth(figure.head.rotation.z, targetPose.headZ, 0.22);
+        if (figure.head && !neutralFaceQuaternion) figure.head.rotation.z = smooth(figure.head.rotation.z, targetPose.headZ, 0.22);
         if (targetPose.leftLeg && legRigs[1]) {
           legRigs[1].hip.rotation.z = smooth(legRigs[1].hip.rotation.z, targetPose.leftLeg.z);
           legRigs[1].hip.rotation.x = smooth(legRigs[1].hip.rotation.x, targetPose.leftLeg.x);
@@ -349,6 +364,11 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
           legRigs[0].knee.rotation.z = smooth(legRigs[0].knee.rotation.z, targetPose.rightKnee);
         }
         figure.root.position.x = smooth(figure.root.position.x, targetPose.rootX, 0.15);
+      }
+      if (figure?.head && neutralFaceQuaternion) {
+        figure.head.rotation.x = smooth(figure.head.rotation.x, targetHeadRotation.x, 0.2);
+        figure.head.rotation.y = smooth(figure.head.rotation.y, targetHeadRotation.y, 0.2);
+        figure.head.rotation.z = smooth(figure.head.rotation.z, targetHeadRotation.z, 0.2);
       }
       if (latestHands && fingerRigs.length) applyHandResults(latestHands, fingerRigs, figure);
       renderer.render(scene, camera);
