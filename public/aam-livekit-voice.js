@@ -3,8 +3,9 @@ const SOUND_TOUCH_PROCESSOR = 'https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-
 
 const MODES = {
   natural: { pitch: 0, echo: 0, robot: 0 },
-  female: { pitch: 4, echo: 0, robot: 0 },
-  male: { pitch: -3, echo: 0, robot: 0 },
+  female: { pitch: 4.5, low: -4.5, presence: 2.2, high: 2.5, echo: 0, robot: 0 },
+  male: { pitch: -3.5, low: 3.5, presence: -1.2, high: -1.5, echo: 0, robot: 0 },
+  natural: { pitch: 0, low: 0, presence: 0, high: 0, echo: 0, robot: 0 },
   echo: { pitch: 0, echo: 0.28, robot: 0 },
   robot: { pitch: -1, echo: 0, robot: 0.42 },
 };
@@ -18,7 +19,7 @@ export async function createAamVoiceChanger({ room, LK, mode = 'natural' }) {
   if (!originalTrack?.mediaStreamTrack) throw new Error('Your call microphone is not ready.');
 
   const context = new AudioContext();
-  let source, shifter, destination, outputTrack, echoDelay, echoFeedback, echoWet, robotGain, robotOscillator, robotDepth;
+  let source, shifter, destination, outputTrack, echoDelay, echoFeedback, echoWet, voiceLow, voicePresence, voiceHigh, robotGain, robotOscillator, robotDepth;
   let stopped = false;
   let muted = false;
   let originalUnpublished = false;
@@ -35,6 +36,12 @@ export async function createAamVoiceChanger({ room, LK, mode = 'natural' }) {
     echoDelay = context.createDelay(0.65);
     echoFeedback = context.createGain();
     echoWet = context.createGain();
+    voiceLow = context.createBiquadFilter();
+    voiceLow.type = 'lowshelf'; voiceLow.frequency.value = 180;
+    voicePresence = context.createBiquadFilter();
+    voicePresence.type = 'peaking'; voicePresence.frequency.value = 2800; voicePresence.Q.value = 0.8;
+    voiceHigh = context.createBiquadFilter();
+    voiceHigh.type = 'highshelf'; voiceHigh.frequency.value = 5200;
     robotGain = context.createGain();
     robotOscillator = context.createOscillator();
     robotDepth = context.createGain();
@@ -51,7 +58,10 @@ export async function createAamVoiceChanger({ room, LK, mode = 'natural' }) {
     robotOscillator.start();
 
     source.connect(shifter);
-    shifter.connect(robotGain);
+    shifter.connect(voiceLow);
+    voiceLow.connect(voicePresence);
+    voicePresence.connect(voiceHigh);
+    voiceHigh.connect(robotGain);
     robotGain.connect(destination);
     shifter.connect(echoDelay);
     echoDelay.connect(echoFeedback);
@@ -76,6 +86,9 @@ export async function createAamVoiceChanger({ room, LK, mode = 'natural' }) {
         const config = MODES[nextMode] || MODES.natural;
         const now = context.currentTime;
         shifter.pitchSemitones.setTargetAtTime(config.pitch, now, 0.06);
+        voiceLow.gain.setTargetAtTime(config.low || 0, now, 0.08);
+        voicePresence.gain.setTargetAtTime(config.presence || 0, now, 0.08);
+        voiceHigh.gain.setTargetAtTime(config.high || 0, now, 0.08);
         echoWet.gain.setTargetAtTime(config.echo, now, 0.06);
         robotDepth.gain.setTargetAtTime(config.robot, now, 0.06);
       },
@@ -93,6 +106,7 @@ export async function createAamVoiceChanger({ room, LK, mode = 'natural' }) {
         robotOscillator?.stop();
         source?.disconnect();
         shifter?.disconnect();
+        voiceLow?.disconnect(); voicePresence?.disconnect(); voiceHigh?.disconnect();
         echoDelay?.disconnect();
         echoFeedback?.disconnect();
         echoWet?.disconnect();
