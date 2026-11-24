@@ -546,3 +546,7 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-sound-library article small{color:#94a3b8;font-size:11px}
 .aam-sound-library article audio{grid-column:1/-1;width:100%;height:36px}
 .aam-sound-local{display:block;text-align:center;padding:12px}
+
+.aam-social-post-audio{display:block;width:calc(100% - 24px);max-width:100%;margin:10px 12px}
+.aam-post-sound-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0}
+.aam-post-sound-row small{font-size:12px;opacity:.75;overflow-wrap:anywhere}
