@@ -80,6 +80,16 @@ export async function handler(event){
    if(!updated.length)return json(403,{error:'The 15-minute edit period has expired.'});
    return json(200,{ok:true,message:updated[0]});
   }
+  if(b.action==='delete'){
+   const messageId=String(b.message_id||'');
+   if(!uuid.test(messageId))return json(400,{error:'Invalid message.'});
+   const owned=await db(`aam_chat_messages?select=id,conversation_id&id=eq.${encodeURIComponent(messageId)}&sender_id=eq.${encodeURIComponent(s.customer_id)}&limit=1`);
+   if(!owned.length)return json(403,{error:'You can delete only your own messages.'});
+   const participant=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${encodeURIComponent(owned[0].conversation_id)}&customer_id=eq.${encodeURIComponent(s.customer_id)}&limit=1`);
+   if(!participant.length)return json(404,{error:'Conversation not found.'});
+   await db(`aam_chat_messages?id=eq.${encodeURIComponent(messageId)}&sender_id=eq.${encodeURIComponent(s.customer_id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({body:'This message was deleted.',message_type:'text',media_path:null,shared_post_id:null,edited_at:new Date().toISOString()})});
+   return json(200,{ok:true});
+  }
   if(b.action==='send'){
    if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});
    const recipients=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${b.conversation_id}&customer_id=neq.${s.customer_id}`);
