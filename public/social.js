@@ -414,7 +414,7 @@ async function callIdentity(){
  return 'customer:'+customer();
 }
 let aamWebRtcSession=null,aamLocalCallStream=null,aamRemoteCallStream=null;
-async function connectCall(callId,callType='audio',authToken=null,preparedCameraTrack=null){
+async function connectCall(callId,callType='audio',authToken=null,preparedCameraTrack=null,initiator=false){
  if(aamCallConnecting||aamCurrentCallId===callId&&aamWebRtcSession){discardPreparedCallCamera(preparedCameraTrack);return;}
  aamCallConnecting=true;
  try{
@@ -436,19 +436,20 @@ async function connectCall(callId,callType='audio',authToken=null,preparedCamera
   const module=await import('./aam-webrtc-call.js');
   aamWebRtcSession=await module.createAamWebRtcCall({
    callId,callType,supabase:socialDb,localStream:aamLocalCallStream,localIdentity:identity,
-   sendSignal,listSignals,initiator:!document.getElementById('aamIncomingCall')?.dataset?.callId||isAdmin,
+   sendSignal,listSignals,initiator:!!initiator||isAdmin,
    onState:state=>{setCallStatus(state);if(state==='Connected'){const b=document.getElementById('aamEnableCallAudio');if(b)b.style.display='none';}},
    onRemoteStream:stream=>{
     aamRemoteCallStream=stream;const media=document.getElementById('aamCallMedia');if(!media)return;
     let el=media.querySelector('[data-remote="true"]');
     const hasVideo=stream.getVideoTracks().length>0;
+    if(el&&((hasVideo&&el.tagName!=='VIDEO')||(!hasVideo&&el.tagName!=='AUDIO'))){el.remove();el=null;}
     if(!el){el=document.createElement(hasVideo?'video':'audio');el.dataset.remote='true';el.autoplay=true;el.playsInline=true;el.setAttribute('playsinline','');el.className=hasVideo?'aam-social-remote-video':'aam-social-remote-audio';if(hasVideo)el.controls=true;media.appendChild(el);}
     if(el.srcObject!==stream)el.srcObject=stream;
     el.play?.().catch(()=>{const b=document.getElementById('aamEnableCallAudio');if(b)b.style.display='inline-flex';});
     arrangeCallVideoTiles();
    }
   });
-  ensureCallVoiceControls();
+  // Voice and avatar controls will be re-enabled after their WebRTC-native modules are ready.
   const endButton=document.getElementById('aamEndCallBtn');if(endButton)endButton.style.display='inline-flex';
   const muteButton=document.getElementById('aamMuteCallBtn');if(muteButton){muteButton.style.display='inline-flex';muteButton.textContent='Mute microphone';}
   const cameraButton=document.getElementById('aamCameraCallBtn');if(cameraButton)cameraButton.style.display=callType==='video'?'inline-flex':'none';
@@ -485,7 +486,7 @@ async function startAdminCall(customerId,type='video'){
   let panel=document.getElementById('aamAdminCallOverlay');
   if(!panel){panel=document.createElement('div');panel.id='aamAdminCallOverlay';panel.style.cssText='position:fixed;z-index:100000;inset:0;background:#071b2dcc;display:flex;align-items:center;justify-content:center;padding:16px';document.body.appendChild(panel);}
   panel.innerHTML='<section class="aam-social-card" style="width:min(620px,100%);max-height:90vh;overflow:auto"><h2>Administrator call</h2><div id="aamCallStatus" class="aam-social-muted">Calling customer…</div><button class="aam-social-btn secondary" id="aamEnableCallAudio" style="display:none" onclick="AAMSocial.enableCallAudio()">Tap to enable call audio</button><div id="aamCallMedia" class="aam-social-call-media"></div><div class="aam-social-call-actions"><button class="aam-social-btn secondary" id="aamMuteCallBtn" style="display:none" onclick="AAMSocial.toggleCallMicrophone()">Mute microphone</button><button class="aam-social-btn secondary" id="aamCameraCallBtn" style="display:none" onclick="AAMSocial.toggleCallCamera()">Turn camera off</button><button class="aam-social-btn secondary" id="aamSwitchCameraBtn" style="display:none" onclick="AAMSocial.switchCallCamera()">↻ Flip camera</button><button class="aam-social-btn secondary" id="aamSwapCallViewBtn" style="display:none" onclick="AAMSocial.swapCallMainView()">⇄ Swap view</button><button class="aam-social-btn" id="aamEndCallBtn" style="display:none" onclick="AAMSocial.endCall()">End call</button></div></section>';
-  setCallStatus('Calling customer… waiting for answer.');let accepted=false;for(let attempt=0;attempt<45;attempt++){const status=await adminCallAction('status',d.call_id);if(status.call?.status!=='active'||status.participant?.status==='declined'||status.participant?.status==='ended')throw new Error('The customer did not accept the call.');if(status.participant?.status==='accepted'){accepted=true;break;}await new Promise(resolve=>setTimeout(resolve,1000));}if(!accepted)throw new Error('The customer did not answer within 45 seconds.');await connectCall(d.call_id,type,aamAdminCallToken,cameraTrack);cameraTrack=null;
+  setCallStatus('Calling customer… waiting for answer.');let accepted=false;for(let attempt=0;attempt<45;attempt++){const status=await adminCallAction('status',d.call_id);if(status.call?.status!=='active'||status.participant?.status==='declined'||status.participant?.status==='ended')throw new Error('The customer did not accept the call.');if(status.participant?.status==='accepted'){accepted=true;break;}await new Promise(resolve=>setTimeout(resolve,1000));}if(!accepted)throw new Error('The customer did not answer within 45 seconds.');await connectCall(d.call_id,type,aamAdminCallToken,cameraTrack,true);cameraTrack=null;
   if(!aamCurrentCallId||!aamWebRtcSession)return;
   if(aamAdminCallPollTimer)clearInterval(aamAdminCallPollTimer);
   aamAdminCallPollTimer=setInterval(async()=>{if(!aamCurrentCallId||!aamAdminCallMode)return;try{const status=await adminCallAction('status',aamCurrentCallId);if(status.call?.status!=='active'){if(status.call?.status==='declined')setCallStatus('The customer declined the call.');await endCall();return;}if(status.participant?.status==='declined'){setCallStatus('The customer declined the call.');await endCall();}}catch(e){setCallStatus('Checking call connection…');}},2500);
@@ -500,7 +501,7 @@ async function startCall(type){
   if(type==='video')cameraTrack=await prepareCallCamera();
   const d=await callAction('create','',{target_customer_id:target,call_type:type});aamCurrentCallId=d.call_id;
   const pushNote=d.notification_status==='sent'?' · alert sent':d.notification_status==='no_subscriptions'?' · recipient has not enabled background alerts':d.notification_status==='not_configured'?' · background alerts are not configured':'';
-  setCallStatus('Calling… waiting for the other person.'+pushNote);await connectCall(d.call_id,type,null,cameraTrack);cameraTrack=null;
+  setCallStatus('Calling… waiting for the other person.'+pushNote);await connectCall(d.call_id,type,null,cameraTrack,true);cameraTrack=null;
  }catch(e){cameraTrack?.stop?.();restoreCallPanel();setCallStatus(e.message);notice(e.message);}finally{aamCallStarting=false;}
 }
 async function acceptCall(id,type='audio'){
