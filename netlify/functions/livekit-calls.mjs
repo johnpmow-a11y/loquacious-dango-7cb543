@@ -22,6 +22,33 @@ async function db(path, options = {}) {
   }
   return data;
 }
+async function broadcastCallSignal(callId, signal) {
+  const base = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!base || !key) return false;
+  try {
+    const response = await fetch(`${base}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: headers(key),
+      body: JSON.stringify({
+        messages: [{
+          topic: `aam-call-${callId}`,
+          event: 'signal',
+          payload: signal
+        }]
+      })
+    });
+    if (!response.ok) {
+      console.warn('Call Realtime broadcast failed:', response.status, (await response.text()).slice(0, 300));
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn('Call Realtime broadcast unavailable:', error.message);
+    return false;
+  }
+}
+
 async function currentCustomer(token) {
   if (!uuid.test(token)) return null;
   const rows = await db(`customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);
@@ -169,12 +196,23 @@ export async function handler(event) {
       }
       const other = await db(`aam_call_participants?select=customer_id,status&call_id=eq.${encodeURIComponent(callId)}&customer_id=eq.${encodeURIComponent(targetId)}&status=eq.accepted&limit=1`);
       if (!other.length) return json(403, { error: 'The other caller has not accepted this call.' });
-      await db('aam_call_signals', {
+      const inserted = await db('aam_call_signals', {
         method: 'POST',
-        headers: { Prefer: 'return=minimal' },
+        headers: { Prefer: 'return=representation' },
         body: JSON.stringify({ call_id: callId, sender_id: customerId, recipient_id: targetId, signal_type: signalType, payload })
       });
-      return json(201, { sent: true });
+      const signal = inserted[0];
+      // Broadcast is the low-latency path. The existing authenticated signal_list
+      // endpoint remains available as a fallback if Realtime is temporarily offline.
+      const realtime_notified = signal ? await broadcastCallSignal(callId, {
+        id: signal.id,
+        sender_id: customerId,
+        recipient_id: targetId,
+        signal_type: signalType,
+        payload,
+        created_at: signal.created_at
+      }) : false;
+      return json(201, { sent: true, realtime_notified });
     }
 
     if (action === 'signal_list') {
