@@ -241,3 +241,26 @@ input,select,textarea{border:1px solid #dfe5ef!important;border-radius:13px!impo
 .aam-video-focus-close{position:absolute;z-index:2;top:max(8px,env(safe-area-inset-top));left:12px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:30px;line-height:1;cursor:pointer}
 body.aam-video-focus-open{overflow:hidden!important}
 @media(min-width:760px){.aam-video-focus-overlay{padding-top:56px}.aam-video-focus-overlay>.aam-social-external-video{height:calc(100dvh - 56px)}.aam-video-focus-overlay>.aam-social-media{height:calc(100dvh - 56px)}}
+
+/* Chat header and compact composer polish */
+.aam-chat-header{display:flex;align-items:center;gap:12px;flex:0 0 auto;padding:0 0 10px;border-bottom:1px solid #e2e8f0}
+.aam-chat-header .aam-chat-back{flex:0 0 42px;margin:0}
+.aam-chat-contact{display:flex;align-items:center;gap:10px;min-width:0}
+.aam-chat-contact-avatar{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:50%;background:linear-gradient(145deg,#173b70,#557ed0);color:#fff;font-size:20px;font-weight:800}
+.aam-chat-contact>div{min-width:0}
+.aam-chat-contact .aam-chat-title{border:0!important;padding:0!important;margin:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aam-chat-contact small{display:block;margin-top:2px;color:#64748b;font-size:11px}
+.aam-chat-composer{position:relative;display:flex;flex:0 0 auto;flex-direction:column;gap:7px;padding:8px;border:1px solid #dbe3ee;border-radius:18px;background:#fff;box-shadow:0 3px 14px rgba(15,23,42,.06)}
+.aam-social-chat-screen .aam-chat-composer #aamChatBody{width:100%;min-height:42px;max-height:110px;border:0!important;border-radius:12px!important;padding:10px 12px!important;resize:none;box-shadow:none}
+.aam-chat-composer-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.aam-chat-composer-actions .aam-social-btn{min-height:38px;width:auto;margin:0}
+.aam-chat-composer-actions .aam-chat-attach,.aam-chat-composer-actions .aam-chat-voice{width:40px;padding:0;font-size:19px;border-radius:12px}
+.aam-chat-composer-actions .aam-chat-send{min-width:76px;border-radius:12px}
+.aam-chat-attachment-status,.aam-chat-recording-status{font-size:11px;color:#64748b}
+.aam-chat-send-attachment{display:none!important;width:100%;min-height:36px!important}
+.aam-chat-composer.has-file .aam-chat-send-attachment{display:block!important}
+.aam-social-chat-screen .aam-chat-composer .aam-chat-media-input{display:none!important}
+.aam-social-chat-screen .aam-social-message{box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.aam-social-chat-screen .aam-social-message.mine{background:#e2eaff}
+.aam-social-chat-screen .aam-social-message:not(.mine){background:#fff}
+@media(max-width:759px){.aam-social-chat-screen{gap:8px!important}.aam-social-chat-screen .aam-chat-composer{margin-bottom:env(safe-area-inset-bottom)}}
