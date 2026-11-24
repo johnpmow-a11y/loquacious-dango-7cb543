@@ -1,5 +1,6 @@
 -- Unified signalling for customer-to-customer and administrator-to-customer WebRTC calls.
 -- Only Netlify functions using the Supabase service role may access this table.
+-- Intentionally does not delete or modify any existing call/customer data.
 begin;
 
 create table if not exists public.aam_call_signal_events (
@@ -21,8 +22,5 @@ create index if not exists aam_call_signal_events_recipient_idx
 alter table public.aam_call_signal_events enable row level security;
 revoke all on public.aam_call_signal_events from anon, authenticated;
 grant all on public.aam_call_signal_events to service_role;
-
-delete from public.aam_call_signal_events
-where created_at < now() - interval '1 day';
 
 commit;
