@@ -222,11 +222,7 @@ export async function handler(event) {
       const signal = inserted[0];
       const realtime_notified = signal ? await broadcastCallSignal(callId, {
         id: signal.id,
-        sender_id: 'customer:' + customerId,
-        recipient_id: recipientIdentity,
-        signal_type: signalType,
-        payload,
-        created_at: signal.created_at
+        recipient_id: recipientIdentity
       }) : false;
       return json(201, { sent: true, realtime_notified });
     }
