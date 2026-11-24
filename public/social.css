@@ -598,3 +598,13 @@ body:has(.aam-discovery-feed) .container{max-width:none!important;margin:0!impor
 .aam-social-chat-screen .aam-chat-voice-preview{flex:0 0 auto!important;width:100%!important;min-height:38px!important;margin:4px 0!important}
 .aam-social-chat-screen .aam-chat-recording-status{flex:0 0 auto!important}
 @media(min-width:760px){.aam-social-chat-inbox{padding-left:max(18px,calc((100vw - 760px)/2))!important;padding-right:max(18px,calc((100vw - 760px)/2))!important}}
+
+/* Status preview is a true full-screen phone composer; sharing remains an explicit action. */
+#aamStatusComposer{position:fixed!important;inset:0!important;z-index:100300!important;display:flex!important;align-items:stretch!important;justify-content:stretch!important;box-sizing:border-box!important;padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))!important;background:#070a12!important;color:#fff!important;overflow:hidden!important}
+#aamStatusComposer .aam-status-compose-card{width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;min-height:0!important;box-sizing:border-box!important;margin:0!important;padding:14px!important;border:0!important;border-radius:0!important;background:#0d1422!important;color:#fff!important;display:flex!important;flex-direction:column!important;gap:12px!important;overflow-y:auto!important}
+#aamStatusComposer .aam-status-compose-card>header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important}
+#aamStatusComposer #aamStatusPreview{display:block!important;width:100%!important;flex:1 1 auto!important;min-height:180px!important;max-height:58dvh!important;object-fit:contain!important;background:#000!important;border-radius:14px!important}
+#aamStatusComposer textarea{flex:0 0 auto!important;min-height:74px!important;background:#172033!important;color:#fff!important;border-color:#344054!important}
+#aamStatusComposer small{color:#cbd5e1!important;overflow-wrap:anywhere}
+#aamStatusComposer audio{width:100%!important;flex:0 0 auto!important}
+#aamStatusComposer .aam-social-btn,#aamStatusComposer .aam-status-compose-card>button:last-child{flex:0 0 auto!important;min-height:48px!important}
