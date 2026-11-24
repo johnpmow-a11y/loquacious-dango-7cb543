@@ -264,3 +264,17 @@ body.aam-video-focus-open{overflow:hidden!important}
 .aam-social-chat-screen .aam-social-message.mine{background:#e2eaff}
 .aam-social-chat-screen .aam-social-message:not(.mine){background:#fff}
 @media(max-width:759px){.aam-social-chat-screen{gap:8px!important}.aam-social-chat-screen .aam-chat-composer{margin-bottom:env(safe-area-inset-bottom)}}
+
+/* TikTok-style controls stay inside the full-screen video surface. */
+.aam-video-focus-overlay{isolation:isolate}
+.aam-video-focus-rail{position:absolute;z-index:3;right:max(10px,env(safe-area-inset-right));bottom:clamp(100px,16dvh,170px);display:flex;flex-direction:column;align-items:center;gap:18px}
+.aam-video-focus-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:52px;min-height:54px;border:0;border-radius:14px;background:rgba(9,15,28,.48);color:#fff;font-size:29px;font-weight:700;text-shadow:0 1px 4px #000;cursor:pointer;backdrop-filter:blur(5px)}
+.aam-video-focus-action small{font-size:10px;font-weight:600;letter-spacing:.1px}
+.aam-video-focus-action.is-active{color:#ff5476}
+.aam-video-focus-meta{position:absolute;z-index:2;left:14px;right:76px;bottom:max(20px,env(safe-area-inset-bottom));color:#fff;text-shadow:0 1px 5px #000;font-size:13px;pointer-events:none}
+.aam-video-focus-meta p{margin:5px 0 0;max-width:95%;line-height:1.4}
+.aam-video-focus-comments{position:absolute;z-index:4;left:0;right:0;bottom:0;max-height:55dvh;overflow:auto;padding:18px 16px max(18px,env(safe-area-inset-bottom));border-radius:20px 20px 0 0;background:#fff;color:#111827;transform:translateY(105%);transition:transform .22s ease}
+.aam-video-focus-comments.is-open{transform:translateY(0)}
+.aam-video-focus-comments .aam-social-comments{max-height:42dvh;overflow:auto}
+.aam-video-focus-comments .aam-social-field{background:#f8fafc}
+@media(min-width:760px){.aam-video-focus-rail{right:calc(50% - min(28.125dvh,50vw) + 12px)}.aam-video-focus-meta{left:calc(50% - min(28.125dvh,50vw) + 14px);right:calc(50% - min(28.125dvh,50vw) + 76px)}}
