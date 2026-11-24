@@ -499,3 +499,33 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 /* Keep the Home feed edge-to-edge; search and navigation float above the video. */
 .aam-discovery-searchbar{position:sticky!important;top:0;z-index:10;margin:0 auto 8px;max-width:760px;background:rgba(12,18,28,.72);backdrop-filter:blur(12px);border-radius:16px;padding:6px}
 .aam-discovery-status,.aam-discovery-footer{display:none!important}
+
+/* Centered All Ads Manager profile with one-tap edit and settings panels */
+.aam-profile-page{width:100%;max-width:760px;margin:0 auto;padding:env(safe-area-inset-top) 12px calc(28px + env(safe-area-inset-bottom));box-sizing:border-box}
+.aam-profile-topbar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:10px;padding:8px 0 18px}
+.aam-profile-topbar>strong{text-align:center;font-size:18px}
+.aam-profile-icon{width:42px;height:42px;border:1px solid var(--aam-border,#293548);border-radius:50%;background:var(--aam-card,#111827);color:inherit;font-size:21px}
+.aam-profile-centered{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 14px}
+.aam-profile-centered h2{margin:5px 0 0;font-size:23px}
+.aam-profile-bio{margin:0 auto;max-width:480px;white-space:pre-wrap;overflow-wrap:anywhere}
+.aam-profile-avatar-wrap{position:relative;margin:0 auto}
+.aam-profile-avatar-wrap .aam-profile-avatar{width:112px;height:112px;object-fit:cover;border-radius:50%}
+.aam-profile-avatar-empty{display:grid;place-items:center;background:#263449;color:#fff;font-size:42px}
+.aam-profile-centered .aam-avatar-camera{position:absolute;right:0;bottom:2px;width:36px;height:36px;border:2px solid #fff;border-radius:50%;background:#263449;color:#fff}
+.aam-profile-stats{display:flex;justify-content:center;gap:34px;margin:14px 0}
+.aam-profile-stats span{display:flex;flex-direction:column;gap:3px}
+.aam-profile-stats b{font-size:18px}.aam-profile-stats small{opacity:.7;font-size:12px}
+.aam-profile-identity{margin-top:12px}
+.aam-profile-identity>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.aam-profile-identity>div:first-child>div,.aam-profile-identity>div:first-child strong{overflow-wrap:anywhere}
+.aam-profile-identity>div:first-child small{opacity:.65;font-size:11px}
+.aam-profile-identity>div:first-child strong{font-size:18px;letter-spacing:1px}
+.aam-profile-editor,.aam-profile-settings{margin-top:12px}
+.aam-profile-editor[hidden],.aam-profile-settings[hidden]{display:none!important}
+.aam-profile-settings label,.aam-profile-editor label{display:block;margin:12px 0 5px}
+.aam-wallpaper-preview{width:100%;height:100px;border-radius:12px;margin:8px 0;background-size:cover;background-position:center;background-color:#172554;border:1px solid var(--aam-border,#293548)}
+.aam-profile-post-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+.aam-profile-post-grid>.aam-social-card,.aam-profile-post-grid>.aam-social-post,.aam-profile-post-grid>.aam-post-card{min-width:0;margin:0;border-radius:4px;overflow:hidden}
+.aam-profile-post-grid img,.aam-profile-post-grid video{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.aam-profile-post-grid .aam-post-actions,.aam-profile-post-grid .aam-post-caption{font-size:11px}
+@media(max-width:420px){.aam-profile-page{padding-left:8px;padding-right:8px}.aam-profile-stats{gap:24px}.aam-profile-identity>div:first-child strong{font-size:15px}}
