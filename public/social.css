@@ -529,3 +529,20 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-profile-post-grid img,.aam-profile-post-grid video{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
 .aam-profile-post-grid .aam-post-actions,.aam-profile-post-grid .aam-post-caption{font-size:11px}
 @media(max-width:420px){.aam-profile-page{padding-left:8px;padding-right:8px}.aam-profile-stats{gap:24px}.aam-profile-identity>div:first-child strong{font-size:15px}}
+
+/* Searchable, full-screen free sound catalogue */
+.aam-sound-library{position:fixed;inset:0;z-index:100800;background:rgba(3,7,18,.96);display:flex;align-items:stretch;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.aam-sound-library>section{width:100%;max-width:760px;overflow:auto;padding:16px;box-sizing:border-box;background:#0d1422;color:#f8fafc}
+.aam-sound-library header{display:flex;align-items:center;gap:14px;padding:8px 0 18px}
+.aam-sound-library header button{width:40px;height:40px;border:0;border-radius:50%;background:#253249;color:#fff;font-size:22px}
+.aam-sound-library header strong{font-size:20px}
+.aam-sound-library p{color:#cbd5e1;font-size:13px;line-height:1.5}
+.aam-sound-search{display:flex;gap:8px;margin:16px 0}
+.aam-sound-search input{flex:1;min-width:0;border:1px solid #475569;border-radius:10px;padding:12px;background:#172033;color:#fff}
+.aam-sound-search button,.aam-sound-library article>button{border:0;border-radius:10px;padding:10px 14px;background:#0d9488;color:#fff;font-weight:700}
+.aam-sound-library article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 0;border-bottom:1px solid #293548}
+.aam-sound-library article>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.aam-sound-library article strong{overflow-wrap:anywhere}
+.aam-sound-library article small{color:#94a3b8;font-size:11px}
+.aam-sound-library article audio{grid-column:1/-1;width:100%;height:36px}
+.aam-sound-local{display:block;text-align:center;padding:12px}
