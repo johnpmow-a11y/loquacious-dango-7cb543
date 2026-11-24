@@ -51,14 +51,6 @@ export async function handler(event){
    const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:null,author_role:'admin',media_type:mime.startsWith('video/')?'video':'image',media_path:path,thumbnail_path:thumb||null,caption:String(b.caption||'').trim().slice(0,2200),moderation_status:'published',is_locked:mime.startsWith('video/')&&b.is_locked===true}])});
    return json(200,{ok:true,post:rows[0]});
   }
-  if(b.action==='moderate_post'){
-   if(!uuid.test(String(b.post_id||'')))return json(400,{error:'Invalid post.'});
-   const status=b.decision==='approve'?'published':b.decision==='reject'?'removed':null;
-   if(!status)return json(400,{error:'Choose approve or reject.'});
-   const rows=await db(`aam_social_posts?id=eq.${b.post_id}&author_role=eq.customer&moderation_status=eq.pending`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({moderation_status:status,updated_at:new Date().toISOString()})});
-   if(!rows.length)return json(409,{error:'This post is no longer awaiting review.'});
-   return json(200,{moderated:true,status});
-  }
   if(b.action==='delete_post'){
    if(!uuid.test(String(b.post_id||'')))return json(400,{error:'Invalid post.'});
    await db(`aam_social_posts?id=eq.${b.post_id}`,{method:'PATCH',body:JSON.stringify({moderation_status:'removed',updated_at:new Date().toISOString()})});
