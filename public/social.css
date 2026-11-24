@@ -487,3 +487,11 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-discovery-feed>.aam-social-feed-item .aam-social-btn{color:#fff!important;background:#087b69!important;border-color:#087b69!important}
 .aam-discovery-feed>.aam-social-feed-item .aam-social-feed-avatar{width:36px!important;height:36px!important;border-radius:50%!important;object-fit:cover!important}
 @media(max-width:600px){.aam-discovery-feed>.aam-social-feed-item{min-height:calc(100dvh - 174px)!important}}
+
+.aam-chat-image-viewer{position:fixed;inset:0;z-index:12050;background:rgba(0,0,0,.97);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));}
+.aam-chat-image-viewer header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;color:#fff;flex:0 0 auto}
+.aam-chat-image-viewer header button{border:0;border-radius:50%;width:42px;height:42px;background:#263449;color:#fff;font-size:24px}
+.aam-chat-image-viewer header div{display:flex;gap:8px}
+.aam-chat-image-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;touch-action:pan-x pan-y pinch-zoom}
+.aam-chat-image-stage img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform .08s linear;user-select:none;-webkit-user-drag:none}
+.aam-social-chat-media{cursor:zoom-in}
