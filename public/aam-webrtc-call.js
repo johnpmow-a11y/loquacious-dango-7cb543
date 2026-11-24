@@ -16,7 +16,7 @@ export async function createAamWebRtcCall({
   const pc = new RTCPeerConnection({ iceServers });
   const remoteStream = new MediaStream();
   const seenSignals = new Set();
-  let closed = false, channel = null, pollTimer = null, cursor = new Date(0).toISOString();
+  let closed = false, channel = null, pollTimer = null, cursor = new Date(0).toISOString(), lastRealtimeWake = 0;
   let offerStarted = false, makingOffer = false, remoteDescriptionSet = false;
   const pendingCandidates = [];
 
@@ -106,8 +106,13 @@ export async function createAamWebRtcCall({
 
   try {
     channel = supabase.channel('aam-call-' + callId, { config: { broadcast: { self: false } } });
-    channel.on('broadcast', { event: 'signal' }, message => {
-      void processSignal(message?.payload).catch(error => onState(error.message || 'Could not process call signal.'));
+    channel.on('broadcast', { event: 'signal' }, () => {
+      // Public Realtime broadcasts are wake-up hints only. Actual SDP/ICE is
+      // fetched through the authenticated Netlify endpoint for this participant.
+      const now = Date.now();
+      if (now - lastRealtimeWake < 500) return;
+      lastRealtimeWake = now;
+      void poll();
     });
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Realtime signalling did not connect.')), 12000);
