@@ -205,14 +205,23 @@ function promoteCallToFullscreen(){const panel=document.querySelector('.aam-soci
 function restoreCallPanel(){const overlay=document.getElementById('aamActiveCallOverlay');if(!overlay)return;const panel=document.querySelector('.aam-social-chat-screen .aam-social-call-panel');const section=overlay.querySelector('.aam-active-call-surface');if(panel&&section){while(section.firstChild)panel.appendChild(section.firstChild);delete panel.dataset.fullscreenCall;}overlay.remove();}
 function callPanelHtml(){return '<div class="aam-social-call-panel"><div id="aamCallStatus" class="aam-social-muted">Audio and video calls</div><button class="aam-social-btn secondary" id="aamEnableCallAudio" style="display:none" onclick="AAMSocial.enableCallAudio()">Tap to enable call audio</button><div id="aamCallMedia" class="aam-social-call-media"></div><div id="aamIncomingCall"></div><div class="aam-social-call-actions"><button class="aam-social-btn secondary" onclick="AAMSocial.startCall(\'audio\')">☎ Audio call</button><button class="aam-social-btn secondary" onclick="AAMSocial.startCall(\'video\')">▣ Video call</button><button class="aam-social-btn secondary" id="aamMuteCallBtn" style="display:none" onclick="AAMSocial.toggleCallMicrophone()">Mute microphone</button><button class="aam-social-btn secondary" id="aamCameraCallBtn" style="display:none" onclick="AAMSocial.toggleCallCamera()">Turn camera off</button><button class="aam-social-btn secondary" id="aamSwitchCameraBtn" style="display:none" onclick="AAMSocial.switchCallCamera()">↻ Flip camera</button><button class="aam-social-btn secondary" id="aamSwapCallViewBtn" style="display:none" onclick="AAMSocial.swapCallMainView()">⇄ Swap view</button><button class="aam-social-btn" id="aamEndCallBtn" style="display:none" onclick="AAMSocial.endCall()">End call</button></div></div>';}
 function setCallStatus(message){const el=document.getElementById('aamCallStatus');if(el)el.textContent=message;}
-let aamPendingCallTracks=[];
+let aamPendingCallTracks=[],aamCallTrackObserver=null;
+function queueCallTrack(track,participant){
+const key=track.sid||participant.identity+':'+track.kind;
+if(!aamPendingCallTracks.some(x=>x.key===key||x.track===track))aamPendingCallTracks.push({key,track,participant});
+if(!aamCallTrackObserver&&document.body&&window.MutationObserver){
+aamCallTrackObserver=new MutationObserver(()=>{if(document.getElementById('aamCallMedia')){aamCallTrackObserver.disconnect();aamCallTrackObserver=null;flushCallTracks(aamLiveKitRoom);}});
+aamCallTrackObserver.observe(document.body,{childList:true,subtree:true});
+}
+}
 function attachCallTrack(track,participant){
 if(!track||!participant||!['audio','video'].includes(track.kind))return false;
 const media=document.getElementById('aamCallMedia');
-if(!media){const key=track.sid||participant.identity+':'+track.kind;if(!aamPendingCallTracks.some(x=>x.key===key))aamPendingCallTracks.push({key,track,participant});return false;}
+if(!media){queueCallTrack(track,participant);return false;}
 const key=track.sid||participant.identity+':'+track.kind;
 if([...media.children].some(el=>el.dataset.callTrack===key))return true;
-const attached=track.attach();
+let attached;
+try{attached=track.attach();}catch(_){queueCallTrack(track,participant);return false;}
 for(const el of (Array.isArray(attached)?attached:[attached])){
 if(!el)continue;
 el.autoplay=true;el.playsInline=true;el.dataset.participant=participant.identity;el.dataset.callTrack=key;
@@ -231,7 +240,7 @@ for(const item of pending)attachCallTrack(item.track,item.participant);
 for(const participant of room.remoteParticipants.values()){
 for(const publication of participant.trackPublications.values()){
 if(!['audio','video'].includes(publication.kind))continue;
-if(!publication.isSubscribed){try{publication.setSubscribed(true);}catch(_){}}
+if(!publication.isSubscribed){try{Promise.resolve(publication.setSubscribed(true)).catch(()=>{});}catch(_){}}
 if(publication.track)attachCallTrack(publication.track,participant);
 }
 }
@@ -266,13 +275,13 @@ async function connectCall(callId,callType='audio',authToken=null,preparedCamera
   room.on(LK.RoomEvent.AudioPlaybackStatusChanged,()=>{const button=document.getElementById('aamEnableCallAudio');if(button)button.style.display=room.canPlaybackAudio?'none':'inline-flex';if(!room.canPlaybackAudio)setCallStatus('Connected. Tap to enable call audio.');});
   room.on(LK.RoomEvent.MediaDevicesError,error=>setCallStatus('Camera or microphone problem: '+(error?.message||'Check device permission.')));
   room.on(LK.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachCallTrack(track,participant));
-  room.on(LK.RoomEvent.TrackUnsubscribed,track=>{aamPendingCallTracks=aamPendingCallTracks.filter(x=>x.key!==(track.sid||''));track.detach().forEach(el=>el.remove());arrangeCallVideoTiles();});
+  room.on(LK.RoomEvent.TrackUnsubscribed,track=>{aamPendingCallTracks=aamPendingCallTracks.filter(x=>x.track!==track&&x.key!==(track.sid||''));track.detach().forEach(el=>el.remove());arrangeCallVideoTiles();});
   room.on(LK.RoomEvent.Reconnecting,()=>setCallStatus('Connection interrupted. Reconnecting…'));
-  room.on(LK.RoomEvent.Reconnected,()=>{setCallStatus('Reconnected · restoring media…');setTimeout(()=>flushCallTracks(room),0);});
-  room.on(LK.RoomEvent.ParticipantConnected,participant=>{setCallStatus((participant.name||'The other person')+' joined the call.');setTimeout(()=>flushCallTracks(room),0);});
+  room.on(LK.RoomEvent.Reconnected,()=>{setCallStatus('Reconnected · restoring media…');setTimeout(()=>flushCallTracks(room),0);setTimeout(()=>flushCallTracks(room),300);});
+  room.on(LK.RoomEvent.ParticipantConnected,participant=>{setCallStatus((participant.name||'The other person')+' joined the call.');setTimeout(()=>flushCallTracks(room),0);setTimeout(()=>flushCallTracks(room),300);});
   room.on(LK.RoomEvent.ParticipantDisconnected,()=>setCallStatus('The other person disconnected.'));
-  room.on(LK.RoomEvent.Disconnected,()=>{if(aamCurrentCallId===callId){aamLiveKitRoom=null;aamCurrentCallId=null;void stopCallAvatar({restoreCamera:false});if(aamCallVoiceController)void aamCallVoiceController.stop({restoreMic:false});aamCallVoiceController=null;aamCallAvatarPaidCallId=null;const voiceStyle=document.getElementById('aamCallVoiceStyle');if(voiceStyle){voiceStyle.value='natural';voiceStyle.style.display='none';}setCallStatus('Call disconnected.');['aamEndCallBtn','aamCallAvatarBtn','aamCallAvatarStyle','aamCallSavedAvatar','aamAvatarPrivacyLink','aamMuteCallBtn','aamCameraCallBtn','aamEnableCallAudio','aamSwapCallViewBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});document.getElementById('aamIncomingCallOverlay')?.remove();if(authToken)adminCallAction('end',callId).catch(()=>{});else callAction('end',callId).catch(()=>{});}});
-  await room.connect(grant.url,grant.token);await room.localParticipant.setMicrophoneEnabled(true);
+  room.on(LK.RoomEvent.Disconnected,()=>{if(aamCurrentCallId===callId){aamPendingCallTracks=[];if(aamCallTrackObserver){aamCallTrackObserver.disconnect();aamCallTrackObserver=null;}aamLiveKitRoom=null;aamCurrentCallId=null;void stopCallAvatar({restoreCamera:false});if(aamCallVoiceController)void aamCallVoiceController.stop({restoreMic:false});aamCallVoiceController=null;aamCallAvatarPaidCallId=null;const voiceStyle=document.getElementById('aamCallVoiceStyle');if(voiceStyle){voiceStyle.value='natural';voiceStyle.style.display='none';}setCallStatus('Call disconnected.');['aamEndCallBtn','aamCallAvatarBtn','aamCallAvatarStyle','aamCallSavedAvatar','aamAvatarPrivacyLink','aamMuteCallBtn','aamCameraCallBtn','aamEnableCallAudio','aamSwapCallViewBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});document.getElementById('aamIncomingCallOverlay')?.remove();if(authToken)adminCallAction('end',callId).catch(()=>{});else callAction('end',callId).catch(()=>{});}});
+  await room.connect(grant.url,grant.token);await room.localParticipant.setMicrophoneEnabled(true);flushCallTracks(room);setTimeout(()=>{if(aamLiveKitRoom===room)flushCallTracks(room);},250);setTimeout(()=>{if(aamLiveKitRoom===room)flushCallTracks(room);},900);
   if(callType==='video'){
    if(!preparedCameraTrack||preparedCameraTrack.readyState!=='live')throw new Error('The camera did not stay active. Please allow camera access and try again.');
    const publication=await room.localParticipant.publishTrack(preparedCameraTrack,{source:LK.Track.Source.Camera,name:'camera'});
