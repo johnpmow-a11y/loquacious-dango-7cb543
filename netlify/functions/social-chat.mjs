@@ -29,9 +29,12 @@ export async function handler(event){
     const readIds=ownIds.map(m=>m.id);
     const [reads,profiles]=await Promise.all([readIds.length?db(`aam_chat_message_reads?select=message_id,customer_id,read_at&message_id=in.(${readIds.join(',')})`):Promise.resolve([]),ids.length?db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=in.(${ids.join(',')})`):Promise.resolve([])]);
     const pm=new Map(profiles.map(p=>[p.customer_id,p]));
+    const otherCustomerId=otherParticipants[0]?.customer_id||null;
+    const otherProfileRows=otherCustomerId?await db(`aam_social_profiles?select=display_name,avatar_path&customer_id=eq.${encodeURIComponent(otherCustomerId)}&limit=1`):[];
+    const otherProfile=otherProfileRows[0]?{display_name:otherProfileRows[0].display_name||'Friend',avatar_url:otherProfileRows[0].avatar_path?await signedRead(otherProfileRows[0].avatar_path):null}:null;
     const outputMessages=await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id)}}));
     rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv}).catch(()=>{});
-    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,other_is_typing:!!otherParticipants[0]?.typing_at&&(Date.now()-new Date(otherParticipants[0].typing_at).getTime()<6000),group_role:groupMember[0]?.group_role||null,messages:outputMessages,read_message_ids:reads.map(r=>r.message_id)});
+    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherCustomerId,other_profile:otherProfile,other_is_typing:!!otherParticipants[0]?.typing_at&&(Date.now()-new Date(otherParticipants[0].typing_at).getTime()<6000),group_role:groupMember[0]?.group_role||null,messages:outputMessages,read_message_ids:reads.map(r=>r.message_id)});
    }
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
    if(!parts.length)return json(200,{conversations:[]});
