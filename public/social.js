@@ -114,7 +114,7 @@ async function searchSoundLibrary(){
    try{const m=await fetch('https://archive.org/metadata/'+encodeURIComponent(item.identifier)).then(r=>r.json());const meta=m.metadata||{},license=String(meta.licenseurl||item.licenseurl||'').toLowerCase();
     const allowed=license.includes('creativecommons.org/publicdomain/zero')||license.includes('creativecommons.org/licenses/by/')||license.includes('creativecommons.org/licenses/by-sa/')||license.includes('creativecommons.org/licenses/by/3.0')||license.includes('creativecommons.org/licenses/by-sa/3.0')||license.includes('creativecommons.org/publicdomain/mark');
     if(!allowed)return null;
-    const files=(m.files||[]).filter(f=>!f.private&&/\.(mp3|ogg|wav|m4a)$/i.test(f.name||'')&&Number(f.size||0)>0).sort((a,b)=>Number(a.size||0)-Number(b.size||0));
+    const files=(m.files||[]).filter(f=>!f.private&&/\.(mp3|ogg|wav|m4a)$/i.test(f.name||'')&&Number(f.size||0)>0&&Number(f.size)<=20*1024*1024).sort((a,b)=>Number(a.size||0)-Number(b.size||0));
     if(!files.length)return null;return {id:item.identifier,title:item.title||meta.title||item.identifier,creator:item.creator||meta.creator||'Unknown creator',license,file:files[0]};
    }catch(e){return null;}
   }));
