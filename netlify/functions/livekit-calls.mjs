@@ -113,15 +113,15 @@ export async function handler(event) {
       }
       // Alert the invited customer even when they are outside the private-chat screen.
       // Push delivery is best-effort: a missing/disabled push subscription must not cancel a valid call.
-      await sendPush({
+      const pushResult = await sendPush({
         role: 'customer',
         customerId: targetId,
         title: callType === 'video' ? 'Incoming video call' : 'Incoming voice call',
         body: 'Open All Ads Manager and enter your private chat to answer.',
         url: '/',
         eventType: null
-      }).catch(error => console.warn('Incoming-call push could not be sent:', error.message));
-      return json(201, { call_id: call.id, call_type: callType, status: 'ringing' });
+      }).catch(error => { console.warn('Incoming-call push could not be sent:', error.message); return { status: 'error' }; });
+      return json(201, { call_id: call.id, call_type: callType, status: 'ringing', notification_status: pushResult.status || 'unknown' });
     }
 
     if (!uuid.test(callId)) return json(400, { error: 'A valid call ID is required.' });
