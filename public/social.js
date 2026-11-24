@@ -111,7 +111,8 @@ async function startStatusCamera(facing){
   aamStatusCameraStream=await navigator.mediaDevices.getUserMedia({audio:true,video:{facingMode:{ideal:facing},width:{ideal:1080},height:{ideal:1920}}});
   const video=document.getElementById('aamStatusLiveCamera');if(video){video.srcObject=aamStatusCameraStream;await video.play().catch(()=>{});}
   const record=document.getElementById('aamStatusCameraRecord');
-  if(!window.MediaRecorder||!MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')){if(record)record.disabled=true;}
+  const supported=window.MediaRecorder&&['video/mp4','video/webm;codecs=vp8,opus','video/webm'].some(type=>MediaRecorder.isTypeSupported?.(type));
+  if(record)record.disabled=!supported;
  }catch(error){closeStatusCamera();notice(error.name==='NotAllowedError'?'Allow camera and microphone access to create a Status.':'The camera could not be opened. Choose Photo / Video instead.');}
 }
 function closeStatusCamera(){
@@ -129,10 +130,10 @@ function toggleStatusCameraRecording(){
  if(aamStatusRecorder?.state==='recording'){aamStatusRecorder.stop();return;}
  if(!aamStatusCameraStream)return notice('Camera is not ready.');
  try{
-  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'video/webm';
-  aamStatusChunks=[];aamStatusRecorder=new MediaRecorder(aamStatusCameraStream,{mimeType:mime});
+  const mime=['video/mp4','video/webm;codecs=vp8,opus','video/webm'].find(type=>MediaRecorder.isTypeSupported?.(type))||'';
+  aamStatusChunks=[];aamStatusRecorder=new MediaRecorder(aamStatusCameraStream,mime?{mimeType:mime}:{});
   aamStatusRecorder.ondataavailable=event=>{if(event.data?.size)aamStatusChunks.push(event.data);};
-  aamStatusRecorder.onstop=()=>{const blob=new Blob(aamStatusChunks,{type:aamStatusRecorder?.mimeType||mime});const file=new File([blob],'status-video.webm',{type:blob.type||'video/webm'});aamStatusRecorder=null;aamStatusChunks=[];closeStatusCamera();if(file.size)prepareStatusComposer(file);else notice('The video recording was empty. Try again.');};
+  aamStatusRecorder.onstop=()=>{const type=aamStatusRecorder?.mimeType||mime||'video/webm',blob=new Blob(aamStatusChunks,{type}),extension=type.includes('mp4')?'mp4':'webm';const file=new File([blob],'status-video.'+extension,{type});aamStatusRecorder=null;aamStatusChunks=[];closeStatusCamera();if(file.size)prepareStatusComposer(file);else notice('The video recording was empty. Try again.');};
   aamStatusRecorder.start(250);const button=document.getElementById('aamStatusCameraRecord'),mode=document.getElementById('aamStatusCameraMode');if(button)button.textContent='■';if(mode)mode.textContent='Recording · tap to stop';
  }catch(error){notice('Video recording is not supported by this browser.');}
 }
