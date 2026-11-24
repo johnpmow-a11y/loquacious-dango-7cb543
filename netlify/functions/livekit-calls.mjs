@@ -155,10 +155,11 @@ export async function handler(event) {
     if (action === 'signal_send') {
       const signalType = String(body.signal_type || '');
       const payload = body.payload;
-      const targetId = String(body.target_customer_id || '');
       if (!['offer','answer','ice','hangup'].includes(signalType)) return json(400, { error: 'Unsupported call signal.' });
-      if (!uuid.test(targetId) || targetId === customerId) return json(400, { error: 'Invalid call recipient.' });
       if (participant.status !== 'accepted') return json(403, { error: 'Accept the call before sending media signals.' });
+      const peers = await db(`aam_call_participants?select=customer_id,status&call_id=eq.${encodeURIComponent(callId)}&customer_id=neq.${encodeURIComponent(customerId)}&status=eq.accepted&limit=1`);
+      const targetId = peers[0]?.customer_id || '';
+      if (!uuid.test(targetId)) return json(409, { error: 'The other caller has not accepted this call yet.' });
       const encoded = JSON.stringify(payload ?? null);
       if (encoded.length > 24000) return json(413, { error: 'Call signal is too large.' });
       if (signalType === 'offer' || signalType === 'answer') {
