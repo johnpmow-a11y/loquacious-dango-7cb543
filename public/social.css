@@ -579,3 +579,5 @@ body:has(.aam-discovery-feed) .container{max-width:none!important;margin:0!impor
 .aam-status-audio{position:relative!important;top:auto!important;left:auto!important;right:auto!important;width:100%!important;height:42px!important;opacity:1!important}
 .aam-chat-voice-preview{display:block;width:100%;max-width:100%;margin:8px 0}
 .aam-chat-composer-actions .aam-chat-voice-stop,.aam-chat-composer-actions .aam-chat-voice-send{width:40px;min-width:40px;padding:0}
+
+.aam-chat-voice-preview[hidden]{display:none!important}
