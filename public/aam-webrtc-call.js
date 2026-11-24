@@ -16,7 +16,7 @@ export async function createAamWebRtcCall({
   const pc = new RTCPeerConnection({ iceServers });
   const remoteStream = new MediaStream();
   const seenSignals = new Set();
-  let closed = false, channel = null, pollTimer = null, cursor = new Date(0).toISOString(), lastRealtimeWake = 0;
+  let closed = false, channel = null, pollTimer = null, cursor = new Date(0).toISOString(), lastRealtimeWake = 0, pollInFlight = false;
   let offerStarted = false, makingOffer = false, remoteDescriptionSet = false;
   const pendingCandidates = [];
 
@@ -68,7 +68,8 @@ export async function createAamWebRtcCall({
   };
 
   const poll = async () => {
-    if (closed) return;
+    if (closed || pollInFlight) return;
+    pollInFlight = true;
     try {
       const result = await listSignals(cursor);
       for (const signal of result?.signals || []) {
@@ -77,6 +78,8 @@ export async function createAamWebRtcCall({
       }
     } catch (error) {
       onState('Restoring call connection…');
+    } finally {
+      pollInFlight = false;
     }
   };
 
