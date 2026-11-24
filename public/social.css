@@ -455,11 +455,11 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-discovery-searchbar .aam-social-field{flex:1;min-width:0;min-height:40px;margin:0;padding:8px 12px;border-radius:22px}
 .aam-discovery-searchbar button{flex:0 0 42px;width:42px;height:40px;min-height:40px;border:0;border-radius:50%;background:#087b69;color:#fff;font-size:25px}
 .aam-discovery-status{padding:6px 12px;background:#071311;color:#b7d7d0;font-size:10px}
-.aam-discovery-feed{height:calc(100dvh - 190px);min-height:420px;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;background:#000;scrollbar-width:none}
+.aam-discovery-feed{position:fixed;inset:0;z-index:1;width:100vw;height:100dvh;min-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;background:#000;scrollbar-width:none;padding:0 0 env(safe-area-inset-bottom)}
 .aam-discovery-feed::-webkit-scrollbar{display:none}
-.aam-discovery-card{position:relative;display:flex;flex-direction:column;justify-content:center;width:100%;height:100%;min-height:calc(100dvh - 190px);scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;background:#000;color:#fff}
+.aam-discovery-card{position:relative;display:flex;flex-direction:column;justify-content:center;width:100%;height:100dvh;min-height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;background:#000;color:#fff}
 .aam-discovery-player{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000}
-.aam-discovery-video,.aam-discovery-embed{display:block;width:100%;height:100%;max-width:100%;max-height:100%;border:0;object-fit:contain;background:#000}
+.aam-discovery-video,.aam-discovery-embed{display:block;width:100%;height:100%;max-width:100%;max-height:100%;border:0;object-fit:cover;background:#000}
 .aam-discovery-meta{position:absolute;z-index:4;left:0;right:0;bottom:0;padding:52px 16px 18px;background:linear-gradient(transparent,rgba(0,0,0,.84));display:flex;flex-direction:column;gap:5px;pointer-events:none}
 .aam-discovery-meta a{pointer-events:auto;color:#b9fff0;font-size:11px;text-decoration:none}
 .aam-discovery-meta strong{font-size:16px;line-height:1.25;text-shadow:0 1px 4px #000}
@@ -495,3 +495,7 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-chat-image-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;touch-action:pan-x pan-y pinch-zoom}
 .aam-chat-image-stage img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform .08s linear;user-select:none;-webkit-user-drag:none}
 .aam-social-chat-media{cursor:zoom-in}
+
+/* Keep the Home feed edge-to-edge; search and navigation float above the video. */
+.aam-discovery-searchbar{position:fixed!important;top:calc(8px + env(safe-area-inset-top));left:12px;right:12px;z-index:9502;margin:0 auto;max-width:760px;background:rgba(12,18,28,.72);backdrop-filter:blur(12px);border-radius:16px;padding:6px}
+.aam-discovery-status,.aam-discovery-footer{display:none!important}
