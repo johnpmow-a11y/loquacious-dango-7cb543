@@ -104,10 +104,10 @@ async function searchSoundLibrary(){
  const box=document.getElementById('aamSoundResults');if(!box)return;
  const searchId=(window.aamSoundSearchId||0)+1;window.aamSoundSearchId=searchId;
  box.innerHTML='<p>Searching Audius and Internet Archive…</p>';
- const terms=q.toLowerCase().replace(/[^\\p{L}\\p{N}\\s-]/gu,' ').trim().split(/\\s+/).filter(Boolean).slice(0,6);
+ const terms=q.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu,' ').trim().split(/\s+/).filter(Boolean).slice(0,6);
  if(!terms.length){box.innerHTML='<p>Enter a sound, artist, country or genre to search.</p>';return;}
  const archiveSearch=(async()=>{
-  const termQuery=terms.map(term=>{const safe=term.replace(/[^\\p{L}\\p{N}-]/gu,'');return '(title:'+safe+'* OR creator:'+safe+'* OR subject:'+safe+'* OR description:'+safe+'*)';}).join(' AND ');
+  const termQuery=terms.map(term=>{const safe=term.replace(/[^\p{L}\p{N}-]/gu,'');return '(title:'+safe+'* OR creator:'+safe+'* OR subject:'+safe+'* OR description:'+safe+'*)';}).join(' AND ');
   const query='mediatype:audio AND ('+termQuery+')';
   const endpoint='https://archive.org/advancedsearch.php?q='+encodeURIComponent(query)+'&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&fl[]=licenseurl&rows=30&page=1&output=json';
   const response=await fetch(endpoint,{headers:{Accept:'application/json'}});if(!response.ok)throw new Error('Internet Archive search failed.');
