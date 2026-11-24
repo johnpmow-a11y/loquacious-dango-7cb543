@@ -167,7 +167,9 @@ const media=document.getElementById('aamCallMedia');
 if(!media){const key=track.sid||participant.identity+':'+track.kind;if(!aamPendingCallTracks.some(x=>x.key===key))aamPendingCallTracks.push({key,track,participant});return false;}
 const key=track.sid||participant.identity+':'+track.kind;
 if([...media.children].some(el=>el.dataset.callTrack===key))return true;
-for(const el of track.attach()){
+const attached=track.attach();
+for(const el of (Array.isArray(attached)?attached:[attached])){
+if(!el)continue;
 el.autoplay=true;el.playsInline=true;el.dataset.participant=participant.identity;el.dataset.callTrack=key;
 if(track.kind==='video')el.classList.add('aam-call-remote-video');
 else el.style.display='none';
