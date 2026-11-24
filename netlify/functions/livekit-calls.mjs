@@ -152,6 +152,39 @@ export async function handler(event) {
       if (!accepted.length) return json(409, { error: 'This invitation was already answered.' });
       return json(200, { status: 'accepted', call_id: callId });
     }
+    if (action === 'signal_send') {
+      const signalType = String(body.signal_type || '');
+      const payload = body.payload;
+      const targetId = String(body.target_customer_id || '');
+      if (!['offer','answer','ice','hangup'].includes(signalType)) return json(400, { error: 'Unsupported call signal.' });
+      if (!uuid.test(targetId) || targetId === customerId) return json(400, { error: 'Invalid call recipient.' });
+      if (participant.status !== 'accepted') return json(403, { error: 'Accept the call before sending media signals.' });
+      const encoded = JSON.stringify(payload ?? null);
+      if (encoded.length > 24000) return json(413, { error: 'Call signal is too large.' });
+      if (signalType === 'offer' || signalType === 'answer') {
+        if (!payload || typeof payload !== 'object' || typeof payload.sdp !== 'string' || payload.sdp.length > 18000) return json(400, { error: 'Invalid session description.' });
+      } else if (signalType === 'ice') {
+        if (!payload || typeof payload !== 'object' || typeof payload.candidate !== 'string' || payload.candidate.length > 5000) return json(400, { error: 'Invalid ICE candidate.' });
+      }
+      const other = await db(`aam_call_participants?select=customer_id,status&call_id=eq.${encodeURIComponent(callId)}&customer_id=eq.${encodeURIComponent(targetId)}&status=eq.accepted&limit=1`);
+      if (!other.length) return json(403, { error: 'The other caller has not accepted this call.' });
+      await db('aam_call_signals', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ call_id: callId, sender_id: customerId, recipient_id: targetId, signal_type: signalType, payload })
+      });
+      return json(201, { sent: true });
+    }
+
+    if (action === 'signal_list') {
+      if (participant.status !== 'accepted') return json(403, { error: 'Accept the call before receiving media signals.' });
+      const after = String(body.after || '1970-01-01T00:00:00.000Z');
+      const afterDate = new Date(after);
+      if (!Number.isFinite(afterDate.getTime())) return json(400, { error: 'Invalid signal cursor.' });
+      const signals = await db(`aam_call_signals?select=id,sender_id,signal_type,payload,created_at&call_id=eq.${encodeURIComponent(callId)}&recipient_id=eq.${encodeURIComponent(customerId)}&created_at=gt.${encodeURIComponent(afterDate.toISOString())}&created_at=gt.${encodeURIComponent(new Date(Date.now()-180000).toISOString())}&order=created_at.asc&limit=100`);
+      return json(200, { signals });
+    }
+
     if (action === 'decline' || action === 'end') {
       await db(`aam_call_participants?call_id=eq.${encodeURIComponent(callId)}&customer_id=eq.${encodeURIComponent(customerId)}`, {
         method: 'PATCH', headers: { Prefer: 'return=minimal' },
