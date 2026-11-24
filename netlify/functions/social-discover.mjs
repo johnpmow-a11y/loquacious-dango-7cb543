@@ -39,12 +39,12 @@ export async function handler(event){
    const [followers,followingCount,posts,unlocks,profileViews]=await Promise.all([
     db(`aam_social_follows?select=follower_id&followed_id=eq.${target}`),
     db(`aam_social_follows?select=followed_id&follower_id=eq.${target}`),
-    allowed?db(`aam_social_posts?select=id,customer_id,media_type,media_path,thumbnail_path,caption,comments_enabled,created_at,is_locked&customer_id=eq.${target}&moderation_status=eq.published&order=created_at.desc&limit=30`):Promise.resolve([]),
+    allowed?db(`aam_social_posts?select=id,customer_id,media_type,media_path,thumbnail_path,audio_path,caption,comments_enabled,created_at,is_locked&customer_id=eq.${target}&moderation_status=eq.published&order=created_at.desc&limit=30`):Promise.resolve([]),
     db(`aam_social_video_unlocks?select=post_id&customer_id=eq.${s.customer_id}`),
     db(`aam_social_profile_views?select=viewer_id&profile_key=eq.${target}`)
    ]);
    const unlocked=new Set(unlocks.map(x=>x.post_id));
-   const resultPosts=await Promise.all(posts.map(async post=>{const {media_path,thumbnail_path,...publicPost}=post;const locked=post.media_type==='video'&&post.is_locked===true&&!unlocked.has(post.id);return {...publicPost,locked_video:locked,media_url:locked?null:await signedRead(media_path),thumbnail_url:thumbnail_path?await signedRead(thumbnail_path):null};}));
+   const resultPosts=await Promise.all(posts.map(async post=>{const {media_path,thumbnail_path,audio_path,...publicPost}=post;const locked=post.media_type==='video'&&post.is_locked===true&&!unlocked.has(post.id);return {...publicPost,locked_video:locked,media_url:locked?null:await signedRead(media_path),audio_url:audio_path?await signedRead(audio_path):null,thumbnail_url:thumbnail_path?await signedRead(thumbnail_path):null};}));
    const {avatar_path,...publicProfile}=p;
    return json(200,{profile:{...publicProfile,avatar_url:avatar_path?await signedRead(avatar_path):null},is_following:isFollowing,followers:followers.length,following:followingCount.length,profile_views:profileViews.length,posts:resultPosts,private_locked:!allowed});
   }
