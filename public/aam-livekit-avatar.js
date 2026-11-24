@@ -183,7 +183,7 @@ function poseTargets(points) {
   };
 }
 
-export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharacter = null, bodyStyle = 'sarah', mediaElement, trackBody = true }) {
+export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharacter = null, bodyStyle = 'sarah', mediaElement, trackBody = true, trackHands = false }) {
   if (!room || !LK || (!photoFile && !savedCharacter)) throw new Error('A video call and a photograph or saved avatar are required.');
   if (photoFile && !photoFile.type?.startsWith('image/')) throw new Error('Choose a JPG, PNG or WebP photograph.');
   if (photoFile && photoFile.size > 12 * 1024 * 1024) throw new Error('Choose a photograph smaller than 12 MB.');
@@ -201,12 +201,12 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
   if (!createCharacter || !buildCharacter || !exportCharacter) throw new Error('The avatar engine could not be loaded.');
 
   const canvas = document.createElement('canvas');
-  canvas.width = 480;
-  canvas.height = 640;
+  canvas.width = 360;
+  canvas.height = 480;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-  renderer.setSize(480, 640, false);
-  renderer.shadowMap.enabled = true;
+  renderer.setPixelRatio(1);
+  renderer.setSize(360, 480, false);
+  renderer.shadowMap.enabled = false;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#eaf0f8');
@@ -216,7 +216,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8290a8, 2));
   const key = new THREE.DirectionalLight(0xffffff, 2.4);
   key.position.set(-2.5, 4, 4);
-  key.castShadow = true;
+  key.castShadow = false;
   scene.add(key);
   const fill = new THREE.DirectionalLight(0xb8d7ff, 1);
   fill.position.set(3, 2, -2);
@@ -224,7 +224,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
   const floor = new THREE.Mesh(new THREE.CircleGeometry(2.5, 48), new THREE.MeshStandardMaterial({ color: '#dce4ef', roughness: 0.95 }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.015;
-  floor.receiveShadow = true;
+  floor.receiveShadow = false;
   scene.add(floor);
 
   const wasCameraEnabled = !!room.localParticipant.isCameraEnabled;
@@ -232,7 +232,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
   let currentBodyStyle = bodyStyle === 'walter' ? 'walter' : 'sarah';
   let fingerRigs = [], legRigs = [], audioContext, stopLipSync, micStream, videoTrack, preview;
   let published = false, stopped = false, trackingAvailable = false, cameraUnpublished = false;
-  let lastFrame = 0, elapsed = 0, lastDetection = 0, lastFaceDetection = 0, lastVideoTime = -1, lastFaceVideoTime = -1, latestHands = null, targetPose = null, currentFaceMood = 'neutral';
+  let lastFrame = 0, lastRender = 0, elapsed = 0, lastDetection = 0, lastFaceDetection = 0, lastVideoTime = -1, lastFaceVideoTime = -1, latestHands = null, targetPose = null, currentFaceMood = 'neutral';
   let neutralFaceQuaternion = null, targetHeadRotation = { x: 0, y: 0, z: 0 };
 
   const makePhotoCharacter = file => createCharacter(file, {
@@ -285,7 +285,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
         const visionModule = await import(VISION_BASE + '/vision_bundle.mjs');
         const vision = await visionModule.FilesetResolver.forVisionTasks(VISION_BASE + '/wasm');
         poseLandmarker = await makeLandmarker(visionModule.PoseLandmarker, vision, POSE_MODEL, { numPoses: 1, minPoseDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-        try { handLandmarker = await makeLandmarker(visionModule.HandLandmarker, vision, HAND_MODEL, { numHands: 2, minHandDetectionConfidence: 0.5, minTrackingConfidence: 0.5 }); } catch (_) { handLandmarker = null; }
+        if (trackHands) { try { handLandmarker = await makeLandmarker(visionModule.HandLandmarker, vision, HAND_MODEL, { numHands: 2, minHandDetectionConfidence: 0.5, minTrackingConfidence: 0.5 }); } catch (_) { handLandmarker = null; } }
         try { faceLandmarker = await makeLandmarker(visionModule.FaceLandmarker, vision, FACE_MODEL, { numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true }); } catch (_) { faceLandmarker = null; }
         trackingAvailable = !!poseLandmarker;
       } catch (_) {
@@ -293,16 +293,17 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
       }
     }
 
-    const capture = canvas.captureStream(24);
+    const capture = canvas.captureStream(18);
     videoTrack = capture.getVideoTracks()[0];
     if (!videoTrack) throw new Error('The browser could not create the avatar video track.');
 
     renderer.setAnimationLoop(now => {
-      if (stopped) return;
+      if (stopped || now - lastRender < 33) return;
+      lastRender = now;
       const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 0;
       lastFrame = now;
       elapsed += dt;
-      if (trackingAvailable && cameraVideo?.readyState >= 2 && now - lastDetection > 100 && cameraVideo.currentTime !== lastVideoTime) {
+      if (trackingAvailable && cameraVideo?.readyState >= 2 && now - lastDetection > 160 && cameraVideo.currentTime !== lastVideoTime) {
         lastDetection = now;
         lastVideoTime = cameraVideo.currentTime;
         try {
@@ -310,7 +311,7 @@ export async function createAamLiveKitAvatar({ room, LK, photoFile, savedCharact
           targetPose = poseTargets(poseResult.landmarks?.[0] || null);
           if (handLandmarker) latestHands = handLandmarker.detectForVideo(cameraVideo, now);
         } catch (_) {}
-        if (faceLandmarker && cameraVideo?.readyState >= 2 && now - lastFaceDetection > 220 && cameraVideo.currentTime !== lastFaceVideoTime) {
+        if (faceLandmarker && cameraVideo?.readyState >= 2 && now - lastFaceDetection > 280 && cameraVideo.currentTime !== lastFaceVideoTime) {
           lastFaceDetection = now;
           lastFaceVideoTime = cameraVideo.currentTime;
           try {
