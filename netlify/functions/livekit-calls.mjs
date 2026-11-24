@@ -184,9 +184,11 @@ export async function handler(event) {
       const payload = body.payload;
       if (!['offer','answer','ice','hangup'].includes(signalType)) return json(400, { error: 'Unsupported call signal.' });
       if (participant.status !== 'accepted') return json(403, { error: 'Accept the call before sending media signals.' });
-      const peers = await db(`aam_call_participants?select=customer_id,status&call_id=eq.${encodeURIComponent(callId)}&customer_id=neq.${encodeURIComponent(customerId)}&status=eq.accepted&limit=1`);
+      // The caller may send an offer while the recipient is still ringing.
+      // Signals are stored securely and become readable only after the recipient accepts.
+      const peers = await db(`aam_call_participants?select=customer_id,status&call_id=eq.${encodeURIComponent(callId)}&customer_id=neq.${encodeURIComponent(customerId)}&status=in.(invited,accepted)&limit=1`);
       const targetId = peers[0]?.customer_id || '';
-      if (!uuid.test(targetId)) return json(409, { error: 'The other caller has not accepted this call yet.' });
+      if (!uuid.test(targetId)) return json(409, { error: 'The other caller is no longer available for this call.' });
       const encoded = JSON.stringify(payload ?? null);
       if (encoded.length > 24000) return json(413, { error: 'Call signal is too large.' });
       if (signalType === 'offer' || signalType === 'answer') {
