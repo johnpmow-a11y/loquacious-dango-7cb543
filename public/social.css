@@ -323,3 +323,7 @@ body.aam-video-focus-open{overflow:hidden!important}
 .aam-social-chat-screen .aam-chat-composer{position:relative!important}
 .aam-social-chat-screen .aam-chat-composer .aam-chat-media-input{display:none!important}
 @media(max-width:390px){.aam-chat-composer-actions button{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important}.aam-social-chat-screen .aam-chat-composer{gap:4px!important;padding:6px!important}}
+
+.aam-chat-composer-actions .aam-chat-voice{touch-action:none!important;user-select:none!important;-webkit-user-select:none!important;-webkit-touch-callout:none!important}
+.aam-video-source-warning{border:1px solid #f59e0b!important;background:#fffbeb!important;color:#78350f!important}
+.aam-video-source-warning p{overflow-wrap:anywhere;font-size:12px}
