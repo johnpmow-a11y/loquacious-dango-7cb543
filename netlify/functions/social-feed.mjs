@@ -9,33 +9,6 @@ function publicAdminName(value){const name=String(value||'').trim();return !name
 async function adultConfirmed(customerId){const rows=await db(`aam_social_profiles?select=adult_confirmed_at&customer_id=eq.${encodeURIComponent(customerId)}&limit=1`);return !!rows[0]?.adult_confirmed_at;}
 async function signedRead(path){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;const r=await fetch(`${u}/storage/v1/object/sign/aam-social-media/${path}`,{method:'POST',headers:h(k,{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:1800})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||'Could not prepare media preview.');const p=d.signedURL||d.signedUrl||'';return /^https?:\/\//i.test(p)?p:u+(p.startsWith('/storage/v1/')?p:'/storage/v1'+(p.startsWith('/')?p:'/'));}
 
-let dailymotionCache={at:0,posts:[]};
-let dailymotionTokenCache={token:'',expiresAt:0};
-async function dailymotionPosts(){
- const key=process.env.DAILYMOTION_PRIVATE_API_KEY;
- const secret=process.env.DAILYMOTION_PRIVATE_API_SECRET;
- if(!key||!secret)return {posts:[],error:'Dailymotion is not configured: add the private API key and matching private API secret to Netlify.'};
- if(dailymotionCache.posts.length&&Date.now()-dailymotionCache.at<60000)return {posts:dailymotionCache.posts,error:null,cached:true};
- try{
-  let accessToken=dailymotionTokenCache.expiresAt>Date.now()+30000?dailymotionTokenCache.token:'';
-  if(!accessToken){
-   const auth=await fetch('https://partner.api.dailymotion.com/oauth/v1/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'client_credentials',scope:'read',client_id:key,client_secret:secret}),signal:AbortSignal.timeout(6000)});
-   const authBody=await auth.json().catch(()=>({}));
-   if(!auth.ok||!authBody.access_token)throw new Error(`Dailymotion authentication failed (${auth.status}): ${authBody.error_description||authBody.error||'Check that the private key and secret match.'}`);
-   accessToken=authBody.access_token;
-   dailymotionTokenCache={token:accessToken,expiresAt:Date.now()+Math.max(60,Number(authBody.expires_in||1800)-60)*1000};
-  }
-  const url=new URL('https://partner.api.dailymotion.com/rest/me/videos');
-  url.searchParams.set('fields','id,title,thumbnail_url,embed_url,duration,created_time,published,availability,owner.screenname');
-  url.searchParams.set('limit','30');url.searchParams.set('sort','recent');
-  const response=await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`},signal:AbortSignal.timeout(6000)});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(`Dailymotion account videos request failed (${response.status}): ${data.error_description||data.error||data.message||'Check video-read permissions on the private API key.'}`);
-  const posts=(data.list||[]).filter(v=>v.id&&v.availability!==false&&v.published!==false).map(v=>({id:`dailymotion-${v.id}`,provider:'dailymotion',provider_video_id:v.id,media_type:'video',caption:v.title||'',created_at:v.created_time?new Date(v.created_time*1000).toISOString():new Date().toISOString(),media_url:(v.embed_url||`https://www.dailymotion.com/embed/video/${encodeURIComponent(v.id)}`)+(String(v.embed_url||'').includes('?')?'&':'?')+'autoplay=1&queue-enable=false',thumbnail_url:v.thumbnail_url||null,creator:{id:null,name:'Dailymotion',avatar_url:null},is_following:false,comments_enabled:false,like_count:0,comment_count:0,liked:false,locked_video:false,verified:false}));
-  dailymotionCache={at:Date.now(),posts};
-  return {posts,error:null};
- }catch(error){console.error('[social-feed] Dailymotion:',error?.message||error);return {posts:[],error:error?.message||'Dailymotion could not load videos.'};}
-}
 
 export async function handler(event){
  if(event.httpMethod==='OPTIONS')return json(204,{});
@@ -44,7 +17,7 @@ export async function handler(event){
    const q=event.queryStringParameters||{},token=String(q.token||''),s=await session(token);
    if(!s)return json(401,{error:'Please log in again.'});
    if(!await adultConfirmed(s.customer_id))return json(403,{error:'Confirm that you are 18 or older to continue.'});
-   const [posts,profiles,follows,unlocks,likes,comments,mineLikes,adminProfile,externalResult]=await Promise.all([
+   const [posts,profiles,follows,unlocks,likes,comments,mineLikes,adminProfile]=await Promise.all([
     db('aam_social_posts?select=*&moderation_status=eq.published&order=created_at.desc&limit=60'),
     db('aam_social_profiles?select=customer_id,display_name,bio,avatar_path,is_private,comments_enabled'),
     db(`aam_social_follows?select=followed_id&follower_id=eq.${encodeURIComponent(s.customer_id)}`),
@@ -52,10 +25,8 @@ export async function handler(event){
     db('aam_social_likes?select=post_id'),
     db('aam_social_comments?select=post_id'),
     db(`aam_social_likes?select=post_id&customer_id=eq.${encodeURIComponent(s.customer_id)}`),
-    db('aam_social_admin_profile?select=display_name,avatar_path,follower_count,is_verified&id=eq.true&limit=1'),
-    dailymotionPosts()
+    db('aam_social_admin_profile?select=display_name,avatar_path,follower_count,is_verified&id=eq.true&limit=1')
    ]);
-   const externalVideos=externalResult.posts||[];
    const profileMap=new Map(profiles.map(p=>[p.customer_id,p])),following=new Set(follows.map(f=>f.followed_id)),unlocked=new Set(unlocks.map(x=>x.post_id)),liked=new Set(mineLikes.map(x=>x.post_id));
    const visible=posts.filter(p=>p.author_role==='admin'||p.customer_id===s.customer_id||!profileMap.get(p.customer_id)?.is_private||following.has(p.customer_id));
    const feed=await Promise.all(visible.slice(0,30).map(async p=>{
@@ -63,7 +34,7 @@ export async function handler(event){
     const locked=p.author_role==='admin'&&p.media_type==='video'&&p.is_locked===true&&!unlocked.has(p.id);
     const {author_role,media_path,thumbnail_path,customer_id,...publicPost}=p;return {...publicPost,is_following:!!(owner&&following.has(owner.customer_id)),comments_enabled:p.comments_enabled!==false&&owner?.comments_enabled!==false,like_count:likes.filter(x=>x.post_id===p.id).length,follower_count:p.author_role==='admin'?Number(admin.follower_count||0):undefined,following_count:p.author_role==='admin'?0:undefined,verified:p.author_role==='admin'?!!admin.is_verified:false,comment_count:comments.filter(x=>x.post_id===p.id).length,liked:liked.has(p.id),locked_video:locked,professional_video:locked,creator:{id:p.customer_id||null,name:p.author_role==='admin'?publicAdminName(admin.display_name):(owner?.display_name||'Creator'),bio:owner?.bio||'',avatar_url:(p.author_role==='admin'?admin.avatar_path:owner?.avatar_path)?await signedRead(p.author_role==='admin'?admin.avatar_path:owner.avatar_path):null,followers:p.author_role==='admin'?Number(admin.follower_count||0):null,following:p.author_role==='admin'?0:null},media_url:locked||p.media_type==='text'?null:await signedRead(p.media_path),background_color:p.background_color||null,thumbnail_url:p.thumbnail_path?await signedRead(p.thumbnail_path):null};
    }));
-   return json(200,{posts:[...feed,...externalVideos].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)),sources:{dailymotion:externalVideos.length?'ready':(externalResult.error?'error':'empty')},source_errors:externalResult.error?[externalResult.error]:[]});
+   return json(200,{posts:feed.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))});
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   const b=JSON.parse(event.body||'{}'),token=String(b.token||''),action=String(b.action||''),admin=b.role==='admin';
