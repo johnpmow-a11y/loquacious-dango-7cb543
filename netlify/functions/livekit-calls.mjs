@@ -181,7 +181,9 @@ export async function handler(event) {
       const after = String(body.after || '1970-01-01T00:00:00.000Z');
       const afterDate = new Date(after);
       if (!Number.isFinite(afterDate.getTime())) return json(400, { error: 'Invalid signal cursor.' });
-      const signals = await db(`aam_call_signals?select=id,sender_id,signal_type,payload,created_at&call_id=eq.${encodeURIComponent(callId)}&recipient_id=eq.${encodeURIComponent(customerId)}&created_at=gt.${encodeURIComponent(afterDate.toISOString())}&created_at=gt.${encodeURIComponent(new Date(Date.now()-180000).toISOString())}&order=created_at.asc&limit=100`);
+      const oldestAllowed = new Date(Date.now()-180000);
+      const cursor = afterDate > oldestAllowed ? afterDate : oldestAllowed;
+      const signals = await db(`aam_call_signals?select=id,sender_id,signal_type,payload,created_at&call_id=eq.${encodeURIComponent(callId)}&recipient_id=eq.${encodeURIComponent(customerId)}&created_at=gt.${encodeURIComponent(cursor.toISOString())}&order=created_at.asc&limit=100`);
       return json(200, { signals });
     }
 
