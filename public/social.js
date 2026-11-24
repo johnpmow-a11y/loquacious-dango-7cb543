@@ -503,7 +503,7 @@ async function startAdminCall(customerId,type='video'){
   if(!aamCurrentCallId||!aamWebRtcSession)return;
   if(aamAdminCallPollTimer)clearInterval(aamAdminCallPollTimer);
   aamAdminCallPollTimer=setInterval(async()=>{if(!aamCurrentCallId||!aamAdminCallMode)return;try{const status=await adminCallAction('status',aamCurrentCallId);if(status.call?.status!=='active'){if(status.call?.status==='declined')setCallStatus('The customer declined the call.');await endCall();return;}if(status.participant?.status==='declined'){setCallStatus('The customer declined the call.');await endCall();}}catch(e){setCallStatus('Checking call connection…');}},2500);
- }catch(e){cameraTrack?.stop?.();setCallStatus(e.message);notice(e.message);}finally{aamCallStarting=false;}
+ }catch(e){cameraTrack?.stop?.();if(aamCurrentCallId){const failedId=aamCurrentCallId;aamCurrentCallId=null;await adminCallAction('end',failedId).catch(()=>{});}aamAdminCallMode=false;aamAdminCallToken=null;setCallStatus(e.message);notice(e.message);}finally{aamCallStarting=false;}
 }
 async function startCall(type){
  const target=window.aamChatOtherCustomerId;if(!target)return notice('Calling is available only in a private one-to-one chat.');
