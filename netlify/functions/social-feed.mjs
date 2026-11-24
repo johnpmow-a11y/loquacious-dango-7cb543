@@ -9,22 +9,30 @@ function publicAdminName(value){const name=String(value||'').trim();return !name
 async function adultConfirmed(customerId){const rows=await db(`aam_social_profiles?select=adult_confirmed_at&customer_id=eq.${encodeURIComponent(customerId)}&limit=1`);return !!rows[0]?.adult_confirmed_at;}
 async function signedRead(path){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;const r=await fetch(`${u}/storage/v1/object/sign/aam-social-media/${path}`,{method:'POST',headers:h(k,{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:1800})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||'Could not prepare media preview.');const p=d.signedURL||d.signedUrl||'';return /^https?:\/\//i.test(p)?p:u+(p.startsWith('/storage/v1/')?p:'/storage/v1'+(p.startsWith('/')?p:'/'));}
 
+let dailymotionCache={at:0,posts:[]};
+let dailymotionTokenCache={token:'',expiresAt:0};
 async function dailymotionPosts(){
  const key=process.env.DAILYMOTION_PRIVATE_API_KEY;
  const secret=process.env.DAILYMOTION_PRIVATE_API_SECRET;
- if(!key||!secret)return {posts:[],error:'A matching Dailymotion PRIVATE API key and secret are required for server-side video search. Public keys cannot use this client-credentials flow.'};
+ if(!key||!secret)return {posts:[],error:'Dailymotion is not configured: add the private API key and matching private API secret to Netlify.'};
+ if(dailymotionCache.posts.length&&Date.now()-dailymotionCache.at<60000)return {posts:dailymotionCache.posts,error:null,cached:true};
  try{
-  const auth=await fetch('https://partner.api.dailymotion.com/oauth/v1/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'client_credentials',scope:'read',client_id:key,client_secret:secret}),signal:AbortSignal.timeout(12000)});
-  const authBody=await auth.json().catch(()=>({}));
-  if(!auth.ok||!authBody.access_token)throw new Error(`Dailymotion authentication failed (${auth.status}): ${authBody.error_description||authBody.error||'Check the API key and matching secret.'}`);
-  const url=new URL('https://partner.api.dailymotion.com/rest/videos');
-  url.searchParams.set('fields','id,title,thumbnail_url,embed_url,embed_html,duration,owner.screenname,created_time,published,availability');
-  url.searchParams.set('limit','30');url.searchParams.set('sort','relevance');url.searchParams.set('availability','true');url.searchParams.set('no_live','true');url.searchParams.set('no_premium','true');
-  url.searchParams.set('search','funny comedy entertainment');
-  const response=await fetch(url,{headers:{Authorization:`Bearer ${authBody.access_token}`},signal:AbortSignal.timeout(12000)});
+  let accessToken=dailymotionTokenCache.expiresAt>Date.now()+30000?dailymotionTokenCache.token:'';
+  if(!accessToken){
+   const auth=await fetch('https://partner.api.dailymotion.com/oauth/v1/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'client_credentials',scope:'read',client_id:key,client_secret:secret}),signal:AbortSignal.timeout(6000)});
+   const authBody=await auth.json().catch(()=>({}));
+   if(!auth.ok||!authBody.access_token)throw new Error(`Dailymotion authentication failed (${auth.status}): ${authBody.error_description||authBody.error||'Check that the private key and secret match.'}`);
+   accessToken=authBody.access_token;
+   dailymotionTokenCache={token:accessToken,expiresAt:Date.now()+Math.max(60,Number(authBody.expires_in||1800)-60)*1000};
+  }
+  const url=new URL('https://partner.api.dailymotion.com/rest/me/videos');
+  url.searchParams.set('fields','id,title,thumbnail_url,embed_url,duration,created_time,published,availability,owner.screenname');
+  url.searchParams.set('limit','30');url.searchParams.set('sort','recent');
+  const response=await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`},signal:AbortSignal.timeout(6000)});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(`Dailymotion video request failed (${response.status}): ${data.error_description||data.error||'The video catalogue request was rejected.'}`);
-  const posts=(data.list||[]).filter(v=>v.id&&v.thumbnail_url&&v.availability!==false&&v.published!==false).map(v=>({id:`dailymotion-${v.id}`,provider:'dailymotion',provider_video_id:v.id,media_type:'video',caption:v.title||'',created_at:v.created_time?new Date(v.created_time*1000).toISOString():new Date().toISOString(),media_url:(v.embed_url||`https://www.dailymotion.com/embed/video/${encodeURIComponent(v.id)}`)+(String(v.embed_url||'').includes('?')?'&':'?')+'autoplay=0&queue-enable=false',thumbnail_url:v.thumbnail_url,creator:{id:null,name:v['owner.screenname']||'Dailymotion creator',avatar_url:null},is_following:false,comments_enabled:false,like_count:0,comment_count:0,liked:false,locked_video:false,verified:false}));
+  if(!response.ok)throw new Error(`Dailymotion account videos request failed (${response.status}): ${data.error_description||data.error||data.message||'Check video-read permissions on the private API key.'}`);
+  const posts=(data.list||[]).filter(v=>v.id&&v.availability!==false&&v.published!==false).map(v=>({id:`dailymotion-${v.id}`,provider:'dailymotion',provider_video_id:v.id,media_type:'video',caption:v.title||'',created_at:v.created_time?new Date(v.created_time*1000).toISOString():new Date().toISOString(),media_url:(v.embed_url||`https://www.dailymotion.com/embed/video/${encodeURIComponent(v.id)}`)+(String(v.embed_url||'').includes('?')?'&':'?')+'autoplay=1&queue-enable=false',thumbnail_url:v.thumbnail_url||null,creator:{id:null,name:'Dailymotion',avatar_url:null},is_following:false,comments_enabled:false,like_count:0,comment_count:0,liked:false,locked_video:false,verified:false}));
+  dailymotionCache={at:Date.now(),posts};
   return {posts,error:null};
  }catch(error){console.error('[social-feed] Dailymotion:',error?.message||error);return {posts:[],error:error?.message||'Dailymotion could not load videos.'};}
 }
