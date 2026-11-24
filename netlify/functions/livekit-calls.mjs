@@ -118,7 +118,8 @@ export async function handler(event) {
         customerId: targetId,
         title: callType === 'video' ? 'Incoming video call' : 'Incoming voice call',
         body: 'Open All Ads Manager and enter your private chat to answer.',
-        url: '/',
+        url: '/?incomingCall=' + encodeURIComponent(call.id),
+        tag: 'aam-call-' + call.id,
         eventType: null
       }).catch(error => { console.warn('Incoming-call push could not be sent:', error.message); return { status: 'error' }; });
       return json(201, { call_id: call.id, call_type: callType, status: 'ringing', notification_status: pushResult.status || 'unknown' });
