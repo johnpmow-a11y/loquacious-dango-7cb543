@@ -427,3 +427,25 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
  #aamSocialDock .aam-dock-item{font-size:9px!important}
  #aamSocialDock .aam-dock-label{font-size:9px!important}
 }
+
+/* Hollywood.AI free catalogue shelf */
+.aam-hollywood-section{margin:14px 0 18px;padding:13px;border:1px solid #dce7e5;border-radius:16px;background:#f8fcfb;overflow:hidden}
+.aam-hollywood-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.aam-hollywood-heading h3{margin:0;color:#123c39;font-size:17px}
+.aam-hollywood-heading p{margin:3px 0 0;color:#718096;font-size:11px}
+.aam-hollywood-heading>span{padding:4px 8px;border-radius:20px;background:#dff5ed;color:#087b69;font-size:10px;font-weight:800}
+.aam-hollywood-search{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,.55fr) auto;gap:6px;margin:8px 0 12px}
+.aam-hollywood-search .aam-social-field{min-width:0;min-height:36px;margin:0;padding:7px 8px;font-size:12px}
+.aam-hollywood-search .aam-social-btn{min-height:36px;padding:7px 10px;font-size:12px}
+.aam-hollywood-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.aam-hollywood-card{min-width:0;overflow:hidden;border:1px solid #e1e9e7;border-radius:12px;background:#fff}
+.aam-hollywood-card>a:first-child{display:block;aspect-ratio:16/10;background:#e8efed}
+.aam-hollywood-card img{display:block;width:100%;height:100%;object-fit:cover}
+.aam-hollywood-card-copy{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px}
+.aam-hollywood-card-copy strong{font-size:12px;line-height:1.35;color:#172b2a}
+.aam-hollywood-card-copy span,.aam-hollywood-card-copy small{font-size:10px;color:#718096}
+.aam-hollywood-card-copy p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:2px 0;font-size:10px;line-height:1.4;color:#526260}
+.aam-hollywood-card-copy .aam-social-btn{width:100%;margin-top:4px;text-align:center;text-decoration:none;font-size:10px}
+.aam-hollywood-section>#aamHollywoodMore{width:100%;margin-top:10px}
+.aam-hollywood-credit{margin:9px 0 0;font-size:10px;color:#7b8987}
+@media(max-width:390px){.aam-hollywood-search{grid-template-columns:minmax(0,1fr) auto}.aam-hollywood-search select{grid-column:1/-1;grid-row:2}.aam-hollywood-results{gap:7px}.aam-hollywood-card-copy{padding:7px}}
