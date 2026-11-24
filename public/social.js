@@ -103,7 +103,7 @@ async function searchSoundLibrary(){
  const q=document.getElementById('aamSoundSearchInput')?.value?.trim()||'music';if(!q)return;
  const box=document.getElementById('aamSoundResults');if(!box)return;
  const searchId=(window.aamSoundSearchId||0)+1;window.aamSoundSearchId=searchId;
- box.innerHTML='<p>Searching Audius and Internet Archive…</p>';
+ box.innerHTML='<p>Searching free public-domain sounds…</p>';
  const terms=q.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu,' ').trim().split(/\s+/).filter(Boolean).slice(0,6);
  if(!terms.length){box.innerHTML='<p>Enter a sound, artist, country or genre to search.</p>';return;}
  const archiveSearch=(async()=>{
@@ -114,7 +114,7 @@ async function searchSoundLibrary(){
   const data=await response.json(),docs=data.response?.docs||[];
   const candidates=await Promise.all(docs.slice(0,12).map(async item=>{
    try{const m=await fetch('https://archive.org/metadata/'+encodeURIComponent(item.identifier)).then(r=>r.json());const meta=m.metadata||{},license=String(meta.licenseurl||item.licenseurl||'').toLowerCase();
-    const allowed=license.includes('creativecommons.org/publicdomain/zero')||license.includes('creativecommons.org/licenses/by/')||license.includes('creativecommons.org/licenses/by-sa/')||license.includes('creativecommons.org/publicdomain/mark');
+    const allowed=license.includes('creativecommons.org/publicdomain/zero')||license.includes('creativecommons.org/publicdomain/mark');
     if(!allowed)return null;
     const files=(m.files||[]).filter(f=>!f.private&&/\\.(mp3|ogg|wav|m4a)$/i.test(f.name||'')&&Number(f.size||0)>0&&Number(f.size)<=20*1024*1024).sort((a,b)=>Number(a.size||0)-Number(b.size||0));
     if(!files.length)return null;return {source:'Internet Archive',id:item.identifier,title:item.title||meta.title||item.identifier,creator:item.creator||meta.creator||'Unknown creator',license,file:files[0]};
@@ -122,47 +122,27 @@ async function searchSoundLibrary(){
   }));
   return candidates.filter(Boolean);
  })();
- const audiusSearch=(async()=>{
-  const response=await fetch('/.netlify/functions/audius-sounds?q='+encodeURIComponent(q),{headers:{Accept:'application/json'}});
-  if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||'Audius search is unavailable.');}
-  const data=await response.json();return Array.isArray(data.tracks)?data.tracks:[];
- })();
+ const audiusSearch=Promise.resolve([]);
  const [archiveResult,audiusResult]=await Promise.allSettled([archiveSearch,audiusSearch]);
  if(searchId!==window.aamSoundSearchId||!document.getElementById('aamSoundResults'))return;
  const archiveItems=archiveResult.status==='fulfilled'?archiveResult.value:[];
- const audiusItems=audiusResult.status==='fulfilled'?audiusResult.value:[];
- const items=[...audiusItems,...archiveItems];
+ const items=archiveItems;
  if(!items.length){
-  const errors=[audiusResult,archiveResult].filter(x=>x.status==='rejected').map(x=>x.reason?.message).filter(Boolean);
+  const errors=[archiveResult].filter(x=>x.status==='rejected').map(x=>x.reason?.message).filter(Boolean);
   box.innerHTML='<p>No approved tracks found. '+(errors.length?esc(errors.join(' ')):'Try another search or choose audio from your phone.')+'</p>';return;
  }
  box.innerHTML=items.map((item,i)=>{
-  const isAudius=item.source==='Audius';
-  const licenseLabel=isAudius?item.licenseLabel:(item.license.includes('publicdomain')?'Public domain':'Creative Commons');
+  const licenseLabel='Public domain / CC0';
   const creator=esc(String(item.creator||'Unknown creator').slice(0,90));
   const title=esc(item.title||'Untitled');
   const source=esc(item.source);
-  const audioUrl=isAudius?item.streamUrl:'https://archive.org/download/'+encodeURIComponent(item.id)+'/'+item.file.name.split('/').map(encodeURIComponent).join('/');
+  const audioUrl='https://archive.org/download/'+encodeURIComponent(item.id)+'/'+item.file.name.split('/').map(encodeURIComponent).join('/');
   return '<article><div><strong>'+title+'</strong><small>'+creator+' · '+esc(licenseLabel)+' · '+source+'</small></div><button type="button" data-sound-index="'+i+'">Use sound</button><audio controls preload="none" src="'+esc(audioUrl)+'"></audio></article>';
  }).join('');
  box.querySelectorAll('[data-sound-index]').forEach(button=>button.onclick=()=>{
   const item=items[Number(button.dataset.soundIndex)];
-  if(item?.source==='Audius')selectAudiusSound(item);else selectLibrarySound(item);
+  if(item)selectLibrarySound(item);
  });
-}
-async function selectAudiusSound(item){
- const label=document.getElementById(aamSoundLibraryTarget==='post'?'aamPostSoundName':'aamStatusAudioName');if(label)label.textContent='Preparing '+item.title+'…';
- try{
-  const response=await fetch(item.streamUrl||('https://api.audius.co/v1/tracks/'+encodeURIComponent(item.id)+'/stream'));
-  if(!response.ok||!response.body)throw new Error('Audius could not provide this track to attach. Try another track or use Internet Archive.');
-  const blob=await response.blob();if(!blob.size||blob.size>20*1024*1024)throw new Error('This Audius track is empty or exceeds the 20 MB attachment limit.');
-  const filename='audius-'+String(item.id).replace(/[^a-z0-9_-]/gi,'')+'.mp3';
-  const selected=new File([blob],filename,{type:blob.type&&blob.type.startsWith('audio/')?blob.type:'audio/mpeg'});
-  const attribution={title:item.title,creator:item.creator,license:item.license,source:item.permalink||('https://audius.co/track/'+encodeURIComponent(item.id))};
-  if(aamSoundLibraryTarget==='post'){window.aamSelectedPostAudio=selected;window.aamSelectedPostAudioAttribution=attribution;const postLabel=document.getElementById('aamPostSoundName');if(postLabel)postLabel.textContent='Selected: '+item.title+' · '+item.licenseLabel;}
-  else{window.aamSelectedStatusAudio=selected;window.aamSelectedStatusAudioAttribution=attribution;if(label)label.textContent='Selected: '+item.title+' · '+item.licenseLabel;}
-  document.getElementById('aamSoundLibrary')?.remove();
- }catch(error){if(label)label.textContent=error.message;notice(error.message);}
 }
 async function selectLibrarySound(item){
  const label=document.getElementById(aamSoundLibraryTarget==='post'?'aamPostSoundName':'aamStatusAudioName');if(label)label.textContent='Preparing '+item.title+'…';
