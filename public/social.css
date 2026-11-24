@@ -352,7 +352,7 @@ body.aam-video-focus-open{overflow:hidden!important}
 #aamAdminCallOverlay #aamIncomingCall,#aamIncomingCallOverlay #aamIncomingCall{position:absolute!important;z-index:22!important;top:64px!important;left:12px!important;right:12px!important;color:#fff!important}
 
 
-/* Home video feed: each Dailymotion or uploaded video occupies a full phone screen. */
+/* Home video feed: each uploaded video occupies a full phone screen. */
 #aamSocialPosts.aam-social-feed-video-mode{width:100vw!important;height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior-y:contain!important;scroll-snap-type:y mandatory!important;scrollbar-width:none!important;margin-left:calc(50% - 50vw)!important;padding:0!important;background:#000!important}
 #aamSocialPosts.aam-social-feed-video-mode::-webkit-scrollbar{display:none}
 #aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
