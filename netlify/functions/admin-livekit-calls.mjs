@@ -43,7 +43,7 @@ export async function handler(event){if(event.httpMethod==='OPTIONS')return json
     sender_role:'admin',recipient_role:'customer',signal_type:type,payload
    })});
    const signal=inserted[0];
-   const realtime_notified=signal?await broadcastCallSignal(id,{id:signal.id,sender_id:'admin:'+hash,recipient_id:'customer:'+customerId,signal_type:type,payload,created_at:signal.created_at}):false;
+   const realtime_notified=signal?await broadcastCallSignal(id,{id:signal.id,recipient_id:'customer:'+customerId}):false;
    return json(201,{sent:true,realtime_notified});
   }
   const after=String(b.after||'1970-01-01T00:00:00.000Z'),date=new Date(after);
