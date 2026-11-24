@@ -56,6 +56,17 @@ on public.aam_social_profiles
 for each row
 execute function public.aam_social_set_public_profile_id();
 
-alter table public.aam_social_profiles
-  add constraint aam_social_profiles_public_profile_id_format_chk
-  check (public_profile_id ~ '^[0-9]{10}$');
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'aam_social_profiles_public_profile_id_format_chk'
+      and conrelid = 'public.aam_social_profiles'::regclass
+  ) then
+    alter table public.aam_social_profiles
+      add constraint aam_social_profiles_public_profile_id_format_chk
+      check (public_profile_id ~ '^[0-9]{10}
+);
+  end if;
+end;
+$;
