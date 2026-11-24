@@ -539,7 +539,7 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-sound-library p{color:#cbd5e1;font-size:13px;line-height:1.5}
 .aam-sound-search{display:flex;gap:8px;margin:16px 0}
 .aam-sound-search input{flex:1;min-width:0;border:1px solid #475569;border-radius:10px;padding:12px;background:#172033;color:#fff}
-.aam-sound-search button,.aam-sound-library article>button{border:0;border-radius:10px;padding:10px 14px;background:#0d9488;color:#fff;font-weight:700}
+.aam-sound-categories{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px}.aam-sound-categories button{border:1px solid #334155;border-radius:18px;padding:7px 11px;background:#1e293b;color:#e2e8f0;font-size:12px}.aam-sound-categories button:active{background:#0d9488;color:#fff}.aam-sound-search button,.aam-sound-library article>button{border:0;border-radius:10px;padding:10px 14px;background:#0d9488;color:#fff;font-weight:700}
 .aam-sound-library article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 0;border-bottom:1px solid #293548}
 .aam-sound-library article>div{min-width:0;display:flex;flex-direction:column;gap:4px}
 .aam-sound-library article strong{overflow-wrap:anywhere}
