@@ -561,3 +561,21 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-profile-post-viewer-media img,.aam-profile-post-viewer-media video{max-width:100%;max-height:100%;object-fit:contain}
 .aam-profile-post-viewer audio{width:100%;margin:10px 0}
 .aam-profile-post-viewer p{max-height:20vh;overflow:auto}
+
+/* Full-bleed video feed and status viewer for mobile. */
+body:has(.aam-discovery-feed) .topbar{display:none!important}
+body:has(.aam-discovery-feed) .container{max-width:none!important;margin:0!important;padding:0!important}
+.aam-discovery-searchbar{position:fixed!important;top:env(safe-area-inset-top,0px)!important;left:0!important;right:0!important;z-index:100!important;max-width:760px!important;margin:0 auto!important;border-radius:0 0 16px 16px!important}
+.aam-discovery-feed{position:fixed!important;inset:0!important;z-index:40!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;padding:0 0 calc(68px + env(safe-area-inset-bottom))!important;scroll-snap-type:y mandatory!important}
+.aam-discovery-card{width:100vw!important;height:100dvh!important;min-height:100dvh!important}
+.aam-discovery-video,.aam-discovery-embed{width:100%!important;height:100%!important;object-fit:contain!important}
+.aam-discovery-meta{padding-top:90px!important;padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
+#aamSocialDock{z-index:110!important}
+.aam-status-compose-card{width:min(100%,560px)!important;max-height:96dvh!important;padding:16px!important}
+.aam-status-compose-card img,.aam-status-compose-card video{max-height:55dvh!important}
+#aamStatusAudioPreview{width:100%;min-height:38px}
+.aam-status-viewer{position:fixed!important;inset:0!important;z-index:2147483000!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;gap:10px!important;margin:0!important;padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))!important;border-radius:0!important;background:#05070b!important;color:#fff!important}
+.aam-status-fullmedia{flex:1 1 auto!important;width:100%!important;height:100%!important;max-height:none!important;min-height:0!important;object-fit:contain!important;border-radius:0!important}
+.aam-status-audio{position:relative!important;top:auto!important;left:auto!important;right:auto!important;width:100%!important;height:42px!important;opacity:1!important}
+.aam-chat-voice-preview{display:block;width:100%;max-width:100%;margin:8px 0}
+.aam-chat-composer-actions .aam-chat-voice-stop,.aam-chat-composer-actions .aam-chat-voice-send{width:40px;min-width:40px;padding:0}
