@@ -363,6 +363,13 @@ async function connectCall(callId,callType='audio',authToken=null,preparedCamera
   aamLocalCallStream=new MediaStream(tracks);aamCurrentCallId=callId;
   const identity=await callIdentity();
   const isAdmin=!!authToken;
+  let relayIceServers=[];
+  try{
+   const relay=await fetch('/.netlify/functions/webrtc-ice-servers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken||token()})});
+   const relayData=await relay.json().catch(()=>({}));
+   if(relay.ok&&relayData.configured&&Array.isArray(relayData.iceServers))relayIceServers=relayData.iceServers;
+  }catch(_){}
+
   const sendSignal=(signal_type,payload)=>isAdmin
    ?adminCallAction('signal_send',callId,{signal_type,payload})
    :callAction('signal_send',callId,{signal_type,payload});
@@ -372,7 +379,7 @@ async function connectCall(callId,callType='audio',authToken=null,preparedCamera
   const module=await import('./aam-webrtc-call.js?v=20261125webrtc2');
   aamWebRtcSession=await module.createAamWebRtcCall({
    callId,callType,supabase:socialDb,localStream:aamLocalCallStream,localIdentity:identity,
-   sendSignal,listSignals,initiator:!!initiator||isAdmin,
+   sendSignal,listSignals,iceServers:relayIceServers.length?relayIceServers:undefined,initiator:!!initiator||isAdmin,
    onState:state=>{setCallStatus(state);if(state==='Connected'){const b=document.getElementById('aamEnableCallAudio');if(b)b.style.display='none';}},
    onRemoteStream:stream=>{
     aamRemoteCallStream=stream;const media=document.getElementById('aamCallMedia');if(!media)return;
