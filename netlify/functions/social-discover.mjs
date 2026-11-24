@@ -39,7 +39,7 @@ export async function handler(event){
    const [followers,followingCount,posts,unlocks,profileViews]=await Promise.all([
     db(`aam_social_follows?select=follower_id&followed_id=eq.${target}`),
     db(`aam_social_follows?select=followed_id&follower_id=eq.${target}`),
-    allowed?db(`aam_social_posts?select=id,customer_id,media_type,media_path,thumbnail_path,audio_path,caption,comments_enabled,created_at,is_locked&customer_id=eq.${target}&moderation_status=eq.published&order=created_at.desc&limit=30`):Promise.resolve([]),
+    allowed?db(`aam_social_posts?select=id,customer_id,media_type,media_path,thumbnail_path,audio_path,caption,comments_enabled,created_at,is_locked&customer_id=eq.${target}&moderation_status=eq.published&order=created_at.desc&limit=30`).catch(()=>db(`aam_social_posts?select=id,customer_id,media_type,media_path,thumbnail_path,caption,comments_enabled,created_at,is_locked&customer_id=eq.${target}&moderation_status=eq.published&order=created_at.desc&limit=30`)):Promise.resolve([]),
     db(`aam_social_video_unlocks?select=post_id&customer_id=eq.${s.customer_id}`),
     db(`aam_social_profile_views?select=viewer_id&profile_key=eq.${target}`)
    ]);
