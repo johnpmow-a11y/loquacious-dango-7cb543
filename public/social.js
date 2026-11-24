@@ -339,7 +339,8 @@ async function startCall(type){
   promoteCallToFullscreen();setCallStatus(type==='video'?'Opening your camera…':'Starting call…');
   if(type==='video')cameraTrack=await prepareCallCamera();
   const d=await callAction('create','',{target_customer_id:target,call_type:type});aamCurrentCallId=d.call_id;
-  setCallStatus('Calling… waiting for the other person.');await connectCall(d.call_id,type,null,cameraTrack);cameraTrack=null;
+  const pushNote=d.notification_status==='sent'?' · alert sent':d.notification_status==='no_subscriptions'?' · recipient has not enabled background alerts':d.notification_status==='not_configured'?' · background alerts are not configured':'';
+  setCallStatus('Calling… waiting for the other person.'+pushNote);await connectCall(d.call_id,type,null,cameraTrack);cameraTrack=null;
  }catch(e){cameraTrack?.stop?.();restoreCallPanel();setCallStatus(e.message);notice(e.message);}finally{aamCallStarting=false;}
 }
 async function acceptCall(id,type='audio'){
