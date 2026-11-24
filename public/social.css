@@ -86,7 +86,7 @@
 
 #aamSocialToolsDock{position:fixed;z-index:9001;left:10px;right:10px;bottom:calc(82px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}#aamSocialToolsDock button{pointer-events:auto;width:100%;max-width:460px;min-height:38px;border:1px solid #d9e2ec;border-radius:12px;background:#172033;color:#fff;font-size:12px;font-weight:800;letter-spacing:.08em;box-shadow:0 5px 18px rgba(15,23,42,.16)}#aamSocialToolsDock button span{margin-right:7px;font-size:15px}#aamSocialRoot{padding-bottom:145px}body:has(#aamSocialDock) .container{padding-bottom:140px}@media(min-width:760px){#aamSocialToolsDock{left:50%;right:auto;transform:translateX(-50%);width:min(460px,calc(100vw - 24px))}}
 
-.aam-social-external-video{position:relative;width:100%;aspect-ratio:9/16;max-height:72vh;background:#080808;border-radius:14px;overflow:hidden;margin-top:10px}.aam-social-external-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
 
 
 /* Full-screen, mobile-first conversation view */
@@ -180,7 +180,7 @@ body:has(#aamSocialDock) .container,#aamSocialRoot,.aam-social-wrap{touch-action
 .aam-social-feed{display:flex;flex-direction:column;gap:12px;max-height:calc(100dvh - 210px);overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scroll-snap-type:y proximity;touch-action:pan-y;padding:2px 2px 16px}
 .aam-social-feed-item{scroll-snap-align:start;min-height:min(78dvh,760px);display:flex;flex-direction:column;justify-content:flex-start;margin:0;padding:12px;min-width:0}
 .aam-social-feed-item .aam-social-media{max-height:58dvh;min-height:220px;object-fit:contain}
-.aam-social-feed-item .aam-social-external-video{height:min(68dvh,680px);max-height:none;aspect-ratio:9/16;flex:0 0 auto}
+.aam-social-feed-item 
 .aam-social-feed-item .aam-social-actions{gap:6px}
 .aam-social-feed-item .aam-social-actions .aam-social-btn{font-size:12px;min-height:34px;padding:7px 9px;border-radius:9px}
 .aam-social-btn,.aam-post-icon,.aam-post-recent,#aamSocialDock button{touch-action:manipulation;max-width:100%}
@@ -235,12 +235,12 @@ input,select,textarea{border:1px solid #dfe5ef!important;border-radius:13px!impo
 /* Focused video viewer: moves the original media node so playback is preserved. */
 .aam-video-focus-trigger{align-self:flex-start;margin:4px 0 8px}
 .aam-video-focus-overlay{position:fixed;inset:0;z-index:2147483000;background:#05070d;display:flex;align-items:center;justify-content:center;padding:52px 0 0;overflow:hidden}
-.aam-video-focus-overlay>.aam-social-external-video{width:min(100vw,56.25dvh);height:calc(100dvh - 52px);max-height:none;aspect-ratio:9/16;flex:0 1 auto;border-radius:0}
+.aam-video-focus-overlay>
 .aam-video-focus-overlay>.aam-social-media{width:100%;height:calc(100dvh - 52px);max-height:none;min-height:0;object-fit:contain;border-radius:0}
 .aam-video-focus-overlay iframe,.aam-video-focus-overlay video{width:100%;height:100%;max-height:none;object-fit:contain}
 .aam-video-focus-close{position:absolute;z-index:2;top:max(8px,env(safe-area-inset-top));left:12px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:30px;line-height:1;cursor:pointer}
 body.aam-video-focus-open{overflow:hidden!important}
-@media(min-width:760px){.aam-video-focus-overlay{padding-top:56px}.aam-video-focus-overlay>.aam-social-external-video{height:calc(100dvh - 56px)}.aam-video-focus-overlay>.aam-social-media{height:calc(100dvh - 56px)}}
+@media(min-width:760px){.aam-video-focus-overlay{padding-top:56px}.aam-video-focus-overlay>.aam-video-focus-overlay>.aam-social-media{height:calc(100dvh - 56px)}}
 
 /* Chat header and compact composer polish */
 .aam-chat-header{display:flex;align-items:center;gap:12px;flex:0 0 auto;padding:0 0 10px;border-bottom:1px solid #e2e8f0}
@@ -331,7 +331,7 @@ body.aam-video-focus-open{overflow:hidden!important}
 
 /* Full-viewport feed playback: video and its controls occupy the phone screen. */
 .aam-video-focus-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;padding:0!important;margin:0!important;display:flex!important;align-items:stretch!important;justify-content:stretch!important;background:#000!important;overflow:hidden!important;z-index:2147483000!important}
-.aam-video-focus-overlay>.aam-social-external-video,.aam-video-focus-overlay>.aam-social-media{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-height:0!important;aspect-ratio:auto!important;object-fit:contain!important;border:0!important;border-radius:0!important;background:#000!important}
+.aam-video-focus-overlay>
 .aam-video-focus-overlay iframe,.aam-video-focus-overlay video{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
 .aam-video-focus-close{top:max(12px,env(safe-area-inset-top))!important;left:max(12px,env(safe-area-inset-left))!important;z-index:20!important}
 .aam-video-focus-rail{right:max(12px,env(safe-area-inset-right))!important;bottom:max(112px,calc(14dvh + env(safe-area-inset-bottom)))!important;z-index:20!important}
@@ -355,17 +355,17 @@ body.aam-video-focus-open{overflow:hidden!important}
 /* Home video feed: each Dailymotion or uploaded video occupies a full phone screen. */
 #aamSocialPosts.aam-social-feed-video-mode{width:100vw!important;height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior-y:contain!important;scroll-snap-type:y mandatory!important;scrollbar-width:none!important;margin-left:calc(50% - 50vw)!important;padding:0!important;background:#000!important}
 #aamSocialPosts.aam-social-feed-video-mode::-webkit-scrollbar{display:none}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video),#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media){position:relative!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;background:#000!important;color:#fff!important;scroll-snap-align:start!important;scroll-snap-stop:always!important;box-shadow:none!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>.aam-social-external-video,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>video.aam-social-media{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-height:0!important;aspect-ratio:auto!important;margin:0!important;border-radius:0!important;object-fit:contain!important;background:#000!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-external-video iframe{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>.aam-social-creator,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>.aam-social-creator{position:absolute!important;z-index:5!important;top:max(14px,env(safe-area-inset-top))!important;left:14px!important;right:82px!important;color:#fff!important;text-shadow:0 1px 5px #000!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>.aam-social-muted,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>.aam-social-muted{display:none!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>.aam-social-feed-creator,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>.aam-social-feed-creator{color:#fff!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>p,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>p{position:absolute!important;z-index:5!important;left:14px!important;right:82px!important;bottom:max(22px,env(safe-area-inset-bottom))!important;margin:0!important;color:#fff!important;text-shadow:0 1px 5px #000!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>.aam-social-actions,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>.aam-social-actions{position:absolute!important;z-index:6!important;right:max(10px,env(safe-area-inset-right))!important;bottom:clamp(110px,17dvh,180px)!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:12px!important;width:66px!important;margin:0!important;padding:0!important;background:transparent!important}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video)>.aam-social-actions button,#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media)>.aam-social-actions button{width:58px!important;min-width:58px!important;min-height:52px!important;padding:6px 2px!important;border:0!important;border-radius:14px!important;background:rgba(8,12,20,.58)!important;color:#fff!important;font-size:11px!important;white-space:normal!important;backdrop-filter:blur(6px)!important}
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode 
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
+#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
 #aamSocialPosts.aam-social-feed-video-mode .aam-video-focus-trigger{display:none!important}
-@media(min-width:760px){#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(.aam-social-external-video),#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(video.aam-social-media){width:min(100vw,56.25dvh)!important;margin-inline:auto!important}}
+@media(min-width:760px){#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(}
 
 /* Compact native-app sizing */
 .aam-social-card .aam-social-btn,.aam-social-card button,.aam-profile-hero button{min-height:34px!important;height:auto!important;padding:7px 11px!important;font-size:13px!important;border-radius:10px!important;line-height:1.25!important}
