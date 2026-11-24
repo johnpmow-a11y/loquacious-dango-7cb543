@@ -21,7 +21,7 @@ export async function handler(event){
     const part=await db(`aam_chat_participants?select=conversation_id&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`);
     if(!part.length)return json(404,{error:'Conversation not found.'});
     const [conversationRows,groupMember,otherParticipants]=await Promise.all([db(`aam_chat_conversations?select=id,conversation_type,title&id=eq.${conv}&limit=1`),db(`aam_chat_group_members?select=group_role&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`),db(`aam_chat_participants?select=customer_id,typing_at&conversation_id=eq.${conv}&customer_id=neq.${s.customer_id}&limit=1`)]);
-    const messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);
+    const messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);
     messages.reverse();
     const reads=messages.length?await db(`aam_chat_message_reads?select=message_id,customer_id,read_at&message_id=in.(${messages.map(m=>m.id).join(',')})`):[];
     const ids=[...new Set(messages.map(m=>m.sender_id))];
@@ -66,6 +66,18 @@ export async function handler(event){
   if(b.action==='touch'){if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});return json(200,await rpc('aam_chat_touch',{p_token:token,p_conversation:b.conversation_id}));}
   if(b.action==='typing'){if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});const part=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${b.conversation_id}&customer_id=eq.${s.customer_id}&limit=1`);if(!part.length)return json(404,{error:'Conversation not found.'});await db(`aam_chat_participants?conversation_id=eq.${b.conversation_id}&customer_id=eq.${s.customer_id}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({typing_at:b.is_typing===true?new Date().toISOString():null})});return json(200,{ok:true});}
   if(b.action==='start'){if(!uuid.test(String(b.target_customer_id||'')))return json(400,{error:'Choose a valid profile.'});return json(200,await rpc('aam_chat_start',{p_token:token,p_target:b.target_customer_id}));}
+  if(b.action==='edit'){
+   const messageId=String(b.message_id||''),body=String(b.body||'').trim();
+   if(!uuid.test(messageId))return json(400,{error:'Invalid message.'});
+   if(!body||body.length>5000)return json(400,{error:'Write a message of up to 5,000 characters.'});
+   const owned=await db(`aam_chat_messages?select=id,conversation_id,created_at&id=eq.${encodeURIComponent(messageId)}&sender_id=eq.${encodeURIComponent(s.customer_id)}&created_at=gt.${encodeURIComponent(new Date(Date.now()-15*60*1000).toISOString())}&limit=1`);
+   if(!owned.length)return json(403,{error:'Messages can only be edited by their sender during the first 15 minutes.'});
+   const participant=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${encodeURIComponent(owned[0].conversation_id)}&customer_id=eq.${encodeURIComponent(s.customer_id)}&limit=1`);
+   if(!participant.length)return json(404,{error:'Conversation not found.'});
+   const updated=await db(`aam_chat_messages?id=eq.${encodeURIComponent(messageId)}&sender_id=eq.${encodeURIComponent(s.customer_id)}&created_at=gt.${encodeURIComponent(new Date(Date.now()-15*60*1000).toISOString())}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({body,edited_at:new Date().toISOString()})});
+   if(!updated.length)return json(403,{error:'The 15-minute edit period has expired.'});
+   return json(200,{ok:true,message:updated[0]});
+  }
   if(b.action==='send'){
    if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});
    const recipients=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${b.conversation_id}&customer_id=neq.${s.customer_id}`);
