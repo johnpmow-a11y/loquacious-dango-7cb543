@@ -476,3 +476,14 @@ body:has(#aamSocialDock) .container{padding-bottom:calc(112px + env(safe-area-in
 .aam-home-wallet-details>summary,.aam-social-card>summary{cursor:pointer;font-weight:800;padding:7px}
 @media(max-width:600px){.aam-discovery-feed{height:calc(100dvh - 174px);min-height:420px}.aam-discovery-card{min-height:calc(100dvh - 174px)}}
 @media(min-width:760px){.aam-discovery-feed{height:calc(100dvh - 190px);max-width:620px;margin:0 auto}.aam-discovery-searchbar{max-width:620px;margin:0 auto}}
+
+/* Existing All Ads Manager posts share the same vertical feed surface. */
+.aam-discovery-feed>.aam-social-feed-item{position:relative!important;display:flex!important;flex-direction:column!important;justify-content:flex-end!important;width:100%!important;height:100%!important;min-height:calc(100dvh - 190px)!important;margin:0!important;padding:0 0 16px!important;overflow:hidden!important;scroll-snap-align:start!important;scroll-snap-stop:always!important;border:0!important;border-radius:0!important;background:#000!important;color:#fff!important}
+.aam-discovery-feed>.aam-social-feed-item>.aam-social-creator{position:relative!important;z-index:3;display:flex!important;align-items:center!important;gap:8px!important;padding:10px 14px!important;color:#fff!important;background:linear-gradient(#0008,transparent)!important}
+.aam-discovery-feed>.aam-social-feed-item>.aam-social-muted{position:relative!important;z-index:3;padding:0 14px!important;color:#d7e5e2!important}
+.aam-discovery-feed>.aam-social-feed-item>.aam-social-media{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:contain!important;background:#000!important}
+.aam-discovery-feed>.aam-social-feed-item>p{position:relative!important;z-index:3;margin:0!important;padding:14px!important;color:#fff!important;background:linear-gradient(transparent,#000b)!important}
+.aam-discovery-feed>.aam-social-feed-item>.aam-social-actions{position:relative!important;z-index:4;display:flex!important;gap:7px!important;overflow-x:auto!important;padding:8px 12px!important;background:linear-gradient(transparent,#000b)!important}
+.aam-discovery-feed>.aam-social-feed-item .aam-social-btn{color:#fff!important;background:#087b69!important;border-color:#087b69!important}
+.aam-discovery-feed>.aam-social-feed-item .aam-social-feed-avatar{width:36px!important;height:36px!important;border-radius:50%!important;object-fit:cover!important}
+@media(max-width:600px){.aam-discovery-feed>.aam-social-feed-item{min-height:calc(100dvh - 174px)!important}}
