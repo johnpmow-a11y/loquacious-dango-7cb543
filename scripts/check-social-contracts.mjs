@@ -23,7 +23,7 @@ const mail=read('netlify/functions/send-email.mjs');
 const deployment=read('DEPLOYMENT_README.txt');
 const checks=[
  ['native WebRTC is the active browser calling transport',ui.includes("import('./aam-webrtc-call.js")&&rtc.includes('new RTCPeerConnection')&&rtc.includes('pc.addTrack')&&rtc.includes('pc.ontrack')],
- ['WebRTC uses authenticated database signalling and realtime wake-ups',rtc.includes("channel('aam-call-' + callId")&&rtc.includes("channel.on('broadcast'")&&calls.includes('signal_send')&&signalMigration.includes('aam_call_signals')],
+ ['WebRTC uses authenticated database signalling and realtime wake-ups',rtc.includes("channel('aam-call-' + callId")&&rtc.includes("channel.on('broadcast'")&&calls.includes('signal_send')&&signalMigration.includes('aam_call_signal_events')],
  ['TURN relay credentials are requested server-side from Turnix',ice.includes('TURNIX_API_TOKEN')&&ice.includes('turnix.io/api/v1/credentials/ice')&&ui.includes('/.netlify/functions/webrtc-ice-servers')],
  ['old unused LiveKit token and voice modules are not shipped',!existsSync(new URL('../netlify/functions/livekit-token.mjs',import.meta.url))&&!existsSync(new URL('../public/aam-livekit-voice.js',import.meta.url))&&!ui.includes('livekit-client')],
  ['avatar uses on-device face, pose and hand tracking with canvas video output',avatar.includes('FaceLandmarker')&&avatar.includes('PoseLandmarker')&&avatar.includes('HandLandmarker')&&avatar.includes('captureStream(24)')&&avatar.includes("session.replaceTrack('video',avatarTrack)")],
