@@ -689,3 +689,7 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 #aamImageEditorText{width:100%;min-height:44px;border:1px solid #475569;border-radius:10px;background:#182235;color:#fff;padding:10px;font:inherit}
 .aam-image-editor-hint{font-size:11px;line-height:1.5;color:#aebbd0;margin:0 0 8px}
 @media(min-height:760px){.aam-image-editor-preview{height:40dvh}}
+
+/* Mobile chat: include safe-area padding inside the viewport and keep AAM's blue message styling. */
+.aam-social-chat-screen{box-sizing:border-box!important;min-height:0!important;}
+.aam-social-chat-screen .aam-social-message.mine{background:#dbeafe!important;border:1px solid #bfdbfe!important;color:#172554!important;}
