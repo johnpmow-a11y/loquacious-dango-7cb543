@@ -77,7 +77,7 @@ create or replace function public.aam_social_skip_admin_post(p_token uuid,p_post
 returns boolean
 language plpgsql security definer set search_path=public
 as $$
-declare v_customer uuid;
+declare v_customer uuid; v_skipped boolean := false;
 begin
   select customer_id into v_customer from public.customer_sessions
    where token=p_token and expires_at>now() limit 1;
@@ -87,7 +87,8 @@ begin
      set skipped_at=clock_timestamp()
    where customer_id=v_customer and post_id=p_post_id
      and delivered_at is not null and skipped_at is null;
-  if found then
+  v_skipped := found;
+  if v_skipped then
     -- Skipping advances the queue, but never removes the 50-minute delivery spacing.
     with pending as (
       select customer_id,post_id,row_number() over(order by scheduled_at,created_at,post_id) as rn
@@ -101,9 +102,9 @@ begin
       from pending
      where d.customer_id=pending.customer_id and d.post_id=pending.post_id;
   end if;
-  return found;
+  return v_skipped;
 end;
-$$;
+$;
 revoke all on function public.aam_social_next_admin_post(uuid) from public, anon, authenticated;
 revoke all on function public.aam_social_skip_admin_post(uuid,uuid) from public, anon, authenticated;
 grant execute on function public.aam_social_next_admin_post(uuid) to service_role;
