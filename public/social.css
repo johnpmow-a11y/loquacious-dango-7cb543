@@ -712,3 +712,15 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 .aam-discovery-card>.aam-feed-video-loading{position:absolute}
 .aam-discovery-card .aam-discovery-player>.aam-feed-video-loading{position:absolute}
 .aam-social-feed-item>.aam-feed-video-loading{position:absolute}
+
+/* Bring the separate chat inbox in line with the All Ads Manager blue palette. */
+.aam-social-chat-inbox{background:#eef4ff!important;color:#172b4d!important;border-color:#cbdcf3!important}
+.aam-social-chat-inbox .aam-chat-inbox-header{border-bottom-color:#cbdcf3!important}
+.aam-social-chat-inbox .aam-chat-inbox-header h2{color:#172b4d!important}
+.aam-social-chat-inbox .aam-chat-add-by-id{background:transparent!important}
+.aam-social-chat-inbox .aam-chat-add-by-id>.aam-social-btn{background:#1769aa!important;color:#fff!important;border-color:#1769aa!important}
+.aam-social-chat-inbox .aam-chat-add-form{background:#e4efff!important;border:1px solid #c7d8ef!important;border-radius:14px!important;padding:10px!important}
+.aam-social-chat-inbox .aam-chat-inbox-list{background:transparent!important}
+.aam-social-chat-inbox .aam-social-chat-row{background:#fff!important;border:1px solid #d4e2f5!important;color:#172b4d!important}
+.aam-social-chat-inbox .aam-social-chat-row small{color:#58749a!important}
+.aam-social-chat-inbox .aam-chat-inbox-hint{background:#eef4ff!important;color:#58749a!important}
