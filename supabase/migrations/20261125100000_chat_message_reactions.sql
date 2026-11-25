@@ -12,5 +12,7 @@ create index if not exists aam_chat_message_reactions_message_idx
   on public.aam_chat_message_reactions (message_id, created_at);
 
 alter table public.aam_chat_message_reactions enable row level security;
+revoke all on public.aam_chat_message_reactions from public, anon, authenticated;
+grant all on public.aam_chat_message_reactions to service_role;
 -- All reads and writes are performed by the authenticated Netlify chat function
 -- using the Supabase service-role key after checking chat participation.
