@@ -114,7 +114,18 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
     renderer.render(scene,camera);raf=requestAnimationFrame(draw);
   };
   try{await session.replaceTrack('video',avatarTrack);if(audioContext?.state==='suspended')await audioContext.resume();raf=requestAnimationFrame(draw);}
-  catch(error){stopped=true;video.pause();video.srcObject=null;video.remove();avatarTrack.stop();capture.getTracks().forEach(t=>t.stop());renderer.dispose();texture.dispose();URL.revokeObjectURL(photoUrl);face.close();pose.close();hands.close();if(audioContext)await audioContext.close().catch(()=>{});throw error;}
+  catch(error){
+    stopped=true;
+    // If video replacement succeeded but a later setup step failed, restore the
+    // original camera before stopping the generated avatar track.
+    if(cameraTrack.readyState==='live')await session.replaceTrack('video',cameraTrack).catch(()=>{});
+    video.pause();video.srcObject=null;video.remove();
+    avatarTrack.stop();capture.getTracks().forEach(t=>t.stop());
+    renderer.dispose();texture.dispose();URL.revokeObjectURL(photoUrl);
+    face.close();pose.close();hands.close();
+    if(audioContext)await audioContext.close().catch(()=>{});
+    throw error;
+  }
   if(mediaElement){const preview=document.createElement('video');preview.autoplay=true;preview.muted=true;preview.playsInline=true;preview.dataset.local='true';preview.dataset.avatar='true';preview.className='aam-social-local-preview';preview.srcObject=new MediaStream([avatarTrack]);mediaElement.querySelectorAll('video[data-local="true"]').forEach(el=>el.remove());mediaElement.prepend(preview);await preview.play().catch(()=>{});}
   onStatus('Your moving avatar is live. Face, head, arm and hand tracking are active where supported.');
   return {
