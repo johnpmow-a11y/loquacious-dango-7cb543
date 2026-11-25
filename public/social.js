@@ -96,9 +96,9 @@ function openImageEditor(target){
 }
 function closeImageEditor(){const img=document.querySelector('#aamImageEditorPreview');if(img?.src?.startsWith('blob:'))URL.revokeObjectURL(img.src);document.getElementById('aamImageEditor')?.remove();aamImageEditorState=null;}
 async function applyImageEditor(){
- const state=aamImageEditorState;if(!state)return;const button=document.getElementById('aamImageEditApply');if(button){button.disabled=true;button.textContent='Applying…';}
+ const state=aamImageEditorState;if(!state)return;const button=document.getElementById('aamImageEditApply');if(button){button.disabled=true;button.textContent='Applying…';}let sourceUrl=null;
  try{
-  const image=new Image(),url=URL.createObjectURL(state.file);await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url;});
+  const image=new Image(),url=sourceUrl=URL.createObjectURL(state.file);await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url;});
   const sourceW=image.naturalWidth,sourceH=image.naturalHeight;let targetRatio=sourceW/sourceH;
   if(state.ratio!=='original'){const [w,h]=state.ratio.split(':').map(Number);targetRatio=w/h;}
   let cropW=sourceW,cropH=sourceH;if(sourceW/sourceH>targetRatio)cropW=sourceH*targetRatio;else cropH=sourceW/targetRatio;
@@ -112,7 +112,7 @@ async function applyImageEditor(){
   if(state.target==='status'){aamPendingStatusFile=edited;if(aamStatusPreviewUrl)URL.revokeObjectURL(aamStatusPreviewUrl);aamStatusPreviewUrl=URL.createObjectURL(edited);const el=document.getElementById('aamStatusPreview');if(el){el.src=aamStatusPreviewUrl;}}
   else{selectedPostFile=edited;refreshPostMediaPreview();}
   URL.revokeObjectURL(url);closeImageEditor();
- }catch(error){URL.revokeObjectURL(url);if(button){button.disabled=false;button.textContent='Apply';}notice(error.message||'Could not edit this photo.');}
+ }catch(error){if(sourceUrl)URL.revokeObjectURL(sourceUrl);if(button){button.disabled=false;button.textContent='Apply';}notice(error.message||'Could not edit this photo.');}
 }
 
 async function statusPage(){if(window.aamStatusAdvanceTimer){clearTimeout(window.aamStatusAdvanceTimer);window.aamStatusAdvanceTimer=null;}loadingPage('Loading Status…','status');try{const d=await api('/.netlify/functions/social-status'),groups=new Map();for(const x of d.statuses||[]){if(!groups.has(x.customer_id))groups.set(x.customer_id,{name:x.owner_name,avatar:x.avatar_url,items:[]});groups.get(x.customer_id).items.push(x);}const groupHtml=[...groups.entries()].map(([id,g])=>'<button class="aam-social-status-person" onclick="AAMSocial.openStatusGroup(&quot;'+esc(id)+'&quot;)">'+(g.avatar?'<img src="'+esc(g.avatar)+'" alt="">':'<span class="aam-status-avatar">'+esc((g.name||'F').slice(0,1).toUpperCase())+'</span>')+'<span><strong>'+esc(g.name)+'</strong><small>'+(id===customer()?'My Status':g.items.some(x=>!x.viewed)?'New Status':'Viewed')+'</small></span><b>'+(g.items.some(x=>!x.viewed)?'●':'')+'</b></button>').join('');window.aamStatusGroups=[...groups.entries()];mount('<div class="aam-social-card"><h2>STATUS</h2><div class="aam-social-actions"><button class="aam-social-btn" onclick="AAMSocial.newTextStatus()">＋ Text Status</button><button class="aam-social-btn secondary" onclick="AAMSocial.pickStatusFile()">＋ Photo / Video</button><button class="aam-social-btn secondary" onclick="AAMSocial.openStatusCamera()">📷 Camera</button></div><input id="aamStatusFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" hidden onchange="AAMSocial.prepareStatusComposer()"><div id="aamStatusGroups">'+(groupHtml||'<p class="aam-social-muted">No Status updates yet. Add your first one.</p>')+'</div></div>','status');}catch(e){mount('<div class="aam-social-card"><h2>STATUS</h2><p>'+esc(e.message)+'</p><button class="aam-social-btn secondary" onclick="AAMSocial.open(\'home\')">← Home</button></div>','status');}}
