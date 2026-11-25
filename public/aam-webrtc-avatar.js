@@ -36,12 +36,17 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
     landmarker(vision.PoseLandmarker,files,POSE_MODEL,{numPoses:1}),
     landmarker(vision.HandLandmarker,files,HAND_MODEL,{numHands:2})
   ]);
-  if(trackers.some(item=>item.status==='rejected')){
+  // Face tracking is essential; pose and hand tracking are optional so a
+  // phone that cannot initialise every model can still run the photo avatar.
+  if(trackers[0].status==='rejected'){
     trackers.filter(item=>item.status==='fulfilled').forEach(item=>item.value.close());
     video.pause();video.srcObject=null;video.remove();
-    throw trackers.find(item=>item.status==='rejected').reason;
+    throw trackers[0].reason;
   }
-  const [face,pose,hands]=trackers.map(item=>item.value);
+  const face=trackers[0].value;
+  const pose=trackers[1].status==='fulfilled'?trackers[1].value:null;
+  const hands=trackers[2].status==='fulfilled'?trackers[2].value:null;
+  if(!pose||!hands)onStatus('Face tracking is ready. Some body or hand movements may be limited on this device.');
   const canvas=document.createElement('canvas');canvas.width=480;canvas.height=640;
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
   renderer.setPixelRatio(1);renderer.setSize(480,640,false);renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -63,11 +68,11 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
   try {
     photoImage=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not read the selected avatar picture.'));image.src=photoUrl;});
   } catch(error) {
-    face.close();pose.close();hands.close();video.pause();video.srcObject=null;video.remove();URL.revokeObjectURL(photoUrl);
+    face.close();pose?.close();hands?.close();video.pause();video.srcObject=null;video.remove();URL.revokeObjectURL(photoUrl);
     throw error;
   }
   const faceCanvas=document.createElement('canvas');faceCanvas.width=512;faceCanvas.height=584;const faceCtx=faceCanvas.getContext('2d');
-  if(!faceCtx){face.close();pose.close();hands.close();video.pause();video.srcObject=null;video.remove();URL.revokeObjectURL(photoUrl);throw new Error('Photo avatar rendering is not supported on this device.');}const targetAspect=faceCanvas.width/faceCanvas.height;let sx=0,sy=0,sw=photoImage.naturalWidth,sh=photoImage.naturalHeight;if(sw/sh>targetAspect){sw=sh*targetAspect;sx=(photoImage.naturalWidth-sw)/2;}else{sh=sw/targetAspect;sy=Math.max(0,(photoImage.naturalHeight-sh)*.18);}faceCtx.drawImage(photoImage,sx,sy,sw,sh,0,0,faceCanvas.width,faceCanvas.height);const texture=new THREE.CanvasTexture(faceCanvas);texture.colorSpace=THREE.SRGBColorSpace;
+  if(!faceCtx){face.close();pose?.close();hands?.close();video.pause();video.srcObject=null;video.remove();URL.revokeObjectURL(photoUrl);throw new Error('Photo avatar rendering is not supported on this device.');}const targetAspect=faceCanvas.width/faceCanvas.height;let sx=0,sy=0,sw=photoImage.naturalWidth,sh=photoImage.naturalHeight;if(sw/sh>targetAspect){sw=sh*targetAspect;sx=(photoImage.naturalWidth-sw)/2;}else{sh=sw/targetAspect;sy=Math.max(0,(photoImage.naturalHeight-sh)*.18);}faceCtx.drawImage(photoImage,sx,sy,sw,sh,0,0,faceCanvas.width,faceCanvas.height);const texture=new THREE.CanvasTexture(faceCanvas);texture.colorSpace=THREE.SRGBColorSpace;
   const facePlate=new THREE.Mesh(new THREE.PlaneGeometry(.42,.48),new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide}));
   facePlate.position.set(0,.015,.245);head.add(facePlate);
   const mouth=new THREE.Mesh(new THREE.CircleGeometry(.045,20),black);mouth.position.set(0,-.145,.254);mouth.scale.y=.35;head.add(mouth);
@@ -122,7 +127,7 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
     video.pause();video.srcObject=null;video.remove();
     avatarTrack.stop();capture.getTracks().forEach(t=>t.stop());
     renderer.dispose();texture.dispose();URL.revokeObjectURL(photoUrl);
-    face.close();pose.close();hands.close();
+    face.close();pose?.close();hands?.close();
     if(audioContext)await audioContext.close().catch(()=>{});
     throw error;
   }
@@ -134,7 +139,7 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
       if(restoreCamera&&cameraTrack.readyState==='live')await session.replaceTrack('video',cameraTrack).catch(()=>{});
       const preview=mediaElement?.querySelector('video[data-avatar="true"]');if(preview){preview.pause();preview.srcObject=null;preview.remove();}
       avatarTrack.stop();capture.getTracks().forEach(t=>t.stop());video.pause();video.srcObject=null;video.remove();
-      face.close();pose.close();hands.close();renderer.dispose();texture.dispose();URL.revokeObjectURL(photoUrl);
+      face.close();pose?.close();hands?.close();renderer.dispose();texture.dispose();URL.revokeObjectURL(photoUrl);
       if(audioContext&&audioContext.state!=='closed')await audioContext.close().catch(()=>{});
     },
     async setBodyStyle(style){shirt.color.set(style==='walter'?'#254b73':'#6748a5');skin.color.set(style==='walter'?'#bd896f':'#d6a184');}
