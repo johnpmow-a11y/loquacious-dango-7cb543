@@ -24,13 +24,24 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
   video.autoplay=true;video.muted=true;video.playsInline=true;video.srcObject=new MediaStream([cameraTrack]);
   video.style.cssText='position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:-10px;top:-10px';
   document.body.appendChild(video);
-  await video.play();
-  if(video.readyState<2)await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Camera did not become ready for avatar tracking.')),8000);video.addEventListener('loadeddata',()=>{clearTimeout(timer);resolve();},{once:true});});
-  const [face,pose,hands]=await Promise.all([
+  try {
+    await video.play();
+    if(video.readyState<2)await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Camera did not become ready for avatar tracking.')),8000);video.addEventListener('loadeddata',()=>{clearTimeout(timer);resolve();},{once:true});});
+  } catch(error) {
+    video.pause();video.srcObject=null;video.remove();
+    throw error;
+  }
+  const trackers=await Promise.allSettled([
     landmarker(vision.FaceLandmarker,files,FACE_MODEL,{numFaces:1,outputFaceBlendshapes:true,outputFacialTransformationMatrixes:true}),
     landmarker(vision.PoseLandmarker,files,POSE_MODEL,{numPoses:1}),
     landmarker(vision.HandLandmarker,files,HAND_MODEL,{numHands:2})
   ]);
+  if(trackers.some(item=>item.status==='rejected')){
+    trackers.filter(item=>item.status==='fulfilled').forEach(item=>item.value.close());
+    video.pause();video.srcObject=null;video.remove();
+    throw trackers.find(item=>item.status==='rejected').reason;
+  }
+  const [face,pose,hands]=trackers.map(item=>item.value);
   const canvas=document.createElement('canvas');canvas.width=480;canvas.height=640;
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
   renderer.setPixelRatio(1);renderer.setSize(480,640,false);renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -47,7 +58,16 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
   const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.18,12),skin);neck.position.y=.48;torso.add(neck);
   const head=new THREE.Group();head.position.set(0,.83,0);torso.add(head);
   const skull=new THREE.Mesh(new THREE.SphereGeometry(.31,24,20),skin);skull.scale.set(.83,1.08,.78);head.add(skull);
-  const photoUrl=URL.createObjectURL(photoFile);const photoImage=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not read the selected avatar picture.'));image.src=photoUrl;});const faceCanvas=document.createElement('canvas');faceCanvas.width=512;faceCanvas.height=584;const faceCtx=faceCanvas.getContext('2d');if(!faceCtx)throw new Error('Photo avatar rendering is not supported on this device.');const targetAspect=faceCanvas.width/faceCanvas.height;let sx=0,sy=0,sw=photoImage.naturalWidth,sh=photoImage.naturalHeight;if(sw/sh>targetAspect){sw=sh*targetAspect;sx=(photoImage.naturalWidth-sw)/2;}else{sh=sw/targetAspect;sy=Math.max(0,(photoImage.naturalHeight-sh)*.18);}faceCtx.drawImage(photoImage,sx,sy,sw,sh,0,0,faceCanvas.width,faceCanvas.height);const texture=new THREE.CanvasTexture(faceCanvas);texture.colorSpace=THREE.SRGBColorSpace;
+  const photoUrl=URL.createObjectURL(photoFile);
+  let photoImage;
+  try {
+    photoImage=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Could not read the selected avatar picture.'));image.src=photoUrl;});
+  } catch(error) {
+    face.close();pose.close();hands.close();video.pause();video.srcObject=null;video.remove();URL.revokeObjectURL(photoUrl);
+    throw error;
+  }
+  const faceCanvas=document.createElement('canvas');faceCanvas.width=512;faceCanvas.height=584;const faceCtx=faceCanvas.getContext('2d');
+  if(!faceCtx){face.close();pose.close();hands.close();video.pause();video.srcObject=null;video.remove();URL.revokeObjectURL(photoUrl);throw new Error('Photo avatar rendering is not supported on this device.');}const targetAspect=faceCanvas.width/faceCanvas.height;let sx=0,sy=0,sw=photoImage.naturalWidth,sh=photoImage.naturalHeight;if(sw/sh>targetAspect){sw=sh*targetAspect;sx=(photoImage.naturalWidth-sw)/2;}else{sh=sw/targetAspect;sy=Math.max(0,(photoImage.naturalHeight-sh)*.18);}faceCtx.drawImage(photoImage,sx,sy,sw,sh,0,0,faceCanvas.width,faceCanvas.height);const texture=new THREE.CanvasTexture(faceCanvas);texture.colorSpace=THREE.SRGBColorSpace;
   const facePlate=new THREE.Mesh(new THREE.PlaneGeometry(.42,.48),new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide}));
   facePlate.position.set(0,.015,.245);head.add(facePlate);
   const mouth=new THREE.Mesh(new THREE.CircleGeometry(.045,20),black);mouth.position.set(0,-.145,.254);mouth.scale.y=.35;head.add(mouth);
