@@ -1,4 +1,4 @@
-const CACHE_NAME='all-ads-manager-shell-v52-voice-navigation-cleanup';
+const CACHE_NAME='all-ads-manager-shell-v53-typing-navigation-cleanup';
 const APP_SHELL=['/','/manifest.webmanifest','/icon.svg','/funding-overrides.js','/social.css','/social.js','/aam-webrtc-call.js','/aam-webrtc-avatar.js'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
