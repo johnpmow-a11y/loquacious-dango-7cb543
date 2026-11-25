@@ -728,3 +728,8 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 /* Prevent iOS/Android native text-selection and callout popups on chat bubbles; use the in-app 2-second message menu instead. */
 .aam-social-chat-screen .aam-social-chat-messages .aam-social-message{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent!important;touch-action:pan-y!important}
 .aam-social-chat-screen .aam-social-chat-messages .aam-social-message *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+
+/* Follow the mobile visual viewport so the chat composer stays above the native keyboard. */
+.aam-social-chat-screen{height:var(--aam-chat-viewport-height,100dvh)!important;min-height:var(--aam-chat-viewport-height,100dvh)!important;max-height:var(--aam-chat-viewport-height,100dvh)!important;transform:translateY(var(--aam-chat-viewport-offset,0px))!important}
+.aam-social-chat-screen .aam-social-chat-messages{min-height:0!important;overscroll-behavior:contain!important;scroll-behavior:auto!important;-webkit-overflow-scrolling:touch!important}
+.aam-social-chat-screen .aam-chat-composer{flex-shrink:0!important;padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
