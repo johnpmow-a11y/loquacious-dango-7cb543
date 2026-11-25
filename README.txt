@@ -27,6 +27,11 @@ NEXOTP AND OTHER SERVICES
 - NexOTP catalogues and orders are handled by Netlify functions; the key is never exposed in the browser.
 - Customer prices show only the final NGN price. Country markups are USA +₦1,900, Canada +₦1,500, UK +₦1,950 and all other countries +₦1,950.
 - NexOTP supports short-term US numbers, 30-day US numbers and other-country short-term services as returned by its live catalogue.
+- Customer-facing prices show only the final amount; the markup is never displayed separately.
+
+CALLING AND CHAT
+- Audio/video calls use native WebRTC with Supabase signalling; Turnix TURN relay credentials are configured with TURNIX_API_TOKEN. LiveKit SDK credentials are not required.
+- The private chat includes full-screen mobile layout, typing indicators, read receipts, voice notes, media attachments, long-press message actions and persistent reactions. Apply the additional chat migrations listed in DEPLOYMENT_README.txt before relying on the corresponding database-backed features.
 
 EMAIL
 - Existing email-sending code and configuration are preserved; this provider update does not modify the mail transport.
