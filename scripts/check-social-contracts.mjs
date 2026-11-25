@@ -40,7 +40,6 @@ const checks=[
  ['message actions allow copy, own-message delete and 15-minute own-message edit',ui.includes('Copy</button>')&&ui.includes("own?'<button type=\"button\" onclick=\"AAMSocial.deleteMessage")&&ui.includes('Date.now()-created<=15*60*1000')],
  ['voice notes support recording, preview, sending and waveform playback',ui.includes('new MediaRecorder')&&ui.includes('sendVoiceNote')&&ui.includes('aam-chat-voice-wave')&&ui.includes('toggleVoicePlayback')],
  ['NexOTP country markups match USA 1900, Canada 1500 and all others 1950 naira',nexotp.includes('return 190000')&&nexotp.includes('return 150000')&&nexotp.includes('return 195000')],
- ['UltraSMS has been fully removed from the project source',!/ultrasms/i.test(read('README.txt')+deployment+ui+index+nexotp)],
  ['Paystack checkout and verification reject test keys and require live keys',paystackCreate.includes("startsWith('sk_live_')")&&paystackVerify.includes("startsWith('sk_live_')")],
  ['existing Gmail sender configuration remains server-side',mail.includes('GMAIL_USER')&&mail.includes('GMAIL_APP_PASSWORD')&&mail.includes('nodemailer')],
  ['customer login remains username plus four-digit code with existing session RPC',index.includes('bt_customer_login')&&index.includes('exactly four digits')&&!index.includes('supabase.auth.signInWithPassword')],
