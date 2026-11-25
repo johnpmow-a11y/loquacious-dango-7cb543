@@ -291,7 +291,7 @@ async function useCallAvatar(file){
  try{
   setCallStatus('Creating your moving photo avatar…');
   await stopCallAvatar({restoreCamera:true});
-  const module=await import('./aam-webrtc-avatar.js?v=20261125setupcleanup1');
+  const module=await import('./aam-webrtc-avatar.js?v=20261125camerarestore1');
   aamCallAvatarController=await module.createAamWebRtcAvatar({
    photoFile:file,cameraTrack:aamLocalCallStream.getVideoTracks()[0],localStream:aamLocalCallStream,
    session:aamWebRtcSession,mediaElement:document.getElementById('aamCallMedia'),
