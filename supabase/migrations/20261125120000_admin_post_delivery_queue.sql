@@ -23,6 +23,7 @@ declare
   v_customer uuid;
   v_next timestamptz;
   v_post uuid;
+  v_delivered timestamptz;
 begin
   select customer_id into v_customer from public.customer_sessions
    where token=p_token and expires_at>now() limit 1;
@@ -52,9 +53,21 @@ begin
      and d.scheduled_at<=now() and p.author_role='admin' and p.moderation_status='published'
    order by d.scheduled_at asc limit 1 for update of d;
   if v_post is not null then
+    v_delivered := clock_timestamp();
     update public.aam_social_admin_post_deliveries
-       set delivered_at=now()
+       set delivered_at=v_delivered
      where customer_id=v_customer and post_id=v_post and delivered_at is null and skipped_at is null;
+    -- If the customer returns late, push every remaining item forward so deliveries
+    -- still have a full 50-minute gap from the actual delivery time.
+    with pending as (
+      select customer_id,post_id,row_number() over(order by scheduled_at,created_at,post_id) as rn
+        from public.aam_social_admin_post_deliveries
+       where customer_id=v_customer and delivered_at is null and skipped_at is null
+    )
+    update public.aam_social_admin_post_deliveries d
+       set scheduled_at=greatest(d.scheduled_at,v_delivered+pending.rn*interval '50 minutes')
+      from pending
+     where d.customer_id=pending.customer_id and d.post_id=pending.post_id;
   end if;
   return v_post;
 end;
@@ -71,9 +84,23 @@ begin
   if v_customer is null then raise exception 'Session expired'; end if;
   perform pg_advisory_xact_lock(hashtextextended(v_customer::text, 0));
   update public.aam_social_admin_post_deliveries
-     set skipped_at=now()
+     set skipped_at=clock_timestamp()
    where customer_id=v_customer and post_id=p_post_id
      and delivered_at is not null and skipped_at is null;
+  if found then
+    -- Skipping advances the queue, but never removes the 50-minute delivery spacing.
+    with pending as (
+      select customer_id,post_id,row_number() over(order by scheduled_at,created_at,post_id) as rn
+        from public.aam_social_admin_post_deliveries
+       where customer_id=v_customer and delivered_at is null and skipped_at is null
+    )
+    update public.aam_social_admin_post_deliveries d
+       set scheduled_at=greatest(d.scheduled_at,
+         (select skipped_at from public.aam_social_admin_post_deliveries
+           where customer_id=v_customer and post_id=p_post_id)+pending.rn*interval '50 minutes')
+      from pending
+     where d.customer_id=pending.customer_id and d.post_id=pending.post_id;
+  end if;
   return found;
 end;
 $$;
