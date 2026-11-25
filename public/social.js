@@ -611,7 +611,7 @@ async function startVoiceNote(id){
  const state={id,locked:false,canceled:false,releaseRequested:false,recorder:null,stream:null,chunks:[],timer:null,seconds:0,blob:null};aamVoiceNoteState=state;setVoiceNoteUi(true,false,'Starting microphone…');
  try{
   state.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-  if(state.canceled||aamVoiceNoteState!==state){state.stream.getTracks().forEach(t=>t.stop());return;}
+  if(state.canceled||aamVoiceNoteState!==state){state.stream.getTracks().forEach(t=>t.stop());if(aamVoiceNoteState===state){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording discarded.');}return;}
   const mime=MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':(MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'');
   if(!mime)throw new Error('This browser cannot record a supported voice-note format.');
   const recorder=new MediaRecorder(state.stream,{mimeType:mime});state.recorder=recorder;window.aamVoiceRecorder=recorder;
