@@ -26,6 +26,9 @@ export async function createAamWebRtcCall({
     try { await channel?.unsubscribe(); } catch (_) {}
     pc.ontrack = null; pc.onicecandidate = null;
     pc.close();
+    // A remote hangup must release this device's microphone and camera
+    // immediately; the outer call UI may not poll the ended status for seconds.
+    localStream.getTracks().forEach(track => track.stop());
     remoteStream.getTracks().forEach(track => track.stop());
   };
 
@@ -153,6 +156,9 @@ export async function createAamWebRtcCall({
       await pc.setLocalDescription(offer);
       await send('offer', { sdp: pc.localDescription.sdp });
       onState('Calling… waiting for the other person.');
+    } catch (error) {
+      await stopPeerMedia();
+      throw error;
     } finally { makingOffer = false; }
   }
 
