@@ -15,7 +15,6 @@ export async function createAamWebRtcCall({
 
   const pc = new RTCPeerConnection({ iceServers });
   const remoteStream = new MediaStream();
-  const seenSignals = new Set();
   let closed = false, channel = null, pollTimer = null, cursor = new Date(0).toISOString(), lastRealtimeWake = 0, pollInFlight = false;
   let offerStarted = false, makingOffer = false, remoteDescriptionSet = false;
   const pendingCandidates = [];
@@ -52,8 +51,7 @@ export async function createAamWebRtcCall({
   };
 
   const processSignal = async signal => {
-    if (!signal || closed || (signal.id && seenSignals.has(signal.id))) return;
-    if (signal.id) seenSignals.add(signal.id);
+    if (!signal || closed) return;
     if (signal.recipient_id && localIdentity && signal.recipient_id !== localIdentity) return;
     if (signal.sender_id && localIdentity && signal.sender_id === localIdentity) return;
 
@@ -85,8 +83,10 @@ export async function createAamWebRtcCall({
     try {
       const result = await listSignals(cursor);
       for (const signal of result?.signals || []) {
-        if (signal.created_at && signal.created_at > cursor) cursor = signal.created_at;
+        // Advance only after processing succeeds. Otherwise a transient SDP/answer
+        // error would move the cursor past this signal and permanently lose it.
         await processSignal(signal);
+        if (signal.created_at && signal.created_at > cursor) cursor = signal.created_at;
       }
     } catch (error) {
       onState('Restoring call connection…');
