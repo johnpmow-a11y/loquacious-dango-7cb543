@@ -729,7 +729,7 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 .aam-social-chat-screen .aam-social-chat-messages .aam-social-message{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent!important;touch-action:pan-y!important}
 .aam-social-chat-screen .aam-social-chat-messages .aam-social-message *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
 /* Prevent iOS/Android native text selection handles and copy popups throughout the full-screen conversation; editable fields remain usable. */
-.aam-social-chat-screen,.aam-social-chat-screen *,.aam-social-inbox-screen,.aam-social-inbox-screen *,.aam-chat-info-screen,.aam-chat-info-screen *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent}
+.aam-social-chat-screen,.aam-social-chat-screen *,.aam-social-chat-inbox,.aam-social-chat-inbox *,.aam-chat-info-screen,.aam-chat-info-screen *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent}
 .aam-social-chat-screen input,.aam-social-chat-screen textarea,.aam-social-chat-screen select,.aam-social-chat-screen [contenteditable="true"],.aam-social-chat-screen [contenteditable=""]{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important}
 
 /* Follow the mobile visual viewport so the chat composer stays above the native keyboard. */
