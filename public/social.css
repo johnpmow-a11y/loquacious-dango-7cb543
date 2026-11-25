@@ -671,3 +671,21 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 
 /* Sent/read receipts: neutral single tick, blue double tick only after read. */
 .aam-social-message .aam-message-status{color:#64748b!important;opacity:1!important}.aam-social-message .aam-read{color:#2563eb!important;font-weight:900!important}
+
+
+/* All Ads Manager pre-publish photo editor */
+.aam-photo-edit-trigger{width:100%;min-height:42px;margin:8px 0}
+.aam-image-editor{position:fixed;inset:0;z-index:2147483600;background:#080d18f5;color:#fff;display:flex;align-items:stretch;justify-content:center;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);overflow:auto}
+.aam-image-editor-card{width:min(100%,560px);min-height:100%;display:flex;flex-direction:column;gap:12px;padding:10px 4px 18px}
+.aam-image-editor-card>header{display:flex;align-items:center;justify-content:space-between;min-height:46px;position:sticky;top:0;background:#080d18;z-index:2}
+.aam-image-editor-back,.aam-image-editor-done{border:0;border-radius:10px;padding:9px 14px;background:#26354d;color:#fff;font-weight:700}.aam-image-editor-done{background:#1769aa}
+.aam-image-editor-preview{height:min(36dvh,330px);min-height:180px;display:grid;place-items:center;overflow:hidden;border-radius:14px;background:#000}
+.aam-image-editor-preview img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center}
+.aam-image-editor-card label{font-size:13px;font-weight:750;color:#dbeafe;margin-top:4px}
+.aam-image-editor-effects,.aam-image-editor-ratios{display:flex;gap:7px;overflow-x:auto;padding:2px 0 6px}
+.aam-image-editor-effects button,.aam-image-editor-ratios button{flex:0 0 auto;border:1px solid #475569;border-radius:20px;padding:9px 13px;background:#182235;color:#e2e8f0;font-size:12px}
+.aam-image-editor-effects button.selected,.aam-image-editor-ratios button.selected{background:#1769aa;border-color:#60a5fa;color:#fff}
+#aamImageEditorZoom{width:100%;accent-color:#38a5ed}
+#aamImageEditorText{width:100%;min-height:44px;border:1px solid #475569;border-radius:10px;background:#182235;color:#fff;padding:10px;font:inherit}
+.aam-image-editor-hint{font-size:11px;line-height:1.5;color:#aebbd0;margin:0 0 8px}
+@media(min-height:760px){.aam-image-editor-preview{height:40dvh}}
