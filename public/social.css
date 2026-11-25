@@ -280,7 +280,7 @@ body.aam-video-focus-open{overflow:hidden!important}
 @media(min-width:760px){.aam-video-focus-rail{right:calc(50% - min(28.125dvh,50vw) + 12px)}.aam-video-focus-meta{left:calc(50% - min(28.125dvh,50vw) + 14px);right:calc(50% - min(28.125dvh,50vw) + 76px)}}
 
 /* All Ads Manager chat delivery states: one red sent tick, two blue read ticks. */
-.aam-social-message .aam-read,.aam-social-message .aam-message-status{display:block;font-size:13px;font-weight:900;letter-spacing:-1px}.aam-social-message .aam-read{color:#2563eb!important;animation:none!important}.aam-social-message .aam-message-status{color:#dc2626!important;opacity:.9}.aam-chat-contact small{display:block;min-height:15px;color:#64748b;font-size:11px}.aam-social-chat-screen .aam-chat-composer #aamChatBody{outline:none;caret-color:#7c3aed}.aam-social-chat-screen .aam-chat-composer #aamChatBody:focus{box-shadow:0 0 0 2px rgba(124,58,237,.16)!important}.aam-social-chat-row .aam-chat-row-status{color:#7c3aed;font-weight:700}
+.aam-social-message .aam-read,.aam-social-message .aam-message-status{display:block;font-size:13px;font-weight:900;letter-spacing:-1px}.aam-social-message .aam-read{color:#2563eb!important;animation:none!important}.aam-social-message .aam-message-status{color:#64748b!important;opacity:1}.aam-chat-contact small{display:block;min-height:15px;color:#64748b;font-size:11px}.aam-social-chat-screen .aam-chat-composer #aamChatBody{outline:none;caret-color:#7c3aed}.aam-social-chat-screen .aam-chat-composer #aamChatBody:focus{box-shadow:0 0 0 2px rgba(124,58,237,.16)!important}.aam-social-chat-row .aam-chat-row-status{color:#7c3aed;font-weight:700}
 
 
 /* AAM call layout correction: one large live camera plus a small movable self-view. */
