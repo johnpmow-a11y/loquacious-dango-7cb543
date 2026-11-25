@@ -38,7 +38,7 @@ export async function handler(event){
     const otherProfile=otherProfileRows[0]?{display_name:otherProfileRows[0].display_name||'Friend',avatar_url:otherProfileRows[0].avatar_path?await signedRead(otherProfileRows[0].avatar_path):null}:null;
     const outputMessages=await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id),reactions:reactionMap.get(m.id)||[]}}));
     rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv}).catch(()=>{});
-    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherCustomerId,other_profile:otherProfile,other_is_typing:!!otherParticipants[0]?.typing_at&&(Date.now()-new Date(otherParticipants[0].typing_at).getTime()<6000),group_role:groupMember[0]?.group_role||null,messages:outputMessages,read_message_ids:reads.map(r=>r.message_id)});
+    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherCustomerId,other_profile:otherProfile,other_is_typing:!!otherParticipants[0]?.typing_at&&(Date.now()-new Date(otherParticipants[0].typing_at).getTime()<6000),group_role:groupMember[0]?.group_role||null,messages:outputMessages,reaction_updates:reactionIds.map(id=>({message_id:id,reactions:reactionMap.get(id)||[]})),read_message_ids:reads.map(r=>r.message_id)});
    }
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
    if(!parts.length)return json(200,{conversations:[]});
