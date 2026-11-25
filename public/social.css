@@ -693,3 +693,9 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 /* Mobile chat: include safe-area padding inside the viewport and keep AAM's blue message styling. */
 .aam-social-chat-screen{box-sizing:border-box!important;min-height:0!important;}
 .aam-social-chat-screen .aam-social-message.mine{background:#dbeafe!important;border:1px solid #bfdbfe!important;color:#172554!important;}
+/* Mobile feed playback feedback */
+.aam-feed-video-loading{position:absolute;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);max-width:calc(100% - 36px);padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(15,23,42,.78);color:#fff;font-size:12px;font-weight:700;text-align:center;pointer-events:none;backdrop-filter:blur(8px)}
+.aam-feed-video-loading[hidden]{display:none!important}
+.aam-discovery-card>.aam-feed-video-loading{position:absolute}
+.aam-discovery-card .aam-discovery-player>.aam-feed-video-loading{position:absolute}
+.aam-social-feed-item>.aam-feed-video-loading{position:absolute}
