@@ -139,7 +139,7 @@ async function selectLibrarySound(item){
   document.getElementById('aamSoundLibrary')?.remove();
  }catch(error){if(label)label.textContent=error.message;notice(error.message);}
 }
-let aamPendingStatusFile=null;
+let aamPendingStatusFile=null,aamStatusPreviewUrl=null;
 let aamStatusCameraStream=null,aamStatusRecorder=null,aamStatusChunks=[],aamStatusFacing='environment';
 async function openStatusCamera(facing='environment'){
  if(!navigator.mediaDevices?.getUserMedia){notice('Full-screen camera is not available in this browser. Choose Photo / Video instead.');return pickStatusFile();}
@@ -187,8 +187,10 @@ function toggleStatusCameraRecording(){
 }
 function prepareStatusComposer(fileOverride=null){
  const file=fileOverride||document.getElementById('aamStatusFile')?.files?.[0];if(!file)return;
- aamPendingStatusFile=file;
- const preview=file.type.startsWith('video/')?'<video id="aamStatusPreview" controls playsinline src="'+URL.createObjectURL(file)+'"></video>':'<img id="aamStatusPreview" src="'+URL.createObjectURL(file)+'" alt="Status preview">';
+ if(aamStatusPreviewUrl)URL.revokeObjectURL(aamStatusPreviewUrl);
+ document.getElementById('aamStatusComposer')?.remove();
+ aamPendingStatusFile=file;aamStatusPreviewUrl=URL.createObjectURL(file);
+ const preview=file.type.startsWith('video/')?'<video id="aamStatusPreview" controls playsinline src="'+aamStatusPreviewUrl+'"></video>':'<img id="aamStatusPreview" src="'+aamStatusPreviewUrl+'" alt="Status preview">';
  const box=document.createElement('div');box.id='aamStatusComposer';box.className='aam-status-composer';
  box.innerHTML='<div class="aam-status-compose-card"><header><strong>Preview Status</strong><button type="button" class="aam-status-close" onclick="AAMSocial.cancelStatusComposer()">×</button></header>'+preview+'<textarea id="aamStatusCaption" maxlength="700" placeholder="Add a caption…"></textarea><button type="button" class="aam-social-btn secondary" onclick="AAMSocial.openSoundLibrary(&quot;status&quot;)">♫ Add Sound</button><small id="aamStatusAudioName">Choose a free public-domain track or audio from your phone.</small><audio id="aamStatusAudioPreview" controls playsinline hidden></audio><button type="button" onclick="AAMSocial.createMediaStatus()">Share Status</button></div>';
  document.body.appendChild(box);if(window.aamSelectedStatusAudio)updateStatusAudioPreview(window.aamSelectedStatusAudio);
@@ -200,6 +202,7 @@ function updateStatusAudioPreview(file){
 }
 function cancelStatusComposer(){
  const audio=document.getElementById('aamStatusAudioPreview');if(audio?.dataset.objectUrl)URL.revokeObjectURL(audio.dataset.objectUrl);
+ if(aamStatusPreviewUrl){URL.revokeObjectURL(aamStatusPreviewUrl);aamStatusPreviewUrl=null;}
  document.getElementById('aamStatusComposer')?.remove();aamPendingStatusFile=null;window.aamSelectedStatusAudio=null;window.aamSelectedStatusAudioAttribution=null;
  const picker=document.getElementById('aamStatusFile');if(picker)picker.value='';
 }
