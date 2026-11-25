@@ -19,6 +19,15 @@ export async function createAamWebRtcCall({
   let closed = false, channel = null, pollTimer = null, cursor = new Date(0).toISOString(), lastRealtimeWake = 0, pollInFlight = false;
   let offerStarted = false, makingOffer = false, remoteDescriptionSet = false;
   const pendingCandidates = [];
+  const stopPeerMedia = async () => {
+    if (closed) return;
+    closed = true;
+    if (pollTimer) clearInterval(pollTimer);
+    try { await channel?.unsubscribe(); } catch (_) {}
+    pc.ontrack = null; pc.onicecandidate = null;
+    pc.close();
+    remoteStream.getTracks().forEach(track => track.stop());
+  };
 
   const send = async (type, payload) => {
     if (closed) return;
@@ -47,7 +56,7 @@ export async function createAamWebRtcCall({
 
     const type = signal.signal_type;
     const payload = signal.payload;
-    if (type === 'hangup') { onState('The other caller ended the call.'); return; }
+    if (type === 'hangup') { onState('The other caller ended the call.'); await stopPeerMedia(); return; }
     if (type === 'offer' && payload?.sdp) {
       if (pc.signalingState !== 'stable') return;
       await pc.setRemoteDescription({ type: 'offer', sdp: payload.sdp });
@@ -153,13 +162,8 @@ export async function createAamWebRtcCall({
     get localStream() { return localStream; },
     async close({ notify = true } = {}) {
       if (closed) return;
-      closed = true;
-      if (pollTimer) clearInterval(pollTimer);
       if (notify) await sendSignal('hangup', null).catch(() => {});
-      try { await channel?.unsubscribe(); } catch (_) {}
-      pc.ontrack = null; pc.onicecandidate = null;
-      pc.close();
-      remoteStream.getTracks().forEach(track => track.stop());
+      await stopPeerMedia();
     },
     async setMicrophoneEnabled(enabled) {
       localStream.getAudioTracks().forEach(track => { track.enabled = !!enabled; });
