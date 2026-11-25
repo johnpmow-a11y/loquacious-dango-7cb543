@@ -185,11 +185,12 @@ function toggleStatusCameraRecording(){
   aamStatusChunks=[];aamStatusRecorder=new MediaRecorder(aamStatusCameraStream,mime?{mimeType:mime}:{});
   aamStatusRecorder.ondataavailable=event=>{if(event.data?.size)aamStatusChunks.push(event.data);};
   aamStatusRecorder.onstop=()=>{const type=aamStatusRecorder?.mimeType||mime||'video/webm',blob=new Blob(aamStatusChunks,{type}),extension=type.includes('mp4')?'mp4':'webm';const file=new File([blob],'status-video.'+extension,{type});aamStatusRecorder=null;aamStatusChunks=[];closeStatusCamera();if(file.size)prepareStatusComposer(file);else notice('The video recording was empty. Try again.');};
-  aamStatusRecorder.start(250);const button=document.getElementById('aamStatusCameraRecord'),mode=document.getElementById('aamStatusCameraMode');if(button)button.textContent='■';if(mode)mode.textContent='Recording · tap to stop';
- }catch(error){notice('Video recording is not supported by this browser.');}
+  const recorder=aamStatusRecorder;recorder.onerror=()=>{if(aamStatusRecorder!==recorder)return;aamStatusRecorder=null;aamStatusChunks=[];closeStatusCamera();notice('Status video recording failed. Please try again.');};recorder.start(250);const button=document.getElementById('aamStatusCameraRecord'),mode=document.getElementById('aamStatusCameraMode');if(button)button.textContent='■';if(mode)mode.textContent='Recording · tap to stop';
+ }catch(error){aamStatusRecorder=null;aamStatusChunks=[];notice('Video recording is not supported by this browser.');}
 }
 function prepareStatusComposer(fileOverride=null){
  const file=fileOverride||document.getElementById('aamStatusFile')?.files?.[0];if(!file)return;
+ const previousAudio=document.getElementById('aamStatusAudioPreview');if(previousAudio){previousAudio.pause();if(previousAudio.dataset.objectUrl)URL.revokeObjectURL(previousAudio.dataset.objectUrl);}
  if(aamStatusPreviewUrl)URL.revokeObjectURL(aamStatusPreviewUrl);
  document.getElementById('aamStatusComposer')?.remove();
  aamPendingStatusFile=file;aamStatusPreviewUrl=URL.createObjectURL(file);
@@ -204,7 +205,7 @@ function updateStatusAudioPreview(file){
  const url=URL.createObjectURL(file);audio.dataset.objectUrl=url;audio.src=url;audio.hidden=false;audio.load();
 }
 function cancelStatusComposer(){
- const audio=document.getElementById('aamStatusAudioPreview');if(audio?.dataset.objectUrl)URL.revokeObjectURL(audio.dataset.objectUrl);
+ const audio=document.getElementById('aamStatusAudioPreview');if(audio){audio.pause();if(audio.dataset.objectUrl)URL.revokeObjectURL(audio.dataset.objectUrl);audio.removeAttribute('src');audio.load();}
  if(aamStatusPreviewUrl){URL.revokeObjectURL(aamStatusPreviewUrl);aamStatusPreviewUrl=null;}
  document.getElementById('aamStatusComposer')?.remove();aamPendingStatusFile=null;window.aamSelectedStatusAudio=null;window.aamSelectedStatusAudioAttribution=null;
  const picker=document.getElementById('aamStatusFile');if(picker)picker.value='';
