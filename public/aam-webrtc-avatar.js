@@ -31,22 +31,29 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
     video.pause();video.srcObject=null;video.remove();
     throw error;
   }
-  const trackers=await Promise.allSettled([
-    landmarker(vision.FaceLandmarker,files,FACE_MODEL,{numFaces:1,outputFaceBlendshapes:true,outputFacialTransformationMatrixes:true}),
+  // Load the essential face tracker first. Optional pose and hand models
+  // initialise in the background so slow devices can start the avatar sooner.
+  let face;
+  try {
+    face=await landmarker(vision.FaceLandmarker,files,FACE_MODEL,{numFaces:1,outputFaceBlendshapes:true,outputFacialTransformationMatrixes:true});
+  } catch(error) {
+    video.pause();video.srcObject=null;video.remove();
+    throw error;
+  }
+  let pose=null,hands=null,stopped=false;
+  const optionalTrackers=Promise.allSettled([
     landmarker(vision.PoseLandmarker,files,POSE_MODEL,{numPoses:1}),
     landmarker(vision.HandLandmarker,files,HAND_MODEL,{numHands:2})
-  ]);
-  // Face tracking is essential; pose and hand tracking are optional so a
-  // phone that cannot initialise every model can still run the photo avatar.
-  if(trackers[0].status==='rejected'){
-    trackers.filter(item=>item.status==='fulfilled').forEach(item=>item.value.close());
-    video.pause();video.srcObject=null;video.remove();
-    throw trackers[0].reason;
-  }
-  const face=trackers[0].value;
-  const pose=trackers[1].status==='fulfilled'?trackers[1].value:null;
-  const hands=trackers[2].status==='fulfilled'?trackers[2].value:null;
-  if(!pose||!hands)onStatus('Face tracking is ready. Some body or hand movements may be limited on this device.');
+  ]).then(results=>{
+    results.forEach((result,index)=>{
+      if(result.status!=='fulfilled')return;
+      if(stopped){result.value.close();return;}
+      if(index===0)pose=result.value;else hands=result.value;
+    });
+    if(!stopped)onStatus(pose&&hands
+      ?'Face, body and hand tracking are ready.'
+      :'Face tracking is ready. Some body or hand movements may be limited on this device.');
+  }).catch(()=>{if(!stopped)onStatus('Face tracking is ready. Some body or hand movements may be limited on this device.');});
   const canvas=document.createElement('canvas');canvas.width=480;canvas.height=640;
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
   renderer.setPixelRatio(1);renderer.setSize(480,640,false);renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -91,7 +98,7 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
   for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.17,.95,0);root.add(leg);const thigh=capsule(THREE,.13,.43,pants);thigh.position.y=-.26;leg.add(thigh);const shin=capsule(THREE,.105,.43,pants);shin.position.y=-.75;leg.add(shin);const shoe=new THREE.Mesh(new THREE.BoxGeometry(.18,.09,.32),dark);shoe.position.set(0,-1.02,.08);leg.add(shoe);}
   const capture=canvas.captureStream(24),avatarTrack=capture.getVideoTracks()[0];
   if(!avatarTrack)throw new Error('Could not create the animated avatar video.');
-  let stopped=false,raf=0,lastDetect=0,lastVideoTime=-1,lastFace=null,lastPose=null,lastHands=null,headTarget={x:0,y:0,z:0},mouthTarget=0;
+  let raf=0,lastDetect=0,lastVideoTime=-1,lastFace=null,lastPose=null,lastHands=null,headTarget={x:0,y:0,z:0},mouthTarget=0;
   let audioContext=null,analyser=null,audioData=null;
   try{const mic=localStream?.getAudioTracks?.()[0];if(mic){audioContext=new (window.AudioContext||window.webkitAudioContext)();const source=audioContext.createMediaStreamSource(new MediaStream([mic]));analyser=audioContext.createAnalyser();analyser.fftSize=256;source.connect(analyser);audioData=new Uint8Array(analyser.frequencyBinCount);}}catch(_){}
   const poseAngle=(a,b)=>Math.atan2(b.x-a.x,a.y-b.y);
