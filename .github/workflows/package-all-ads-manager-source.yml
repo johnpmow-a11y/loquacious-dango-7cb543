@@ -1,0 +1,36 @@
+name: Package All Ads Manager source ZIP
+
+on:
+  push:
+    branches:
+      - fix/livekit-call-media-attachment
+    paths:
+      - '.github/workflows/package-all-ads-manager-source.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do node --check "$file"; done < <(find . -type f -name '*.mjs' -not -path './.git/*' -print0)
+          while IFS= read -r -d '' file; do node --check "$file"; done < <(find public netlify -type f -name '*.js' -print0)
+      - name: Build ZIP and verify archive
+        run: |
+          zip -qr All-Ads-Manager-Final-Source.zip . -x './.git/*' './node_modules/*' './All-Ads-Manager-Final-Source.zip'
+          unzip -t All-Ads-Manager-Final-Source.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: All-Ads-Manager-Final-Source
+          path: All-Ads-Manager-Final-Source.zip
+          if-no-files-found: error
+          retention-days: 7
