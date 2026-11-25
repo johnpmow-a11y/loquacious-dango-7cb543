@@ -290,30 +290,23 @@ async function useCallAvatar(file){
   const button=document.getElementById('aamCallAvatarBtn');if(button)button.textContent='Change moving avatar · Free';
  }catch(error){aamCallAvatarController=null;setCallStatus(error.message||'Could not start the moving avatar.');notice(error.message||'Could not start the moving avatar.');}
 }
-async function listCallSavedAvatars(){
-  if(!('indexedDB' in window))return [];
-  const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('aam-wireface-avatar-lab',1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('saved-avatars'))req.result.createObjectStore('saved-avatars',{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
-  if(!db.objectStoreNames.contains('saved-avatars')){db.close();return [];}
-  const rows=await new Promise((resolve,reject)=>{const req=db.transaction('saved-avatars','readonly').objectStore('saved-avatars').getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});
-  db.close();return rows.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+function ensureCallAvatarControls(callType){
+ if(callType!=='video')return;
+ const activeOverlay=document.getElementById('aamAdminCallOverlay')||document.getElementById('aamIncomingCallOverlay');
+ const actions=(activeOverlay||document).querySelector('.aam-social-call-actions');if(!actions)return;
+ let button=document.getElementById('aamCallAvatarBtn'),style=document.getElementById('aamCallAvatarStyle');
+ if(button&&!actions.contains(button)){button.remove();style?.remove();document.getElementById('aamCallAvatarPhoto')?.remove();button=null;style=null;}
+ if(button){button.style.display='inline-flex';if(style)style.style.display='inline-flex';button.textContent=aamCallAvatarController?'Change moving avatar · Free':'Add moving photo avatar · Free';return;}
+ style=document.createElement('select');style.id='aamCallAvatarStyle';style.className='aam-social-btn secondary';
+ style.innerHTML='<option value="sarah">Female avatar body</option><option value="walter">Male avatar body</option>';
+ style.addEventListener('change',async()=>{if(aamCallAvatarController)try{await aamCallAvatarController.setBodyStyle(style.value);}catch(e){notice(e.message||'Could not change avatar body.');}});
+ const input=document.createElement('input');input.type='file';input.id='aamCallAvatarPhoto';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;
+ input.addEventListener('change',async()=>{const file=input.files?.[0];input.value='';if(file)await useCallAvatar(file);});
+ button=document.createElement('button');button.type='button';button.id='aamCallAvatarBtn';button.className='aam-social-btn secondary';
+ button.textContent='Add moving photo avatar · Free';button.addEventListener('click',()=>input.click());
+ const end=actions.querySelector('#aamEndCallBtn');if(end){actions.insertBefore(style,end);actions.insertBefore(button,end);}else{actions.appendChild(style);actions.appendChild(button);}
+ actions.appendChild(input);
 }
-async function useSavedCallAvatar(id){
-  if(!id)return;
-  try{
-    const row=(await listCallSavedAvatars()).find(item=>item.id===id);
-    if(!row)throw new Error('That saved avatar is not available on this device.');
-    await useCallAvatar(null,row);
-  }catch(error){notice(error.message||'Could not load the saved avatar.');}
-}
-async function refreshCallSavedAvatars(){
-  const select=document.getElementById('aamCallSavedAvatar');if(!select)return;
-  try{
-    const rows=await listCallSavedAvatars();
-    select.innerHTML='<option value="">Saved photo avatars on this device</option>'+rows.map(row=>'<option value="'+String(row.id).replace(/["&<>]/g,'')+'">'+String(row.name||'Saved avatar').replace(/[&<>"]/g,'')+'</option>').join('');
-    select.style.display=rows.length?'inline-flex':'none';
-  }catch(_){select.style.display='none';}
-}
-function ensureCallAvatarControls(callType){if(callType!=='video')return;const activeOverlay=document.getElementById('aamAdminCallOverlay')||document.getElementById('aamIncomingCallOverlay');const actions=(activeOverlay||document).querySelector('.aam-social-call-actions');if(!actions)return;let button=document.getElementById('aamCallAvatarBtn');let style=document.getElementById('aamCallAvatarStyle');let saved=document.getElementById('aamCallSavedAvatar');if(button&&!actions.contains(button)){button.remove();style?.remove();saved?.remove();document.getElementById('aamCallAvatarPhoto')?.remove();button=null;style=null;saved=null;}if(button){button.style.display='inline-flex';if(style)style.style.display='inline-flex';if(saved){actions.insertBefore(saved,button);void refreshCallSavedAvatars();}button.textContent=aamAdminCallMode?'Add moving photo avatar · Free':(aamCallAvatarController?'Change moving avatar · Free':'Add moving photo avatar · Free');const existingLink=actions.querySelector('#aamAvatarPrivacyLink');if(existingLink)existingLink.style.display='inline';if(!existingLink){const link=document.createElement('a');link.id='aamAvatarPrivacyLink';link.href='/third-party-notices.html';link.target='_blank';link.rel='noopener';link.textContent='Privacy & licence details';link.className='aam-social-muted';actions.appendChild(link);}return;}style=document.createElement('select');style.id='aamCallAvatarStyle';style.className='aam-social-btn secondary';style.innerHTML='<option value="sarah">Female avatar body</option><option value="walter">Male avatar body</option>';style.addEventListener('change',async()=>{if(aamCallAvatarController)try{await aamCallAvatarController.setBodyStyle(style.value);}catch(e){notice(e.message||'Could not change avatar body.');}});saved=document.createElement('select');saved.id='aamCallSavedAvatar';saved.className='aam-social-btn secondary';saved.style.display='none';saved.setAttribute('aria-label','Choose a saved photo avatar');saved.addEventListener('change',()=>{const id=saved.value;if(id)void useSavedCallAvatar(id);});const input=document.createElement('input');input.type='file';input.id='aamCallAvatarPhoto';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.addEventListener('change',async()=>{const file=input.files?.[0];input.value='';if(file)await useCallAvatar(file);});button=document.createElement('button');button.type='button';button.id='aamCallAvatarBtn';button.className='aam-social-btn secondary';button.textContent=aamAdminCallMode?'Add moving photo avatar · Free':'Add moving photo avatar · Free';button.addEventListener('click',()=>input.click());const end=actions.querySelector('#aamEndCallBtn');if(end){actions.insertBefore(style,end);actions.insertBefore(saved,end);actions.insertBefore(button,end);}else{actions.appendChild(style);actions.appendChild(saved);actions.appendChild(button);}actions.appendChild(input);const link=document.createElement('a');link.id='aamAvatarPrivacyLink';link.href='/third-party-notices.html';link.target='_blank';link.rel='noopener';link.textContent='Privacy & licence details';link.className='aam-social-muted';actions.appendChild(link);void refreshCallSavedAvatars();}
 
 let aamCallRingContext=null,aamCallRingTimer=null,aamCallRingOsc=null;
 function startIncomingCallAlert(title='Incoming video call'){
