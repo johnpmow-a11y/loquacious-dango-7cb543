@@ -507,14 +507,15 @@ async function startVoiceNote(id){
   recorder.ondataavailable=e=>{if(e.data?.size)state.chunks.push(e.data);};
   recorder.onstop=()=>{
    clearInterval(state.timer);state.stream?.getTracks().forEach(t=>t.stop());
-   if(state.canceled||aamVoiceNoteState!==state){return;}
+   if(state.canceled){if(aamVoiceNoteState===state){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording stopped unexpectedly.');}return;}
+   if(aamVoiceNoteState!==state)return;
    state.blob=new Blob(state.chunks,{type:mime});
    if(!state.blob.size){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'The recording is empty.');notice('The recording is empty. Please try again.');return;}
    if(aamVoicePreviewUrl)URL.revokeObjectURL(aamVoicePreviewUrl);aamVoicePreviewUrl=URL.createObjectURL(state.blob);
    const player=document.getElementById('aamChatVoicePreview');if(player){player.src=aamVoicePreviewUrl;player.hidden=false;}
    setVoiceNoteUi(false,false,'Preview the recording, then tap the arrow to send.');
   };
-  recorder.onerror=()=>{state.canceled=true;try{recorder.stop();}catch(_){}};
+  recorder.onerror=()=>{state.canceled=true;clearInterval(state.timer);state.stream?.getTracks().forEach(t=>t.stop());if(aamVoiceNoteState===state){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording failed. Please try again.');notice('Voice recording failed. Please try again.');}try{if(recorder.state!=='inactive')recorder.stop();}catch(_){}};
   recorder.start(250);state.timer=setInterval(()=>{if(aamVoiceNoteState!==state){clearInterval(state.timer);return;}state.seconds++;const left=Math.max(0,60-state.seconds);setVoiceNoteUi(true,state.locked,(state.locked?'🔒 Locked · ':'● Recording · ')+left+'s');if(left===0)stopVoiceNote(false);},1000);
   setVoiceNoteUi(true,false,'● Recording · 60s');if(state.releaseRequested)stopVoiceNote(false);
  }catch(e){state.stream?.getTracks().forEach(t=>t.stop());if(aamVoiceNoteState===state){aamVoiceNoteState=null;setVoiceNoteUi(false,false,e.message);notice(e.message);}}
