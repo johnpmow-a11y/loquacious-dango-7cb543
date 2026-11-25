@@ -22,7 +22,7 @@ export async function handler(event){
     const [part,conversationRows,groupMember,otherParticipants]=await Promise.all([partPromise,db(`aam_chat_conversations?select=id,conversation_type,title&id=eq.${conv}&limit=1`),db(`aam_chat_group_members?select=group_role&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`),db(`aam_chat_participants?select=customer_id,typing_at&conversation_id=eq.${conv}&customer_id=neq.${s.customer_id}&limit=1`)]);
     if(!part.length)return json(404,{error:'Conversation not found.'});
     // Persist the recipient's read receipt before returning this conversation so the sender's next refresh sees it immediately.
-    await rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv});
+    await rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv}).catch(()=>{});
     const since=String(b.since||''),sinceDate=since?Date.parse(since):NaN,incremental=Number.isFinite(sinceDate);
     const messageQuery=incremental?`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&created_at=gte.${encodeURIComponent(since)}&order=created_at.asc&limit=100`:`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&order=created_at.desc&limit=50`;
     const messages=await db(messageQuery);if(!incremental)messages.reverse();
