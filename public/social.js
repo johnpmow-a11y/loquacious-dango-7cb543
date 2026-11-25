@@ -329,19 +329,21 @@ function stopIncomingCallAlert(){if(aamCallRingTimer){clearInterval(aamCallRingT
 function arrangeCallVideoTiles(){const media=document.getElementById('aamCallMedia');if(!media)return;const local=media.querySelector('video[data-local="true"]');const remote=media.querySelector('video:not([data-local="true"])');media.classList.toggle('aam-call-has-local',!!local);media.classList.toggle('aam-call-has-remote',!!remote);if(!local||!remote)media.classList.remove('aam-call-swapped');for(const video of media.querySelectorAll('video')){video.onclick=()=>{if(local&&remote)media.classList.toggle('aam-call-swapped');};}}
 function swapCallMainView(){const media=document.getElementById('aamCallMedia');if(!media)return;const local=media.querySelector('video[data-local="true"]'),remote=media.querySelector('video:not([data-local="true"])');if(!local||!remote)return notice('The customer camera will appear here when they join.');media.classList.toggle('aam-call-swapped');}
 async function switchCallCamera(){
+ let fresh=null,committed=false;
  try{
   if(!aamWebRtcSession||!aamLocalCallStream)throw new Error('The video call is not connected.');
   const oldTrack=aamLocalCallStream.getVideoTracks()[0];if(!oldTrack)throw new Error('Your camera is not active.');
   if(aamCallAvatarController)throw new Error('Stop your moving avatar before switching cameras.');
   const facing=window.aamCallFacingMode==='environment'?'user':'environment';
-  const fresh=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing}},audio:false});
+  fresh=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing}},audio:false});
   const nextTrack=fresh.getVideoTracks()[0];if(!nextTrack)throw new Error('The selected camera is unavailable.');
   await aamWebRtcSession.replaceTrack('video',nextTrack);
-  aamLocalCallStream.removeTrack(oldTrack);aamLocalCallStream.addTrack(nextTrack);oldTrack.stop();
+  aamLocalCallStream.removeTrack(oldTrack);aamLocalCallStream.addTrack(nextTrack);committed=true;oldTrack.stop();
   const preview=document.querySelector('#aamCallMedia video[data-local="true"]');
   if(preview){preview.srcObject=new MediaStream([nextTrack]);preview.play?.().catch(()=>{});}
   window.aamCallFacingMode=facing;setCallStatus(facing==='environment'?'Back camera selected.':'Front camera selected.');
  }catch(e){notice(e.message||'Could not switch camera.');}
+ finally{if(fresh&&!committed)fresh.getTracks().forEach(track=>track.stop());}
 }
 function promoteCallToFullscreen(){const panel=document.querySelector('.aam-social-chat-screen .aam-social-call-panel');if(!panel||document.getElementById('aamActiveCallOverlay'))return;const overlay=document.createElement('div');overlay.id='aamActiveCallOverlay';overlay.className='aam-active-call-overlay';const section=document.createElement('section');section.className='aam-active-call-surface';overlay.appendChild(section);panel.dataset.fullscreenCall='1';while(panel.firstChild)section.appendChild(panel.firstChild);document.body.appendChild(overlay);}
 function restoreCallPanel(){const overlay=document.getElementById('aamActiveCallOverlay');if(!overlay)return;const panel=document.querySelector('.aam-social-chat-screen .aam-social-call-panel');const section=overlay.querySelector('.aam-active-call-surface');if(panel&&section){while(section.firstChild)panel.appendChild(section.firstChild);delete panel.dataset.fullscreenCall;}overlay.remove();}
