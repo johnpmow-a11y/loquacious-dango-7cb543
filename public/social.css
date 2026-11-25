@@ -648,3 +648,6 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 .aam-chat-found-profile small{color:#64748b;overflow-wrap:anywhere}
 .aam-chat-found-actions{display:flex;gap:8px;margin-top:8px}
 .aam-chat-found-actions button{flex:1}
+
+/* WhatsApp-style saved message reactions, using All Ads Manager blue. */
+.aam-chat-reaction-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;position:relative;z-index:1}.aam-chat-reaction-chip{display:inline-flex;align-items:center;gap:4px;min-height:25px;padding:2px 8px;border:1px solid #d5dfef;border-radius:999px;background:#fff;color:#26364f;font-size:13px;line-height:1.2;box-shadow:0 1px 3px #15233a12}.aam-chat-reaction-chip span{font-size:11px;font-weight:750}.aam-chat-reaction-chip.mine{border-color:#367be8;background:#e8f1ff;color:#1556b3}
