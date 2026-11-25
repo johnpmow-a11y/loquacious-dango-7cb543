@@ -667,7 +667,7 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 /* App-wide native text handling: no accidental blue selection/copy popup; form fields remain editable/selectable. */
 #app,#app *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent}
 #app input,#app textarea,#app select,#app [contenteditable="true"],#app [contenteditable=""]{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important}
-.aam-status-viewer .aam-status-progress i{position:relative;overflow:hidden}.aam-status-viewer .aam-status-progress i.active::after{content:"";position:absolute;inset:0 auto 0 0;width:100%;background:#fff;transform:scaleX(0);transform-origin:left center;animation:aamStatusProgressFill 12s linear forwards}@keyframes aamStatusProgressFill{to{transform:scaleX(1)}}
+.aam-status-viewer .aam-status-progress i{position:relative;overflow:hidden}.aam-status-viewer .aam-status-progress i.active::after{content:"";position:absolute;inset:0 auto 0 0;width:100%;background:#fff;transform:scaleX(0);transform-origin:left center;animation:aamStatusProgressFill 12s linear forwards}.aam-status-viewer.video-status .aam-status-progress i.active::after{animation:none;transform:scaleX(var(--aam-status-video-progress,0))}@keyframes aamStatusProgressFill{to{transform:scaleX(1)}}
 
 /* Sent/read receipts: neutral single tick, blue double tick only after read. */
 .aam-social-message .aam-message-status{color:#64748b!important;opacity:1!important}.aam-social-message .aam-read{color:#2563eb!important;font-weight:900!important}
