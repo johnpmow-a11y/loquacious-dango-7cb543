@@ -523,10 +523,10 @@ function stopVoiceNote(cancel=false){
  if(state.recorder&&state.recorder.state==='recording'){clearInterval(state.timer);state.recorder.stop();}
 }
 async function sendVoiceNote(){
- const state=aamVoiceNoteState;if(!state?.blob)return;const button=document.getElementById('aamChatVoiceSend');if(button){button.disabled=true;button.textContent='…';}
+ const state=aamVoiceNoteState;if(!state?.blob||state.sending)return;state.sending=true;const button=document.getElementById('aamChatVoiceSend');if(button){button.disabled=true;button.textContent='…';}
  try{const mime=state.blob.type||'audio/webm',signed=await api('/.netlify/functions/social-chat','POST',{action:'sign_voice_upload',mime_type:mime}),uploaded=await socialDb.storage.from('aam-social-voice').uploadToSignedUrl(signed.path,signed.token,state.blob,{contentType:mime,upsert:false});if(uploaded.error)throw uploaded.error;await api('/.netlify/functions/social-chat','POST',{action:'send',conversation_id:state.id,message_type:'voice',body:'Voice note',media_path:signed.path});const id=state.id;if(aamVoicePreviewUrl)URL.revokeObjectURL(aamVoicePreviewUrl);aamVoicePreviewUrl=null;aamVoiceNoteState=null;const p=document.getElementById('aamChatVoicePreview');if(p){p.pause();p.removeAttribute('src');p.hidden=true;}setVoiceNoteUi(false,false,'Voice note sent.');await refreshChatMessages(id);}
  catch(e){notice(e.message||'Voice note could not be sent.');setVoiceNoteUi(false,false,'Send failed. Your recording is ready to retry.');}
- finally{if(button){button.disabled=false;button.textContent='➤';}}
+ finally{state.sending=false;if(button){button.disabled=false;button.textContent='➤';}}
 }
 function recordVoice(id){if(aamVoiceNoteState){if(aamVoiceNoteState.blob)sendVoiceNote();else stopVoiceNote(false);return;}startVoiceNote(id);}
 async function copySocialText(value){const text=String(value??'');if(!text.trim())return notice('Nothing is available to copy.');try{if(navigator.clipboard&&window.isSecureContext){try{await navigator.clipboard.writeText(text);notice('Copied.');return true;}catch(_){}}const t=document.createElement('textarea');t.value=text;t.setAttribute('readonly','');t.style.position='fixed';t.style.left='-9999px';t.style.top='0';document.body.appendChild(t);t.focus();t.select();t.setSelectionRange(0,t.value.length);const copied=document.execCommand('copy');t.remove();if(!copied)throw new Error('Clipboard copy was blocked.');notice('Copied.');return true;}catch(e){notice('Could not copy this item. Please allow clipboard access and try again.');return false;}}
