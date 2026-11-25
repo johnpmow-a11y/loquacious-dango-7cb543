@@ -99,7 +99,11 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
     if(stopped)return;
     if(video.readyState>=2&&now-lastDetect>70&&video.currentTime!==lastVideoTime){
       lastDetect=now;lastVideoTime=video.currentTime;
-      try{lastFace=face.detectForVideo(video,now);lastPose=pose.detectForVideo(video,now);lastHands=hands.detectForVideo(video,now);}catch(_){}
+      // Run each tracker independently: an unavailable optional pose or hand
+      // model must never interrupt face tracking or the other tracker.
+      try{lastFace=face.detectForVideo(video,now);}catch(_){}
+      if(pose){try{lastPose=pose.detectForVideo(video,now);}catch(_){}}
+      if(hands){try{lastHands=hands.detectForVideo(video,now);}catch(_){}}
       const matrix=lastFace?.facialTransformationMatrixes?.[0]?.data;
       if(matrix?.length===16){const m=new THREE.Matrix4().fromArray(Array.from(matrix)),q=new THREE.Quaternion();m.decompose(new THREE.Vector3(),q,new THREE.Vector3());const e=new THREE.Euler().setFromQuaternion(q,'YXZ');headTarget={x:clamp(e.x,-.4,.4),y:clamp(e.y,-.55,.55),z:clamp(e.z,-.4,.4)};}
       const cats=lastFace?.faceBlendshapes?.[0]?.categories||[];
