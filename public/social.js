@@ -140,10 +140,10 @@ async function selectLibrarySound(item){
  }catch(error){if(label)label.textContent=error.message;notice(error.message);}
 }
 let aamPendingStatusFile=null,aamStatusPreviewUrl=null;
-let aamStatusCameraStream=null,aamStatusRecorder=null,aamStatusChunks=[],aamStatusFacing='environment';
+let aamStatusCameraStream=null,aamStatusRecorder=null,aamStatusChunks=[],aamStatusFacing='environment',aamStatusCameraRequest=0;
 async function openStatusCamera(facing='environment'){
  if(!navigator.mediaDevices?.getUserMedia){notice('Full-screen camera is not available in this browser. Choose Photo / Video instead.');return pickStatusFile();}
- closeStatusCamera();aamStatusFacing=facing;
+ closeStatusCamera();const request=++aamStatusCameraRequest;aamStatusFacing=facing;
  const overlay=document.createElement('div');overlay.id='aamStatusCameraOverlay';overlay.className='aam-post-camera-overlay';
  overlay.innerHTML='<video id="aamStatusLiveCamera" autoplay playsinline muted></video><div class="aam-post-camera-top"><button type="button" id="aamStatusCameraClose" aria-label="Close camera">←</button><span>Create Status</span><button type="button" id="aamStatusCameraFlip" aria-label="Switch camera">↻</button></div><div class="aam-post-camera-bottom"><button type="button" id="aamStatusCameraGallery" aria-label="Choose from gallery">▧</button><button type="button" id="aamStatusCameraRecord" aria-label="Record video">●</button><button type="button" id="aamStatusCameraPhoto" aria-label="Take photo">●</button><span id="aamStatusCameraMode">Photo</span></div>';
  document.body.appendChild(overlay);
@@ -152,18 +152,21 @@ async function openStatusCamera(facing='environment'){
  overlay.querySelector('#aamStatusCameraGallery').onclick=()=>{closeStatusCamera();pickStatusFile();};
  overlay.querySelector('#aamStatusCameraPhoto').onclick=captureStatusCameraPhoto;
  overlay.querySelector('#aamStatusCameraRecord').onclick=toggleStatusCameraRecording;
- await startStatusCamera(facing);
+ await startStatusCamera(facing,request);
 }
-async function startStatusCamera(facing){
+async function startStatusCamera(facing,request=aamStatusCameraRequest){
  try{
-  aamStatusCameraStream=await navigator.mediaDevices.getUserMedia({audio:true,video:{facingMode:{ideal:facing},width:{ideal:1080},height:{ideal:1920}}});
-  const video=document.getElementById('aamStatusLiveCamera');if(video){video.srcObject=aamStatusCameraStream;await video.play().catch(()=>{});}
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:{facingMode:{ideal:facing},width:{ideal:1080},height:{ideal:1920}}});
+  if(request!==aamStatusCameraRequest||!document.getElementById('aamStatusCameraOverlay')){stream.getTracks().forEach(track=>track.stop());return;}
+  aamStatusCameraStream=stream;
+  const video=document.getElementById('aamStatusLiveCamera');if(video){video.srcObject=stream;await video.play().catch(()=>{});}
   const record=document.getElementById('aamStatusCameraRecord');
   const supported=window.MediaRecorder&&['video/mp4','video/webm;codecs=vp8,opus','video/webm'].some(type=>MediaRecorder.isTypeSupported?.(type));
   if(record)record.disabled=!supported;
- }catch(error){closeStatusCamera();notice(error.name==='NotAllowedError'?'Allow camera and microphone access to create a Status.':'The camera could not be opened. Choose Photo / Video instead.');}
+ }catch(error){if(request===aamStatusCameraRequest){closeStatusCamera();notice(error.name==='NotAllowedError'?'Allow camera and microphone access to create a Status.':'The camera could not be opened. Choose Photo / Video instead.');}}
 }
 function closeStatusCamera(){
+ aamStatusCameraRequest++;
  if(aamStatusRecorder&&aamStatusRecorder.state!=='inactive'){try{aamStatusRecorder.ondataavailable=null;aamStatusRecorder.onstop=null;aamStatusRecorder.stop();}catch(_){}}
  aamStatusRecorder=null;aamStatusChunks=[];
  if(aamStatusCameraStream){aamStatusCameraStream.getTracks().forEach(track=>track.stop());aamStatusCameraStream=null;}
