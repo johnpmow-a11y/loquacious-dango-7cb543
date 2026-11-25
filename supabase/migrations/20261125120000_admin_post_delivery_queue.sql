@@ -13,6 +13,7 @@ create index if not exists aam_social_admin_post_deliveries_due_idx
   where delivered_at is null and skipped_at is null;
 alter table public.aam_social_admin_post_deliveries enable row level security;
 revoke all on public.aam_social_admin_post_deliveries from anon, authenticated;
+grant all on public.aam_social_admin_post_deliveries to service_role;
 
 create or replace function public.aam_social_next_admin_post(p_token uuid)
 returns uuid
