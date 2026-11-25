@@ -104,7 +104,7 @@ begin
   end if;
   return v_skipped;
 end;
-$;
+$$;
 revoke all on function public.aam_social_next_admin_post(uuid) from public, anon, authenticated;
 revoke all on function public.aam_social_skip_admin_post(uuid,uuid) from public, anon, authenticated;
 grant execute on function public.aam_social_next_admin_post(uuid) to service_role;
