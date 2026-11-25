@@ -693,6 +693,19 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 /* Mobile chat: include safe-area padding inside the viewport and keep AAM's blue message styling. */
 .aam-social-chat-screen{box-sizing:border-box!important;min-height:0!important;}
 .aam-social-chat-screen .aam-social-message.mine{background:#dbeafe!important;border:1px solid #bfdbfe!important;color:#172554!important;}
+/* Chat composer and header use the All Ads Manager blue theme. */
+.aam-social-chat-screen .aam-chat-header{border-bottom-color:#cbdcf3!important}
+.aam-social-chat-screen .aam-chat-contact small{color:#58749a!important}
+.aam-social-chat-screen .aam-chat-composer{border-color:#c7d8ef!important;background:#fff!important;box-shadow:0 3px 14px rgba(30,64,120,.08)!important}
+.aam-social-chat-screen .aam-chat-composer-actions .aam-chat-attach,
+.aam-social-chat-screen .aam-chat-composer-actions .aam-chat-voice,
+.aam-social-chat-screen .aam-chat-composer-actions .aam-chat-voice-lock,
+.aam-social-chat-screen .aam-chat-composer-actions .aam-chat-voice-cancel,
+.aam-social-chat-screen .aam-chat-composer-actions .aam-chat-voice-stop{background:#e5efff!important;border:1px solid #c7d8ef!important;color:#174a86!important}
+.aam-social-chat-screen .aam-chat-composer-actions .aam-chat-send{background:#1769aa!important;color:#fff!important;border:1px solid #1769aa!important}
+.aam-social-chat-screen .aam-chat-attachment-status,
+.aam-social-chat-screen .aam-chat-recording-status{color:#58749a!important}
+
 /* Mobile feed playback feedback */
 .aam-feed-video-loading{position:absolute;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);max-width:calc(100% - 36px);padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(15,23,42,.78);color:#fff;font-size:12px;font-weight:700;text-align:center;pointer-events:none;backdrop-filter:blur(8px)}
 .aam-feed-video-loading[hidden]{display:none!important}
