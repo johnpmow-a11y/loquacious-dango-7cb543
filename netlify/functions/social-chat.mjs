@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify(body)});
 const uuid=/^[0-9a-f-]{36}$/i;
 const headers=(key,extra={})=>({apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),...extra});
-async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Chat service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:headers(key,{'Content-Type':'application/json',...(options.headers||{})})});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.message||data.error||'Chat request failed.');return data;}
+async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Chat service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:headers(key,{'Content-Type':'application/json',...(options.headers||{})})});const data=await r.json().catch(()=>({}));if(!r.ok){const error=new Error(data.message||data.error||'Chat request failed.');error.status=r.status;error.code=data.code||'';throw error;}return data;}
 async function session(token){if(!uuid.test(token))return null;const rows=await db(`customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);return rows[0]||null;}
 async function adultConfirmed(customerId){const rows=await db(`aam_social_profiles?select=adult_confirmed_at&customer_id=eq.${encodeURIComponent(customerId)}&limit=1`);return !!rows[0]?.adult_confirmed_at;}
 async function signedRead(path){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY,bucket=path.startsWith('voice/')?'aam-social-voice':'aam-social-media';const r=await fetch(`${u}/storage/v1/object/sign/${bucket}/${path}`,{method:'POST',headers:headers(k,{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:1800})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||'Could not load chat media.');const p=d.signedURL||d.signedUrl||'';return /^https?:\/\//i.test(p)?p:u+(p.startsWith('/storage/v1/')?p:'/storage/v1'+(p.startsWith('/')?p:'/'));}
@@ -28,7 +28,7 @@ export async function handler(event){
     const messages=await db(messageQuery);if(!incremental)messages.reverse();
     const recentMessages=incremental?await db(`aam_chat_messages?select=id&conversation_id=eq.${conv}&order=created_at.desc&limit=50`):messages.map(m=>({id:m.id}));
     const reactionIds=[...new Set(recentMessages.map(m=>m.id))];
-    const reactionRows=reactionIds.length?await db(`aam_chat_message_reactions?select=message_id,customer_id,emoji&message_id=in.(${reactionIds.join(',')})`):[];
+    const reactionRows=reactionIds.length?await db(`aam_chat_message_reactions?select=message_id,customer_id,emoji&message_id=in.(${reactionIds.join(',')})`).catch(error=>{if(error.code==='42P01'||error.code==='PGRST205'||/aam_chat_message_reactions.*(does not exist|not found)|relation .*aam_chat_message_reactions/i.test(error.message)){console.warn('Chat reactions table is not installed yet.');return [];}throw error;}):[];
     const reactionMap=new Map();for(const reaction of reactionRows){if(!reactionMap.has(reaction.message_id))reactionMap.set(reaction.message_id,[]);reactionMap.get(reaction.message_id).push({customer_id:reaction.customer_id,emoji:reaction.emoji});}
     const ids=[...new Set(messages.map(m=>m.sender_id))],messageIds=messages.map(m=>m.id);
     const ownIds=incremental?await db(`aam_chat_messages?select=id&conversation_id=eq.${conv}&sender_id=eq.${s.customer_id}&order=created_at.desc&limit=50`):messages.filter(m=>m.sender_id===s.customer_id).map(m=>({id:m.id}));
@@ -125,5 +125,5 @@ export async function handler(event){
    return json(200,result);
   }
   return json(400,{error:'Unsupported chat action.'});
- }catch(e){return json(/session expired/i.test(e.message)?401:400,{error:e.message||'Could not complete that chat action.'});}
+ }catch(e){const missingReactions=e.code==='42P01'||e.code==='PGRST205'||/aam_chat_message_reactions.*(does not exist|not found)|relation .*aam_chat_message_reactions/i.test(e.message||'');return json(missingReactions?503:/session expired/i.test(e.message||'')?401:400,{error:missingReactions?'Message reactions need the database update before they can be used.':e.message||'Could not complete that chat action.'});}
 }
