@@ -603,7 +603,7 @@ function setVoiceNoteUi(recording=false,locked=false,message=''){
  if(cancel)cancel.style.display=(recording||!!aamVoiceNoteState?.blob)?'inline-flex':'none';
  if(send)send.style.display=aamVoiceNoteState?.blob?'inline-flex':'none';
  if(preview){preview.hidden=!aamVoiceNoteState?.blob;if(aamVoiceNoteState?.blob&&aamVoicePreviewUrl)preview.src=aamVoicePreviewUrl;}
- if(lock){lock.textContent=locked?'🔓':'🔒';lock.title=locked?'Unlock recording':'Drag left to lock recording';}
+ if(lock){lock.textContent=locked?'🔓':'🔒';lock.title=locked?'Unlock recording':'Drag left to lock recording';lock.setAttribute('aria-pressed',locked?'true':'false');lock.setAttribute('aria-label',locked?'Unlock voice recording':'Lock voice recording');}
 }
 async function startVoiceNote(id){
  if(aamVoiceNoteState)return;
