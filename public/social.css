@@ -633,3 +633,16 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 .aam-social-chat-screen .aam-social-call-panel{flex:0 1 auto!important;max-height:26dvh!important;min-height:0!important;overflow:auto!important}
 .aam-social-chat-screen .aam-social-call-media video{height:clamp(90px,20dvh,180px)!important}
 @media(max-height:620px){.aam-social-chat-screen{gap:5px!important;padding-top:calc(5px + env(safe-area-inset-top))!important;padding-bottom:calc(5px + env(safe-area-inset-bottom))!important}.aam-social-chat-screen .aam-social-call-panel{max-height:20dvh!important}.aam-social-chat-screen .aam-chat-composer{padding:5px!important}}
+
+/* Add a direct chat by public profile ID from the inbox. */
+.aam-chat-add-by-id{margin:0 0 14px;padding:12px;border:1px solid #dbe5f3;border-radius:16px;background:#f6f8fd}
+.aam-chat-add-form{margin-top:10px}
+.aam-chat-add-form[hidden]{display:none!important}
+.aam-chat-add-form>div:first-of-type{display:flex;gap:8px;align-items:center}
+.aam-chat-add-form input{min-width:0;flex:1;margin:0}
+.aam-chat-found-profile{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px;border-radius:12px;background:#fff}
+.aam-chat-found-profile img,.aam-chat-found-avatar{width:44px;height:44px;flex:0 0 44px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#234b86;color:#fff;font-size:20px}
+.aam-chat-found-profile>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.aam-chat-found-profile small{color:#64748b;overflow-wrap:anywhere}
+.aam-chat-found-actions{display:flex;gap:8px;margin-top:8px}
+.aam-chat-found-actions button{flex:1}
