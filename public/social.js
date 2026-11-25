@@ -496,7 +496,7 @@ async function connectCall(callId,callType='audio',authToken=null,preparedCamera
     let el=media.querySelector('[data-remote="true"]');
     const hasVideo=stream.getVideoTracks().length>0;
     if(el&&((hasVideo&&el.tagName!=='VIDEO')||(!hasVideo&&el.tagName!=='AUDIO'))){el.remove();el=null;}
-    if(!el){el=document.createElement(hasVideo?'video':'audio');el.dataset.remote='true';el.autoplay=true;el.playsInline=true;el.setAttribute('playsinline','');el.className=hasVideo?'aam-social-remote-video':'aam-social-remote-audio';if(hasVideo)el.controls=true;media.appendChild(el);}
+    if(!el){el=document.createElement(hasVideo?'video':'audio');el.dataset.remote='true';el.autoplay=true;el.playsInline=true;el.setAttribute('playsinline','');el.className=hasVideo?'aam-social-remote-video':'aam-social-remote-audio';if(hasVideo){el.controls=false;el.muted=false;el.disablePictureInPicture=true;el.setAttribute('aria-label','Other caller video');}media.appendChild(el);}
     if(el.srcObject!==stream)el.srcObject=stream;
     el.play?.().catch(()=>{const b=document.getElementById('aamEnableCallAudio');if(b)b.style.display='inline-flex';});
     arrangeCallVideoTiles();
