@@ -174,8 +174,8 @@ function closeStatusCamera(){
 }
 function captureStatusCameraPhoto(){
  const video=document.getElementById('aamStatusLiveCamera');if(!video?.videoWidth)return notice('Camera is still starting. Try again.');
- const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);
- canvas.toBlob(blob=>{if(!blob)return notice('Could not capture this photo.');const file=new File([blob],'status-photo.jpg',{type:'image/jpeg'});closeStatusCamera();prepareStatusComposer(file);},'image/jpeg',.9);
+ const request=aamStatusCameraRequest,canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;const context=canvas.getContext('2d');if(!context)return notice('Photo capture is not available in this browser.');context.drawImage(video,0,0);
+ canvas.toBlob(blob=>{if(request!==aamStatusCameraRequest||!document.getElementById('aamStatusCameraOverlay'))return;if(!blob)return notice('Could not capture this photo.');const file=new File([blob],'status-photo.jpg',{type:'image/jpeg'});closeStatusCamera();prepareStatusComposer(file);},'image/jpeg',.9);
 }
 function toggleStatusCameraRecording(){
  if(aamStatusRecorder?.state==='recording'){aamStatusRecorder.stop();return;}
