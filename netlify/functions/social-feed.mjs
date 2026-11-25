@@ -29,6 +29,10 @@ export async function handler(event){
     db(`aam_social_likes?select=post_id&customer_id=eq.${encodeURIComponent(s.customer_id)}`),
     db('aam_social_admin_profile?select=display_name,avatar_path,follower_count,is_verified&id=eq.true&limit=1')
    ]);
+   if(currentAdminPost&&!posts.some(p=>p.id===currentAdminPost)){
+    const duePost=await db(`aam_social_posts?select=*&id=eq.${encodeURIComponent(currentAdminPost)}&author_role=eq.admin&moderation_status=eq.published&limit=1`);
+    if(duePost[0])posts.push(duePost[0]);
+   }
    const profileMap=new Map(profiles.map(p=>[p.customer_id,p])),following=new Set(follows.map(f=>f.followed_id)),unlocked=new Set(unlocks.map(x=>x.post_id)),liked=new Set(mineLikes.map(x=>x.post_id));
    const visible=posts.filter(p=>p.author_role==='admin'?p.id===currentAdminPost:(p.customer_id===s.customer_id||!profileMap.get(p.customer_id)?.is_private||following.has(p.customer_id)));
    const feed=await Promise.all(visible.slice(0,30).map(async p=>{
