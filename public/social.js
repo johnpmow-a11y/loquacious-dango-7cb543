@@ -484,7 +484,7 @@ function setVoiceNoteUi(recording=false,locked=false,message=''){
  if(status){status.textContent=message;status.classList.toggle('recording',recording);}
  if(button){button.classList.toggle('is-recording',recording);button.style.display=aamVoiceNoteState?.blob?'none':'inline-flex';}
  if(lock)lock.style.display=recording?'inline-flex':'none';
- if(stop)stop.style.display=recording&&locked?'inline-flex':'none';
+ if(stop)stop.style.display=recording&&(locked||!!aamVoiceNoteState?.manualStop)?'inline-flex':'none';
  if(cancel)cancel.style.display=(recording||!!aamVoiceNoteState?.blob)?'inline-flex':'none';
  if(send)send.style.display=aamVoiceNoteState?.blob?'inline-flex':'none';
  if(preview){preview.hidden=!aamVoiceNoteState?.blob;if(aamVoiceNoteState?.blob&&aamVoicePreviewUrl)preview.src=aamVoicePreviewUrl;}
@@ -516,7 +516,7 @@ async function startVoiceNote(id){
  }catch(e){state.stream?.getTracks().forEach(t=>t.stop());if(aamVoiceNoteState===state)aamVoiceNoteState=null;setVoiceNoteUi(false,false,e.message);notice(e.message);}
 }
 function releaseVoiceNote(){const state=aamVoiceNoteState;if(!state||state.locked||state.blob)return;if(!state.recorder){state.releaseRequested=true;return;}stopVoiceNote(false);}
-function toggleVoiceNoteLock(){const state=aamVoiceNoteState;if(!state||state.blob)return;state.locked=!state.locked;setVoiceNoteUi(true,state.locked,state.locked?'🔒 Locked · tap Stop when ready':'● Recording · release to finish');}
+function toggleVoiceNoteLock(){const state=aamVoiceNoteState;if(!state||state.blob)return;state.locked=!state.locked;if(!state.locked)state.manualStop=true;setVoiceNoteUi(true,state.locked,state.locked?'🔒 Locked · tap Stop when ready':'● Recording · tap Stop when ready');}
 function stopVoiceNote(cancel=false){
  const state=aamVoiceNoteState;if(!state)return;
  if(cancel){state.canceled=true;clearInterval(state.timer);state.stream?.getTracks().forEach(t=>t.stop());if(state.recorder&&state.recorder.state!=='inactive'){try{state.recorder.stop();}catch(_){}}if(aamVoicePreviewUrl){URL.revokeObjectURL(aamVoicePreviewUrl);aamVoicePreviewUrl=null;}const p=document.getElementById('aamChatVoicePreview');if(p){p.pause();p.removeAttribute('src');p.hidden=true;}aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording discarded.');return;}
