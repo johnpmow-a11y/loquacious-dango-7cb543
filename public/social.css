@@ -608,3 +608,28 @@ body:has(.aam-discovery-feed) .container{max-width:none!important;margin:0!impor
 #aamStatusComposer small{color:#cbd5e1!important;overflow-wrap:anywhere}
 #aamStatusComposer audio{width:100%!important;flex:0 0 auto!important}
 #aamStatusComposer .aam-social-btn,#aamStatusComposer .aam-status-compose-card>button:last-child{flex:0 0 auto!important;min-height:48px!important}
+
+
+/* Keep an opened conversation as the only visible app surface. */
+html.aam-chat-fullscreen-active,body.aam-chat-fullscreen-active{width:100%;height:100%;min-height:100%;overflow:hidden!important;overscroll-behavior:none!important}
+body.aam-chat-fullscreen-active .topbar,
+body.aam-chat-fullscreen-active #aamSocialDock,
+body.aam-chat-fullscreen-active #aamSocialToolsDock,
+body.aam-chat-fullscreen-active #aamAdminSocialLauncher,
+body.aam-chat-fullscreen-active .aam-bottom-nav,
+body.aam-chat-fullscreen-active .aam-social-dock{display:none!important}
+body.aam-chat-fullscreen-active #app,
+body.aam-chat-fullscreen-active #aamSocialRoot,
+body.aam-chat-fullscreen-active .container,
+body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important}
+.aam-social-chat-screen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;min-height:0!important;max-height:none!important;padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))!important;gap:8px!important;border-radius:0!important;z-index:2147483000!important;background:#f3f6fc!important}
+.aam-social-chat-screen .aam-chat-header{width:100%;min-height:54px;flex:0 0 auto;background:#f3f6fc;border-color:#d8e2f1}
+.aam-social-chat-screen .aam-social-chat-messages{flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;width:100%!important;align-self:stretch!important;background-color:#eaf0fa!important;border:1px solid #dce6f4;border-radius:14px!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important}
+.aam-social-chat-screen .aam-social-message.mine{background:#dce8ff!important;color:#142b50!important}
+.aam-social-chat-screen .aam-social-message:not(.mine){background:#fff!important;color:#18243a!important}
+.aam-social-chat-screen .aam-chat-composer{flex:0 0 auto!important;width:100%!important;margin:0!important;padding:8px!important;padding-bottom:max(8px,env(safe-area-inset-bottom))!important;border-radius:16px!important;background:#fff!important}
+.aam-social-chat-screen .aam-chat-composer-actions{flex-wrap:nowrap!important}
+.aam-social-chat-screen .aam-chat-composer-actions button{min-height:42px!important;min-width:42px!important}
+.aam-social-chat-screen .aam-social-call-panel{flex:0 1 auto!important;max-height:26dvh!important;min-height:0!important;overflow:auto!important}
+.aam-social-chat-screen .aam-social-call-media video{height:clamp(90px,20dvh,180px)!important}
+@media(max-height:620px){.aam-social-chat-screen{gap:5px!important;padding-top:calc(5px + env(safe-area-inset-top))!important;padding-bottom:calc(5px + env(safe-area-inset-bottom))!important}.aam-social-chat-screen .aam-social-call-panel{max-height:20dvh!important}.aam-social-chat-screen .aam-chat-composer{padding:5px!important}}
