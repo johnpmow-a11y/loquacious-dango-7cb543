@@ -724,3 +724,7 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 .aam-social-chat-inbox .aam-social-chat-row{background:#fff!important;border:1px solid #d4e2f5!important;color:#172b4d!important}
 .aam-social-chat-inbox .aam-social-chat-row small{color:#58749a!important}
 .aam-social-chat-inbox .aam-chat-inbox-hint{background:#eef4ff!important;color:#58749a!important}
+
+/* Prevent iOS/Android native text-selection and callout popups on chat bubbles; use the in-app 2-second message menu instead. */
+.aam-social-chat-screen .aam-social-chat-messages .aam-social-message{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent!important;touch-action:pan-y!important}
+.aam-social-chat-screen .aam-social-chat-messages .aam-social-message *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
