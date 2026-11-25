@@ -17,6 +17,8 @@ export async function handler(event){
    const q=event.queryStringParameters||{},token=String(q.token||''),s=await session(token);
    if(!s)return json(401,{error:'Please log in again.'});
    if(!await adultConfirmed(s.customer_id))return json(403,{error:'Confirm that you are 18 or older to continue.'});
+   const deliveryRows=await db('rpc/aam_social_next_admin_post',{method:'POST',body:JSON.stringify({p_token:token})});
+   const currentAdminPost=typeof deliveryRows==='string'?deliveryRows:(Array.isArray(deliveryRows)?deliveryRows[0]:deliveryRows);
    const [posts,profiles,follows,unlocks,likes,comments,mineLikes,adminProfile]=await Promise.all([
     db('aam_social_posts?select=*&moderation_status=neq.removed&order=created_at.desc&limit=60'),
     db('aam_social_profiles?select=customer_id,display_name,bio,avatar_path,is_private,comments_enabled'),
@@ -28,11 +30,11 @@ export async function handler(event){
     db('aam_social_admin_profile?select=display_name,avatar_path,follower_count,is_verified&id=eq.true&limit=1')
    ]);
    const profileMap=new Map(profiles.map(p=>[p.customer_id,p])),following=new Set(follows.map(f=>f.followed_id)),unlocked=new Set(unlocks.map(x=>x.post_id)),liked=new Set(mineLikes.map(x=>x.post_id));
-   const visible=posts.filter(p=>p.author_role==='admin'||p.customer_id===s.customer_id||!profileMap.get(p.customer_id)?.is_private||following.has(p.customer_id));
+   const visible=posts.filter(p=>p.author_role==='admin'?p.id===currentAdminPost:(p.customer_id===s.customer_id||!profileMap.get(p.customer_id)?.is_private||following.has(p.customer_id)));
    const feed=await Promise.all(visible.slice(0,30).map(async p=>{
     const owner=p.customer_id?profileMap.get(p.customer_id):null,admin=adminProfile[0]||{};
     const locked=p.author_role==='admin'&&p.media_type==='video'&&p.is_locked===true&&!unlocked.has(p.id);
-    const {author_role,media_path,thumbnail_path,audio_path,customer_id,...publicPost}=p;return {...publicPost,is_following:!!(owner&&following.has(owner.customer_id)),comments_enabled:p.comments_enabled!==false&&owner?.comments_enabled!==false,like_count:likes.filter(x=>x.post_id===p.id).length,follower_count:p.author_role==='admin'?Number(admin.follower_count||0):undefined,following_count:p.author_role==='admin'?0:undefined,verified:p.author_role==='admin'?!!admin.is_verified:false,comment_count:comments.filter(x=>x.post_id===p.id).length,liked:liked.has(p.id),locked_video:locked,professional_video:locked,creator:{id:p.customer_id||null,name:p.author_role==='admin'?publicAdminName(admin.display_name):(owner?.display_name||'Creator'),bio:owner?.bio||'',avatar_url:(p.author_role==='admin'?admin.avatar_path:owner?.avatar_path)?await signedRead(p.author_role==='admin'?admin.avatar_path:owner.avatar_path):null,followers:p.author_role==='admin'?Number(admin.follower_count||0):null,following:p.author_role==='admin'?0:null},media_url:locked||p.media_type==='text'?null:await signedRead(p.media_path),audio_url:p.audio_path?await signedRead(p.audio_path):null,background_color:p.background_color||null,thumbnail_url:p.thumbnail_path?await signedRead(p.thumbnail_path):null};
+    const {author_role,media_path,thumbnail_path,audio_path,customer_id,...publicPost}=p;return {...publicPost,admin_delivery_current:p.author_role==='admin'&&p.id===currentAdminPost,is_following:!!(owner&&following.has(owner.customer_id)),comments_enabled:p.comments_enabled!==false&&owner?.comments_enabled!==false,like_count:likes.filter(x=>x.post_id===p.id).length,follower_count:p.author_role==='admin'?Number(admin.follower_count||0):undefined,following_count:p.author_role==='admin'?0:undefined,verified:p.author_role==='admin'?!!admin.is_verified:false,comment_count:comments.filter(x=>x.post_id===p.id).length,liked:liked.has(p.id),locked_video:locked,professional_video:locked,creator:{id:p.customer_id||null,name:p.author_role==='admin'?publicAdminName(admin.display_name):(owner?.display_name||'Creator'),bio:owner?.bio||'',avatar_url:(p.author_role==='admin'?admin.avatar_path:owner?.avatar_path)?await signedRead(p.author_role==='admin'?admin.avatar_path:owner.avatar_path):null,followers:p.author_role==='admin'?Number(admin.follower_count||0):null,following:p.author_role==='admin'?0:null},media_url:locked||p.media_type==='text'?null:await signedRead(p.media_path),audio_url:p.audio_path?await signedRead(p.audio_path):null,background_color:p.background_color||null,thumbnail_url:p.thumbnail_path?await signedRead(p.thumbnail_path):null};
    }));
    return json(200,{posts:feed.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))});
   }
@@ -41,6 +43,12 @@ export async function handler(event){
   const s=await session(token,admin);if(!s)return json(401,{error:'Please log in again.'});
   const customerId=admin?null:s.customer_id;
   if(!admin&&!await adultConfirmed(customerId))return json(403,{error:'Confirm that you are 18 or older to continue.'});
+  if(action==='skip_admin_post'){
+   if(admin||!uuid.test(String(b.post_id||'')))return json(400,{error:'Choose a valid admin post.'});
+   const skipped=await db('rpc/aam_social_skip_admin_post',{method:'POST',body:JSON.stringify({p_token:token,p_post_id:b.post_id})});
+   if(!skipped)return json(409,{error:'This post can no longer be skipped.'});
+   return json(200,{ok:true,skipped:true});
+  }
   if(action==='delete_upload'){const path=String(b.path||''),allowed=[`${customerId}/`,`post-audio/${customerId}/`,`thumbnails/${customerId}/`];if(admin||path.length>500||path.includes('..')||!allowed.some(prefix=>path.startsWith(prefix)))return json(400,{error:'Invalid upload path.'});const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY,r=await fetch(`${u}/storage/v1/object/aam-social-media/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'DELETE',headers:h(k)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||'Could not clean up unused upload.');}return json(200,{ok:true});}
   if(action==='sign_thumbnail_upload'){
    if(admin)return json(403,{error:'Admin thumbnails are uploaded with admin media.'});
