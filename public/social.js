@@ -500,14 +500,14 @@ async function startVoiceNote(id){
  const state={id,locked:false,canceled:false,releaseRequested:false,recorder:null,stream:null,chunks:[],timer:null,seconds:0,blob:null};aamVoiceNoteState=state;setVoiceNoteUi(true,false,'Starting microphone…');
  try{
   state.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-  if(state.canceled){state.stream.getTracks().forEach(t=>t.stop());aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording cancelled.');return;}
+  if(state.canceled||aamVoiceNoteState!==state){state.stream.getTracks().forEach(t=>t.stop());return;}
   const mime=MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':(MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'');
   if(!mime)throw new Error('This browser cannot record a supported voice-note format.');
   const recorder=new MediaRecorder(state.stream,{mimeType:mime});state.recorder=recorder;window.aamVoiceRecorder=recorder;
   recorder.ondataavailable=e=>{if(e.data?.size)state.chunks.push(e.data);};
   recorder.onstop=()=>{
    clearInterval(state.timer);state.stream?.getTracks().forEach(t=>t.stop());
-   if(state.canceled){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording discarded.');return;}
+   if(state.canceled||aamVoiceNoteState!==state){return;}
    state.blob=new Blob(state.chunks,{type:mime});
    if(!state.blob.size){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'The recording is empty.');notice('The recording is empty. Please try again.');return;}
    if(aamVoicePreviewUrl)URL.revokeObjectURL(aamVoicePreviewUrl);aamVoicePreviewUrl=URL.createObjectURL(state.blob);
@@ -515,16 +515,16 @@ async function startVoiceNote(id){
    setVoiceNoteUi(false,false,'Preview the recording, then tap the arrow to send.');
   };
   recorder.onerror=()=>{state.canceled=true;try{recorder.stop();}catch(_){}};
-  recorder.start(250);state.timer=setInterval(()=>{state.seconds++;const left=Math.max(0,60-state.seconds);setVoiceNoteUi(true,state.locked,(state.locked?'🔒 Locked · ':'● Recording · ')+left+'s');if(left===0)stopVoiceNote(false);},1000);
+  recorder.start(250);state.timer=setInterval(()=>{if(aamVoiceNoteState!==state){clearInterval(state.timer);return;}state.seconds++;const left=Math.max(0,60-state.seconds);setVoiceNoteUi(true,state.locked,(state.locked?'🔒 Locked · ':'● Recording · ')+left+'s');if(left===0)stopVoiceNote(false);},1000);
   setVoiceNoteUi(true,false,'● Recording · 60s');if(state.releaseRequested)stopVoiceNote(false);
- }catch(e){state.stream?.getTracks().forEach(t=>t.stop());if(aamVoiceNoteState===state)aamVoiceNoteState=null;setVoiceNoteUi(false,false,e.message);notice(e.message);}
+ }catch(e){state.stream?.getTracks().forEach(t=>t.stop());if(aamVoiceNoteState===state){aamVoiceNoteState=null;setVoiceNoteUi(false,false,e.message);notice(e.message);}}
 }
 function releaseVoiceNote(){const state=aamVoiceNoteState;if(!state||state.locked||state.blob)return;if(!state.recorder){state.releaseRequested=true;return;}stopVoiceNote(false);}
 function toggleVoiceNoteLock(){const state=aamVoiceNoteState;if(!state||state.blob)return;state.locked=!state.locked;if(!state.locked)state.manualStop=true;setVoiceNoteUi(true,state.locked,state.locked?'🔒 Locked · tap Stop when ready':'● Recording · tap Stop when ready');}
 function discardVoiceNoteOnNavigation(){if(aamVoiceNoteState&&!aamVoiceNoteState.sending)stopVoiceNote(true);}
 function stopVoiceNote(cancel=false){
  const state=aamVoiceNoteState;if(!state)return;
- if(cancel){state.canceled=true;clearInterval(state.timer);state.stream?.getTracks().forEach(t=>t.stop());if(state.recorder&&state.recorder.state!=='inactive'){try{state.recorder.stop();}catch(_){}}if(aamVoicePreviewUrl){URL.revokeObjectURL(aamVoicePreviewUrl);aamVoicePreviewUrl=null;}const p=document.getElementById('aamChatVoicePreview');if(p){p.pause();p.removeAttribute('src');p.hidden=true;}aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording discarded.');return;}
+ if(cancel){state.canceled=true;clearInterval(state.timer);state.stream?.getTracks().forEach(t=>t.stop());if(state.recorder&&state.recorder.state!=='inactive'){try{state.recorder.stop();}catch(_){}}if(aamVoicePreviewUrl){URL.revokeObjectURL(aamVoicePreviewUrl);aamVoicePreviewUrl=null;}const p=document.getElementById('aamChatVoicePreview');if(p){p.pause();p.removeAttribute('src');p.hidden=true;}if(aamVoiceNoteState===state){aamVoiceNoteState=null;setVoiceNoteUi(false,false,'Recording discarded.');}return;}
  if(state.recorder&&state.recorder.state==='recording'){clearInterval(state.timer);state.recorder.stop();}
 }
 async function sendVoiceNote(){
