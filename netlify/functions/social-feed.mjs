@@ -41,6 +41,7 @@ export async function handler(event){
   const s=await session(token,admin);if(!s)return json(401,{error:'Please log in again.'});
   const customerId=admin?null:s.customer_id;
   if(!admin&&!await adultConfirmed(customerId))return json(403,{error:'Confirm that you are 18 or older to continue.'});
+  if(action==='delete_upload'){const path=String(b.path||''),allowed=[`${customerId}/`,`post-audio/${customerId}/`,`thumbnails/${customerId}/`];if(admin||path.length>500||path.includes('..')||!allowed.some(prefix=>path.startsWith(prefix)))return json(400,{error:'Invalid upload path.'});const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY,r=await fetch(`${u}/storage/v1/object/aam-social-media/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'DELETE',headers:h(k)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||'Could not clean up unused upload.');}return json(200,{ok:true});}
   if(action==='sign_thumbnail_upload'){
    if(admin)return json(403,{error:'Admin thumbnails are uploaded with admin media.'});
    const path=`thumbnails/${customerId}/${randomUUID()}.jpg`,u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;
