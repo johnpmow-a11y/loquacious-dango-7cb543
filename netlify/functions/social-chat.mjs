@@ -21,8 +21,10 @@ export async function handler(event){
     const partPromise=db(`aam_chat_participants?select=conversation_id&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`);
     const [part,conversationRows,groupMember,otherParticipants]=await Promise.all([partPromise,db(`aam_chat_conversations?select=id,conversation_type,title&id=eq.${conv}&limit=1`),db(`aam_chat_group_members?select=group_role&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`),db(`aam_chat_participants?select=customer_id,typing_at&conversation_id=eq.${conv}&customer_id=neq.${s.customer_id}&limit=1`)]);
     if(!part.length)return json(404,{error:'Conversation not found.'});
+    // Persist the recipient's read receipt before returning this conversation so the sender's next refresh sees it immediately.
+    await rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv});
     const since=String(b.since||''),sinceDate=since?Date.parse(since):NaN,incremental=Number.isFinite(sinceDate);
-    const messageQuery=incremental?`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&created_at=gt.${encodeURIComponent(since)}&order=created_at.asc&limit=30`:`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&order=created_at.desc&limit=50`;
+    const messageQuery=incremental?`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&created_at=gte.${encodeURIComponent(since)}&order=created_at.asc&limit=100`:`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&order=created_at.desc&limit=50`;
     const messages=await db(messageQuery);if(!incremental)messages.reverse();
     const recentMessages=incremental?await db(`aam_chat_messages?select=id&conversation_id=eq.${conv}&order=created_at.desc&limit=50`):messages.map(m=>({id:m.id}));
     const reactionIds=[...new Set(recentMessages.map(m=>m.id))];
@@ -37,7 +39,6 @@ export async function handler(event){
     const otherProfileRows=otherCustomerId?await db(`aam_social_profiles?select=display_name,avatar_path&customer_id=eq.${encodeURIComponent(otherCustomerId)}&limit=1`):[];
     const otherProfile=otherProfileRows[0]?{display_name:otherProfileRows[0].display_name||'Friend',avatar_url:otherProfileRows[0].avatar_path?await signedRead(otherProfileRows[0].avatar_path):null}:null;
     const outputMessages=await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id),reactions:reactionMap.get(m.id)||[]}}));
-    rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv}).catch(()=>{});
     return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherCustomerId,other_profile:otherProfile,other_is_typing:!!otherParticipants[0]?.typing_at&&(Date.now()-new Date(otherParticipants[0].typing_at).getTime()<6000),group_role:groupMember[0]?.group_role||null,messages:outputMessages,reaction_updates:reactionIds.map(id=>({message_id:id,reactions:reactionMap.get(id)||[]})),read_message_ids:reads.map(r=>r.message_id)});
    }
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
