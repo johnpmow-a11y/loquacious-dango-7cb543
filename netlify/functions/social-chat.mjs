@@ -24,6 +24,10 @@ export async function handler(event){
     const since=String(b.since||''),sinceDate=since?Date.parse(since):NaN,incremental=Number.isFinite(sinceDate);
     const messageQuery=incremental?`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&created_at=gt.${encodeURIComponent(since)}&order=created_at.asc&limit=30`:`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at&conversation_id=eq.${conv}&order=created_at.desc&limit=50`;
     const messages=await db(messageQuery);if(!incremental)messages.reverse();
+    const recentMessages=incremental?await db(`aam_chat_messages?select=id&conversation_id=eq.${conv}&order=created_at.desc&limit=50`):messages.map(m=>({id:m.id}));
+    const reactionIds=[...new Set(recentMessages.map(m=>m.id))];
+    const reactionRows=reactionIds.length?await db(`aam_chat_message_reactions?select=message_id,customer_id,emoji&message_id=in.(${reactionIds.join(',')})`):[];
+    const reactionMap=new Map();for(const reaction of reactionRows){if(!reactionMap.has(reaction.message_id))reactionMap.set(reaction.message_id,[]);reactionMap.get(reaction.message_id).push({customer_id:reaction.customer_id,emoji:reaction.emoji});}
     const ids=[...new Set(messages.map(m=>m.sender_id))],messageIds=messages.map(m=>m.id);
     const ownIds=incremental?await db(`aam_chat_messages?select=id&conversation_id=eq.${conv}&sender_id=eq.${s.customer_id}&order=created_at.desc&limit=50`):messages.filter(m=>m.sender_id===s.customer_id).map(m=>({id:m.id}));
     const readIds=ownIds.map(m=>m.id);
@@ -32,7 +36,7 @@ export async function handler(event){
     const otherCustomerId=otherParticipants[0]?.customer_id||null;
     const otherProfileRows=otherCustomerId?await db(`aam_social_profiles?select=display_name,avatar_path&customer_id=eq.${encodeURIComponent(otherCustomerId)}&limit=1`):[];
     const otherProfile=otherProfileRows[0]?{display_name:otherProfileRows[0].display_name||'Friend',avatar_url:otherProfileRows[0].avatar_path?await signedRead(otherProfileRows[0].avatar_path):null}:null;
-    const outputMessages=await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id)}}));
+    const outputMessages=await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id),reactions:reactionMap.get(m.id)||[]}}));
     rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv}).catch(()=>{});
     return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherCustomerId,other_profile:otherProfile,other_is_typing:!!otherParticipants[0]?.typing_at&&(Date.now()-new Date(otherParticipants[0].typing_at).getTime()<6000),group_role:groupMember[0]?.group_role||null,messages:outputMessages,read_message_ids:reads.map(r=>r.message_id)});
    }
@@ -71,16 +75,35 @@ export async function handler(event){
   if(b.action==='touch'){if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});return json(200,await rpc('aam_chat_touch',{p_token:token,p_conversation:b.conversation_id}));}
   if(b.action==='typing'){if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});const part=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${b.conversation_id}&customer_id=eq.${s.customer_id}&limit=1`);if(!part.length)return json(404,{error:'Conversation not found.'});await db(`aam_chat_participants?conversation_id=eq.${b.conversation_id}&customer_id=eq.${s.customer_id}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({typing_at:b.is_typing===true?new Date().toISOString():null})});return json(200,{ok:true});}
   if(b.action==='start'){if(!uuid.test(String(b.target_customer_id||'')))return json(400,{error:'Choose a valid profile.'});return json(200,await rpc('aam_chat_start',{p_token:token,p_target:b.target_customer_id}));}
+  if(b.action==='react'){
+   const messageId=String(b.message_id||''),emoji=String(b.emoji||'');
+   const allowed=['👍','❤️','😂','😮','😢','🙏'];
+   if(!uuid.test(messageId)||!allowed.includes(emoji))return json(400,{error:'Choose a valid message reaction.'});
+   const message=await db(`aam_chat_messages?select=id,conversation_id&id=eq.${encodeURIComponent(messageId)}&limit=1`);
+   if(!message.length)return json(404,{error:'Message not found.'});
+   const participant=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${encodeURIComponent(message[0].conversation_id)}&customer_id=eq.${encodeURIComponent(s.customer_id)}&limit=1`);
+   if(!participant.length)return json(404,{error:'Conversation not found.'});
+   const existing=await db(`aam_chat_message_reactions?select=id,emoji&message_id=eq.${encodeURIComponent(messageId)}&customer_id=eq.${encodeURIComponent(s.customer_id)}&limit=1`);
+   if(existing.length&&existing[0].emoji===emoji){
+    await db(`aam_chat_message_reactions?id=eq.${encodeURIComponent(existing[0].id)}&customer_id=eq.${encodeURIComponent(s.customer_id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+   }else if(existing.length){
+    await db(`aam_chat_message_reactions?id=eq.${encodeURIComponent(existing[0].id)}&customer_id=eq.${encodeURIComponent(s.customer_id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({emoji,created_at:new Date().toISOString()})});
+   }else{
+    await db('aam_chat_message_reactions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({message_id:messageId,customer_id:s.customer_id,emoji})});
+   }
+   const reactions=await db(`aam_chat_message_reactions?select=customer_id,emoji&message_id=eq.${encodeURIComponent(messageId)}`);
+   return json(200,{ok:true,reactions});
+  }
   if(b.action==='edit'){
    const messageId=String(b.message_id||''),body=String(b.body||'').trim();
    if(!uuid.test(messageId))return json(400,{error:'Invalid message.'});
    if(!body||body.length>5000)return json(400,{error:'Write a message of up to 5,000 characters.'});
    const owned=await db(`aam_chat_messages?select=id,conversation_id,created_at&id=eq.${encodeURIComponent(messageId)}&sender_id=eq.${encodeURIComponent(s.customer_id)}&created_at=gt.${encodeURIComponent(new Date(Date.now()-15*60*1000).toISOString())}&limit=1`);
-   if(!owned.length)return json(403,{error:'Messages can only be edited by their sender during the first 15 minutes.'});
+   if(!owned.length)return json(403,{error:'You can edit only your own recent messages.'});
    const participant=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${encodeURIComponent(owned[0].conversation_id)}&customer_id=eq.${encodeURIComponent(s.customer_id)}&limit=1`);
    if(!participant.length)return json(404,{error:'Conversation not found.'});
    const updated=await db(`aam_chat_messages?id=eq.${encodeURIComponent(messageId)}&sender_id=eq.${encodeURIComponent(s.customer_id)}&created_at=gt.${encodeURIComponent(new Date(Date.now()-15*60*1000).toISOString())}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({body,edited_at:new Date().toISOString()})});
-   if(!updated.length)return json(403,{error:'The 15-minute edit period has expired.'});
+   if(!updated.length)return json(403,{error:'This message can no longer be edited.'});
    return json(200,{ok:true,message:updated[0]});
   }
   if(b.action==='delete'){
