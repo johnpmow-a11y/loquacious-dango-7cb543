@@ -16,6 +16,7 @@ The current integrations use the existing environment variables, including:
 - SUPABASE_SERVICE_ROLE_KEY
 - PAYSTACK_SECRET_KEY (use the approved LIVE secret for real payments)
 - NEXOTP_API_KEY
+- TURNIX_API_TOKEN (WebRTC TURN relay credentials)
 - SHADOW_OTP_API_KEY
 - SHADOW_OTP_PKR_NGN_RATE
 Preserve any additional variables already configured for other services. Never put service-role keys, payment secrets, Gmail app passwords or supplier API keys in public browser code.
@@ -55,12 +56,31 @@ The social feed, 18+ confirmation, profiles, follows, coins, paid-video unlocks,
 14. supabase/migrations/20261119160000_manager_promotion_campaigns.sql
 The 20261119130000 migration restores the explicit 18+ confirmation timestamp/RPC, separates free and purchased viewing coins, and creates the current one-time paid-video unlock and earnings accounting. The final 20261119160000 migration creates Manager Promotion campaign records and Money-Coin-only campaign payment. It must run after the preceding social migrations. Promotion submissions remain under review; no external advertising provider is automatically called, and payment is unavailable until the administrator sets a campaign price after provider pricing/approval is confirmed. The earlier age-gate-removal migration is retained in the ordered history; the final migration restores the current 18+ confirmation mechanism. Do not apply only the final migration to a database missing the earlier social foundation.
 
-LIVEKIT AUDIO AND VIDEO CALLING
-The calling system uses LiveKit for real-time audio/video rooms and the existing customer/admin sessions for authorization. Apply these migrations in order after the customer/account foundation:
+WEBRTC AUDIO AND VIDEO CALLING
+The active calling transport is native browser WebRTC (RTCPeerConnection), with Supabase-backed authenticated signalling and optional TURN relay credentials from Turnix. The browser does not use the LiveKit SDK and no LiveKit API key, secret or URL is required. Some Netlify function paths and historical database migration names retain “livekit” for compatibility with the existing call records; they do not mean the media transport is LiveKit.
+
+Apply these migrations in order after the customer/account foundation, only if they have not already been applied:
 1. supabase/migrations/20261119100000_livekit_call_tables.sql
 2. supabase/migrations/20261119190000_admin_livekit_call_identity.sql
 3. supabase/migrations/20261119200000_livekit_one_active_call_per_customer.sql
-The final migration repairs terminal-call participant rows and enforces one active call per customer at the database level, including concurrent call attempts. Keep LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Netlify server environment variables only. Do not expose them in browser code. The source checks do not replace real two-device testing of microphone, camera, incoming-call notifications, iPhone audio playback and reconnection.
+4. supabase/migrations/20261119210000_livekit_one_active_call_per_admin.sql
+5. supabase/migrations/20261119220000_livekit_photo_avatar_coin_charge.sql
+6. supabase/migrations/20261124150000_unified_webrtc_call_signals.sql
+
+Keep TURNIX_API_TOKEN in Netlify environment variables for TURN relay credentials. STUN-only connections may work on some networks, but a TURN relay is important for phones and networks that cannot establish a direct peer connection. Do not add LiveKit secrets for the current WebRTC transport.
+
+The WebRTC call flow, avatar and voice-effect modules have passed source-level syntax checks only. They still require real two-device testing for incoming calls, microphone/camera permissions, iPhone audio playback, TURN connectivity, network changes and reconnection.
+
+CHAT AND PROFILE ADDITIONS
+After the social foundation migrations above, apply these additive migrations in timestamp order, only if not already applied:
+- supabase/migrations/20261121100000_social_status_stories.sql
+- supabase/migrations/20261124_social_post_audio.sql
+- supabase/migrations/20261124_social_public_profile_id.sql
+- supabase/migrations/20261124100000_chat_typing_indicators.sql
+- supabase/migrations/20261124120000_status_audio_chat_edit.sql
+- supabase/migrations/20261125100000_chat_message_reactions.sql
+
+These add Status stories, audio posts, public profile IDs for starting chats, typing indicators, voice-note/edit support and persistent message reactions. The message-reactions migration must be applied before reactions can be saved. Do not reset the database or rerun earlier migrations.
 
 PASSWORD RECOVERY
 
@@ -96,7 +116,7 @@ SERVICE LABELS
 Customer menu labels include TikTok Dollar Funding and NextPlace Login. The NextPlace customer email field is the address to receive the login after fulfilment. Facebook Phone requests collect business email, Facebook Page/Ad Account ID, whether 2FA is enabled, total amount and payment method. Never request or store Facebook passwords or 2FA codes.
 
 BUILD AND VERIFICATION
-The GitHub Actions workflow .github/workflows/verify-package.yml checks JavaScript syntax for Netlify functions and the inline browser application, then packages the complete repository as All-Ads-Manager-Complete.zip. A successful source build does not prove the live Netlify, Supabase, Paystack, Gmail or supplier systems are working; those require deployment and real environment checks.
+The GitHub Actions workflow .github/workflows/package-all-ads-manager-source.yml checks JavaScript syntax and packages the complete project root as All-Ads-Manager-Final-Source.zip. A successful source build does not prove live Netlify, Supabase, Paystack, Gmail, push notifications, supplier APIs or two-device calls work; those require live environment and device checks. A successful source build does not prove the live Netlify, Supabase, Paystack, Gmail or supplier systems are working; those require deployment and real environment checks.
 
 PIPEBOARD — MANAGER PROMOTION PROVIDER CONNECTION
 The customer-facing Manager Promotion feature accepts advert pictures and descriptions and queues submissions for administrator review. It does not start campaigns or deduct Money Coins until the provider connection is genuinely ready.
