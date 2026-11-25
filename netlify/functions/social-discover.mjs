@@ -29,6 +29,14 @@ export async function handler(event){
    const profileViews=await db('aam_social_profile_views?select=viewer_id&profile_key=eq.admin');
    return json(200,{profile:{display_name:publicAdminName(admin.display_name),avatar_url:admin.avatar_path?await signedRead(admin.avatar_path):null,is_verified:!!admin.is_verified},followers:Number(admin.follower_count||0),following:0,likes:likes.length,profile_views:profileViews.length,posts:resultPosts});
   }
+  const publicId=String(q.public_id||'').trim().slice(0,48);
+  if(publicId){
+   if(!/^[a-zA-Z0-9_-]{3,48}$/.test(publicId))return json(400,{error:'Enter a valid profile ID.'});
+   const matches=await db(`aam_social_profiles?select=customer_id,public_profile_id,display_name,avatar_path&public_profile_id=eq.${encodeURIComponent(publicId)}&limit=1`);
+   const p=matches[0];if(!p)return json(404,{error:'No customer was found with that profile ID.'});
+   if(p.customer_id===s.customer_id)return json(400,{error:'That is your own profile ID.'});
+   return json(200,{profile:{customer_id:p.customer_id,public_profile_id:p.public_profile_id,display_name:p.display_name||'Customer',avatar_url:p.avatar_path?await signedRead(p.avatar_path):null}});
+  }
   const target=String(q.profile_id||'');
   if(target){
    if(!uuid.test(target))return json(400,{error:'Invalid profile.'});
