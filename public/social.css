@@ -737,3 +737,8 @@ body.aam-chat-fullscreen-active .aam-social-wrap{width:100%!important;max-width:
 /* The chat photo viewer handles its own pinch zoom and drag-to-pan gestures. */
 .aam-chat-image-viewer .aam-chat-image-stage{touch-action:none!important;overflow:hidden!important;overscroll-behavior:contain!important;cursor:grab!important}
 .aam-chat-image-viewer .aam-chat-image-stage img{flex:0 0 auto!important;max-width:100%!important;max-height:100%!important;will-change:transform;pointer-events:none!important}
+
+/* Active call must layer above the full-screen chat, including its high-z-index surface. */
+#aamActiveCallOverlay.aam-active-call-overlay{z-index:2147483600!important;position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;box-sizing:border-box!important;overflow:hidden!important}
+#aamActiveCallOverlay .aam-active-call-surface{position:relative!important;z-index:1!important}
+body:has(#aamActiveCallOverlay){overflow:hidden!important;overscroll-behavior:none!important}
