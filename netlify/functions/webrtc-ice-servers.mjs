@@ -40,5 +40,4 @@ export async function handler(event){
    return json(200,{configured:true,iceServers,expiresAt:data.expiresAt||null});
   }finally{clearTimeout(timer);}
  }catch(error){console.warn('WebRTC ICE configuration unavailable:',error.name==='AbortError'?'Turnix request timed out.':error.message);return json(502,{configured:false,iceServers:[],error:'Could not load relay connection settings.'});}
- }
 }
