@@ -7,6 +7,7 @@
     <button class="btn" onclick="catalog('USA')">🇺🇸 USA Gift Card</button>
     <button class="btn" onclick="serviceForm('Facebook Page')">CREATE FACEBOOK PAGE</button>
     <button class="btn" onclick="serviceForm('Facebook Ads')">CREATE FACEBOOK ADS</button>
+    <button class="btn" onclick="serviceForm('Instagram Ads')">INSTAGRAM ADS</button>
     <button class="btn" onclick="serviceForm('TikTok Ads')">TIKTOK ADS</button>
     <button class="btn" onclick="serviceForm('TikTok Funding')">TIKTOK DOLLAR CARD FUNDING</button>
     <button class="btn" onclick="serviceForm('Netflix Login')">NETFLIX LOGIN</button>
@@ -68,6 +69,7 @@
   window.serviceForm=function(service){
     if(service==='Facebook Ads')return window.openAamAdWorkspace('facebook');
     if(service==='TikTok Ads')return window.openAamAdWorkspace('tiktok');
+    if(service==='Instagram Ads')return window.openAamAdWorkspace('instagram');
     return legacyServiceForm.apply(this,arguments);
   };
   window.openAllAdsManagerPromotion=function(){
