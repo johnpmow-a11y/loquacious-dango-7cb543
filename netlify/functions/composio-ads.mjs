@@ -53,6 +53,8 @@ export async function handler(event){
    const required=Object.entries(definition.input_parameters||{}).filter(([,v])=>v.required).map(([k])=>k);
    const missing=required.filter(k=>args[k]===undefined||args[k]===null||args[k]==='');
    if(missing.length)return json(400,{error:'Campaign setup is missing required fields: '+missing.join(', ')});
+   if(slug==='metaads'&&['METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD'].includes(toolSlug))args.status='PAUSED';
+   if(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))args.operation_status='DISABLE';
    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:account.id,user_id:userId,version:definition.version,arguments:args})});
    return json(200,{ok:true,tool_slug:toolSlug,result:result.data||result});
   }
