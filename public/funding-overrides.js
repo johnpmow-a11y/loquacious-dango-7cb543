@@ -43,11 +43,12 @@
   };
 
 
-  window.refreshAamAdAccounts=async function(platform){
+  window.refreshAamAdAccounts=async function(platform,advertiserId){
     const area=document.getElementById('aamAdAccountsArea');if(!area)return;
     area.innerHTML='<p class="muted">Loading your authorized ad accounts…</p>';
     try{
-      const r=await fetch('/.netlify/functions/composio-ads?action=accounts&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not load ad accounts.');
+      const r=await fetch('/.netlify/functions/composio-ads?action=accounts&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||'')+(advertiserId?'&advertiser_id='+encodeURIComponent(advertiserId):''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not load ad accounts.');
+      if(d.needs_advertiser_id){area.innerHTML='<div class="form" style="margin-top:14px"><h3>TikTok advertiser account</h3><p class="muted">Enter the advertiser ID shown in your TikTok Ads Manager account.</p><input class="field" id="aamTikTokAdvertiserId" inputmode="numeric" placeholder="Advertiser ID"><button class="btn" style="margin-top:10px" onclick="loadAamTikTokAdvertiser()">Find advertiser account</button></div>';return;}
       const found=[];const visit=value=>{if(Array.isArray(value)){value.forEach(visit);return;}if(!value||typeof value!=='object')return;const id=value.account_id||value.advertiser_id||value.id;if(id&&(value.name||value.account_name||value.advertiser_name||value.currency||value.currency_code))found.push({id:String(id),name:String(value.name||value.account_name||value.advertiser_name||id),currency:String(value.currency||value.currency_code||'')});Object.values(value).forEach(v=>{if(v&&typeof v==='object')visit(v);});};visit(d.result);
       const unique=[...new Map(found.map(x=>[x.id,x])).values()];
       if(!unique.length){area.innerHTML='<p class="payment-note">Your account is connected, but the provider did not return an ad account list. Check that your login has access to an active Ads Manager account.</p>';return;}
@@ -55,6 +56,12 @@
       window.aamAdAccountOptions=unique;
     }catch(e){area.innerHTML='<p class="payment-note">'+esc(e.message||'Ad accounts are temporarily unavailable.')+'</p>';}
   };
+
+  window.loadAamTikTokAdvertiser=function(){
+    const id=document.getElementById('aamTikTokAdvertiserId')?.value.trim();if(!id)return toast('Enter your TikTok advertiser ID.');
+    refreshAamAdAccounts('tiktok',id);
+  };
+
   window.selectAamAdAccount=function(){
     const select=document.getElementById('aamAdAccountSelect');if(!select)return;
     const option=select.selectedOptions[0];window.aamAdAccountSelection={id:select.value,name:option?.dataset.name||'',currency:option?.dataset.currency||''};
