@@ -88,10 +88,10 @@
       for(const candidate of candidates){const response=await fetch('/.netlify/functions/composio-ads?action=schema&platform='+encodeURIComponent(platform)+'&tool_slug='+encodeURIComponent(candidate)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const data=await response.json();if(response.ok){d=data;toolSlug=candidate;break;}lastError=data.error||lastError;}
       if(!d)throw new Error(lastError);
       const params=d.input_parameters||{},fields=params.properties||params,required=Array.isArray(params.required)?params.required:[];
-      const selected=JSON.parse(sessionStorage.getItem('aamAdAccountSelection')||'null');
+      const selected=JSON.parse(sessionStorage.getItem('aamAdAccountSelection')||'null'),createdRefs=JSON.parse(sessionStorage.getItem('aamAdCreatedRefs')||'{}');
       const html=Object.entries(fields).filter(([key,v])=>v&&typeof v==='object'&&!['status','operation_status'].includes(key)).map(([key,v])=>{
         const must=required.includes(key)||v.required===true;
-        const value=selected&&/^(account_id|ad_account_id|advertiser_id)$/.test(key)?selected.id:'';
+        const value=createdRefs[key]!==undefined?createdRefs[key]:(selected&&/^(account_id|ad_account_id|advertiser_id)$/.test(key)?selected.id:'');
         const type=v.type||'string',hint=v.description||v.title||'';
         let input;
         if(Array.isArray(v.enum))input='<select class="field" name="'+aamAdEsc(key)+'" '+(must?'required':'')+'>'+v.enum.map(x=>'<option value="'+aamAdEsc(x)+'">'+aamAdEsc(x)+'</option>').join('')+'</select>';
@@ -110,6 +110,7 @@
     const button=form.querySelector('button[type=submit]');if(button){button.disabled=true;button.textContent='Creating paused draft…';}
     try{
       const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform,action:'execute',tool_slug:toolSlug,arguments:args})});const d=await r.json();if(!r.ok)throw new Error(d.error||'The advertising platform rejected this step.');
+      const createdRefs=JSON.parse(sessionStorage.getItem('aamAdCreatedRefs')||'{}');const harvest=value=>{if(Array.isArray(value)){value.forEach(harvest);return;}if(!value||typeof value!=='object')return;for(const [key,item] of Object.entries(value)){if(/^(campaign_id|adset_id|ad_set_id|adgroup_id|ad_group_id|creative_id|ad_id|advertiser_id|account_id)$/i.test(key)&&(typeof item==='string'||typeof item==='number'))createdRefs[key]=String(item);if(item&&typeof item==='object')harvest(item);}};harvest(d.result);sessionStorage.setItem('aamAdCreatedRefs',JSON.stringify(createdRefs));
       const out=document.getElementById('aamAdStageResult');if(out)out.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a"><strong>Step created as a paused/disabled draft.</strong><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+aamAdEsc(JSON.stringify(d.result,null,2))+'</pre><p class="muted">Use returned campaign, ad set and creative IDs in the next step where required.</p></div>';
       toast('Draft created. It will not spend until you activate it in the advertising platform.');
     }catch(e){toast(e.message||'Could not create this campaign step.');}
