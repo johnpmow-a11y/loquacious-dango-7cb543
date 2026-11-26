@@ -20,8 +20,10 @@ export async function handler(event){
    if(q.action==='accounts'){
     const active=await userAccounts(userId,slug);if(!active.length)return json(409,{error:'Connect your advertising account first.'});
     const toolSlug=slug==='metaads'?'METAADS_GET_AD_ACCOUNTS':'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS';
+    if(slug==='tiktok_ads'&&!String(q.advertiser_id||'').trim())return json(200,{needs_advertiser_id:true,tool_slug:toolSlug});
     const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
-    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:active[0].id,user_id:userId,version:definition.version,arguments:{}})});
+    const args=slug==='tiktok_ads'?{advertiser_ids:[String(q.advertiser_id).trim()]}:{};
+    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:active[0].id,user_id:userId,version:definition.version,arguments:args})});
     return json(200,{tool_slug:toolSlug,result:result.data||result});
    }
    if(q.action==='schema'){
