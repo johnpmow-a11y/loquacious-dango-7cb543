@@ -78,14 +78,15 @@
   window.openAamAdUnlock=function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
     const attemptId=(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)}));sessionStorage.setItem('aamAdUnlockAttemptId',attemptId);
-    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">A ₦3,800 unlock fee is charged for this ad-payment attempt only. A new ad payment later requires a new unlock. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock()">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="sessionStorage.removeItem('aamAdUnlockAttemptId');profile()">No, go back to dashboard</button></div>';
+    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">A ₦3,800 unlock fee is charged for this ad-payment attempt only. A new ad payment later requires a new unlock. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock(this)">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="sessionStorage.removeItem('aamAdUnlockAttemptId');profile()">No, go back to dashboard</button></div>';
   };
-  window.confirmAamAdUnlock=async function(){
+  window.confirmAamAdUnlock=async function(button){
+    if(window.aamUnlockSubmitting)return;window.aamUnlockSubmitting=true;if(button){button.disabled=true;button.textContent='Starting payment…';}
     const email=document.getElementById('aamAdUnlockEmail')?.value.trim(),method=document.getElementById('aamAdUnlockMethod')?.value;
     if(!/^\S+@\S+\.\S+$/.test(email||''))return toast('Enter a valid receipt email.');
     const area=document.getElementById('aamAdUnlockArea');if(area)area.textContent='Connecting securely to Paystack…';
     try{const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,attempt_id:sessionStorage.getItem('aamAdUnlockAttemptId')})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start unlock payment.');if(d.unlocked){refreshAamAdUnlock();return;}if(!d.authorization_url)throw new Error('Paystack did not return a payment link.');location.href=d.authorization_url;}
-    catch(e){if(area)area.textContent=e.message||'Payment could not start.';}
+    catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
   };
 
   window.connectAamAdAccount=async function(platform){
