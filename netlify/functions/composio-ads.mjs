@@ -177,6 +177,7 @@ export async function handler(event){
        level:'campaign',
        fields:'campaign_id,campaign_name,impressions,reach,frequency,clicks,inline_link_clicks,ctr,spend,cpc,cpm,actions,action_values',
        time_range:{since:startDate,until:endDate},
+       ...(platform==='instagram'?{breakdowns:'publisher_platform'}:{})
        });
      }else{
       data=await executeReport(reportSlug,account,userId,'TIKTOK_ADS_GET_REPORT_INTEGRATED',{
@@ -191,7 +192,7 @@ export async function handler(event){
      }
      const root=data?.data||data,raw=Array.isArray(root)?root:(root?.list||root?.rows||root?.data||root?.report_data||[]);
      const rows=Array.isArray(raw)?raw:[];
-     reports.push({account_id:accountId,rows:rows.map(x=>{const row={...(x.dimensions||{}),...(x.metrics||{}),...x};return {campaign_id:row.campaign_id||row.campaignId||'',campaign_name:row.campaign_name||row.campaignName||'Campaign',impressions:metricNumber(row,'impressions'),reach:metricNumber(row,'reach'),clicks:metricNumber(row,'clicks','click'),ctr:metricNumber(row,'ctr'),spend:metricNumber(row,'spend','cost','total_cost'),conversions:metricConversions(row),cpc:metricNumber(row,'cpc'),cpm:metricNumber(row,'cpm'),status:row.effective_status||row.status||row.operation_status||'—'};}),raw_count:rows.length});
+     reports.push({account_id:accountId,rows:rows.map(x=>{const row={...(x.dimensions||{}),...(x.metrics||{}),...x};return {campaign_id:row.campaign_id||row.campaignId||'',campaign_name:row.campaign_name||row.campaignName||'Campaign',publisher_platform:row.publisher_platform||row.publisherPlatform||'',impressions:metricNumber(row,'impressions'),reach:metricNumber(row,'reach'),clicks:metricNumber(row,'clicks','click'),ctr:metricNumber(row,'ctr'),spend:metricNumber(row,'spend','cost','total_cost'),conversions:metricConversions(row),cpc:metricNumber(row,'cpc'),cpm:metricNumber(row,'cpm'),status:row.effective_status||row.status||row.operation_status||'—'};}),raw_count:rows.length});
     }catch(error){reports.push({account_id:accountId,error:error.message,rows:[]});}
    }
    return json(200,{platform,start_date:startDate,end_date:endDate,reports});
