@@ -131,3 +131,23 @@ SOCIAL STATUS FEATURE (added 2026-11-21)
 - Status media uses the existing private `aam-social-media` bucket and existing server-side customer session model. No new secret is required.
 - Status creation, listing, view markers, owner deletion and automatic expiry filtering are implemented. Expired records are excluded from reads; they are not physically purged by a scheduled job.
 - Test with two customer accounts: publish text, image and video Status; view a followed customer's Status and confirm its viewed marker; delete an own Status; verify expiry behavior using a test record with an expired timestamp. Confirm that an unfollowed private profile is not exposed.
+
+TOOLS DEVICE BIOMETRIC VERIFICATION
+-----------------------------------
+The TOOLS entry now uses server-verified WebAuthn/passkeys rather than a
+browser-only credential ID stored in localStorage. Registration and later
+authentication responses are verified by @simplewebauthn/server in
+netlify/functions/tools-biometric.mjs. Challenges are single-use, expire
+after five minutes, and are tied to the signed-in customer session. Only
+credential public keys and counters are stored; fingerprint/face templates
+remain inside the device authenticator.
+
+The pending Supabase migration is:
+  supabase/migrations/202611260005_aam_tools_webauthn.sql
+
+It creates private credential and challenge tables. The migration has NOT
+been executed. Do not expect this gate to work against a database until the
+user explicitly authorizes and applies the pending SQL updates. The function
+uses the existing SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment
+variables. WebAuthn requires HTTPS (except localhost) and validates the
+browser origin against the request host.
