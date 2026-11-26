@@ -76,9 +76,9 @@
     platform=platform||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);
     const status=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const unlock=await status.json();
     if(!status.ok)throw new Error(unlock.error||'Could not check your payment unlock.');
-    if(!unlock.unlocked){window.openAamAdWorkspace(platform);setTimeout(()=>window.openAamAdUnlock(),150);return;}
+    const paymentStatus=unlock.unlocked?'Payment method unlocked until '+new Date(unlock.expires_at).toLocaleString()+'.':'Payment is required only at the final Ad step. Prepare your campaign, audience and creative first.';
     const toolkit=platform==='tiktok'?'tiktok_ads':'metaads',stages=aamAdStages[toolkit];
-    shell('<button class="btn secondary back" onclick="openAamAdWorkspace(\''+platform+'\')">← Back</button><section class="form" style="max-width:700px"><span class="eyebrow">ALL ADS MANAGER</span><h2>Create your campaign</h2><p class="muted">Your payment method is unlocked until '+new Date(unlock.expires_at).toLocaleString()+'. Multiple campaigns are allowed during this window. New campaigns are created paused or disabled, so they cannot spend until you review and activate them in your advertising platform.</p><div id="aamAdStageButtons">'+stages.map(x=>'<button class="btn secondary" style="margin:5px" onclick="loadAamAdStage(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div id="aamAdStageForm" class="payment-note" style="margin-top:14px">Choose a campaign step above to begin.</div><div id="aamAdStageResult"></div></section>');
+    shell('<button class="btn secondary back" onclick="openAamAdWorkspace(\''+platform+'\')">← Back</button><section class="form" style="max-width:700px"><span class="eyebrow">ALL ADS MANAGER</span><h2>Create your campaign</h2><p class="muted">'+paymentStatus+' Multiple campaigns are allowed during the 20-minute window. New campaigns are created paused or disabled, so they cannot spend until you review and activate them in your advertising platform.</p><div id="aamAdStageButtons">'+stages.map(x=>'<button class="btn secondary" style="margin:5px" onclick="loadAamAdStage(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div id="aamAdStageForm" class="payment-note" style="margin-top:14px">Choose a campaign step above to begin.</div><div id="aamAdStageResult"></div></section>');
   };
   window.loadAamAdStage=async function(toolSlug){
     const platform=sessionStorage.getItem('aamAdPlatform')||'facebook',area=document.getElementById('aamAdStageForm');if(!area)return;area.textContent='Loading provider fields…';
@@ -102,6 +102,8 @@
   window.submitAamAdStage=async function(event,toolSlug){
     event.preventDefault();const form=event.currentTarget,platform=sessionStorage.getItem('aamAdPlatform')||'facebook',args={};
     for(const el of form.elements){if(!el.name||el.value==='')continue;const value=el.value;try{args[el.name]=(value.startsWith('{')||value.startsWith('['))?JSON.parse(value):el.type==='number'?Number(value):value;}catch(_){return toast('Check the JSON entered for '+el.name+'.');}}
+    const finalAd=(platform==='tiktok'&&['TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))||(platform!=='tiktok'&&toolSlug==='METAADS_CREATE_AD');
+    if(finalAd){try{const check=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const state=await check.json();if(!check.ok)throw new Error(state.error||'Could not check payment unlock.');if(!state.unlocked){window.openAamAdWorkspace(platform);setTimeout(()=>window.openAamAdUnlock(),150);return;}}catch(e){toast(e.message||'Could not verify payment unlock.');return;}}
     const button=form.querySelector('button[type=submit]');if(button){button.disabled=true;button.textContent='Creating paused draft…';}
     try{
       const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform,action:'execute',tool_slug:toolSlug,arguments:args})});const d=await r.json();if(!r.ok)throw new Error(d.error||'The advertising platform rejected this step.');
@@ -147,7 +149,7 @@
   };
 
   const unlockReturn=new URLSearchParams(location.search);
-  if(unlockReturn.get('ads_unlock')==='success'){const platform=unlockReturn.get('platform')||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);setTimeout(()=>{window.openAamAdWorkspace(platform);toast('Payment successful. Your advertising payment method is unlocked for 20 minutes.');},800);history.replaceState({},'',location.pathname);}
+  if(unlockReturn.get('ads_unlock')==='success'){const platform=unlockReturn.get('platform')||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);setTimeout(()=>{window.openAamAdCampaign(platform);toast('Payment successful. Your advertising payment method is unlocked for 20 minutes. Start your next campaign here.');},800);history.replaceState({},'',location.pathname);}
   else if(unlockReturn.get('ads_unlock')==='pending'){setTimeout(()=>toast('Payment is not confirmed yet. Your advertising payment method remains locked.'),800);history.replaceState({},'',location.pathname);}
   window.catalog = function(region){
     if(!guard())return;
