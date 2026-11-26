@@ -381,7 +381,29 @@ function adCampaignWorkspace(platform){
  };
  const item=configs[String(platform||'').toLowerCase()];
  if(!item)return toast('Choose a supported advertising platform.');
- shell('<button class="btn secondary back" onclick="profile()">←</button><div class="form" style="max-width:760px;margin:auto"><span class="eyebrow">'+item.tag+'</span><h2>'+item.name+'</h2><p class="muted">'+item.description+'</p><div class="profile-card" style="margin:16px 0;padding:18px"><strong>AD ACCOUNT</strong><p class="muted">Connect your own account securely. Your reports remain private to your profile.</p><button class="btn" onclick="connectAdAccount(\''+platform+'\')">CONNECT AD ACCOUNT</button></div><div class="profile-card" style="margin:12px 0;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><strong>AD PERFORMANCE</strong><button class="btn secondary" style="width:auto" onclick="loadAdPerformance(\''+platform+'\')">REFRESH REPORT</button></div><label for="aamReportRange">Reporting period</label><select id="aamReportRange" class="field"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><div id="aamPerformanceResults" class="muted" style="margin-top:14px">Connect your account, then refresh to load verified campaign metrics.</div></div><p class="muted" style="font-size:12px">Performance data is read-only. Reports use provider data only; unavailable metrics are not estimated.</p></div>');
+ shell('<button class="btn secondary back" onclick="profile()">←</button><div class="form" style="max-width:760px;margin:auto"><span class="eyebrow">'+item.tag+'</span><h2>'+item.name+'</h2><p class="muted">'+item.description+'</p><div class="profile-card" style="margin:16px 0;padding:18px"><strong>AD ACCOUNT</strong><p class="muted">Connect your own account securely. Your reports remain private to your profile.</p><button class="btn" onclick="connectAdAccount(\''+platform+'\')">CONNECT AD ACCOUNT</button></div><div class="profile-card" style="margin:12px 0;padding:16px"><strong>UNLOCK AD CREATION</strong><p class="muted">Pay ₦3,000 once to unlock ad creation for 20 minutes. Choose your payment method below.</p><label for="aamUnlockEmail">Receipt email</label><input id="aamUnlockEmail" type="email" autocomplete="email" placeholder="Enter receipt email"><label for="aamUnlockMethod">Payment method</label><select id="aamUnlockMethod"><option value="bank_transfer">Bank Transfer</option><option value="card">ATM / Card</option></select><button class="btn" id="aamUnlockButton" onclick="startAdUnlock(\''+platform+'\')">UNLOCK · ₦3,000</button><div id="aamUnlockStatus" class="muted" style="margin-top:10px">Checking unlock status…</div></div><div class="profile-card" style="margin:12px 0;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><strong>AD PERFORMANCE</strong><button class="btn secondary" style="width:auto" onclick="loadAdPerformance(\''+platform+'\')">REFRESH REPORT</button></div><label for="aamReportRange">Reporting period</label><select id="aamReportRange" class="field"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><div id="aamPerformanceResults" class="muted" style="margin-top:14px">Connect your account, then refresh to load verified campaign metrics.</div></div><p class="muted" style="font-size:12px">Performance data is read-only. Reports use provider data only; unavailable metrics are not estimated.</p></div>');
+ loadAdUnlockStatus(platform);
+}
+async function loadAdUnlockStatus(platform){
+ const box=document.getElementById('aamUnlockStatus'),button=document.getElementById('aamUnlockButton');if(!box)return;
+ try{
+  const token=encodeURIComponent(sessionStorage.getItem('btToken')||''),r=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+token,{cache:'no-store'}),d=await r.json();
+  if(!r.ok)throw Error(d.error||'Could not check payment unlock.');
+  if(d.unlocked){if(button){button.disabled=true;button.textContent='AD CREATION UNLOCKED';}box.textContent='Unlocked until '+new Date(d.expires_at).toLocaleTimeString()+'.';}
+  else{if(button){button.disabled=false;button.textContent='UNLOCK · ₦3,000';}box.textContent='A ₦3,000 payment unlocks ad creation for 20 minutes.';}
+ }catch(e){box.textContent=e.message||'Unlock status is unavailable.';}
+}
+async function startAdUnlock(platform){
+ const button=document.getElementById('aamUnlockButton'),email=document.getElementById('aamUnlockEmail')?.value.trim()||'',method=document.getElementById('aamUnlockMethod')?.value||'bank_transfer';
+ if(!/^\\S+@\\S+\\.\\S+$/.test(email))return toast('Enter a valid receipt email.');
+ if(button){button.disabled=true;button.textContent='OPENING PAYSTACK…';}
+ try{
+  const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,platform})}),d=await r.json();
+  if(!r.ok)throw Error(d.error||'Could not start the unlock payment.');
+  if(d.unlocked){await loadAdUnlockStatus(platform);return;}
+  if(!d.authorization_url)throw Error('Paystack did not return a checkout link.');
+  location.href=d.authorization_url;
+ }catch(e){toast(e.message||'Could not start the unlock payment.');if(button){button.disabled=false;button.textContent='UNLOCK · ₦3,000';}}
 }
 async function connectAdAccount(platform){
  try{const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform,token:sessionStorage.getItem('btToken')})});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not connect the advertising account.');if(!d.redirect_url)throw Error('The secure connection link was not returned.');location.href=d.redirect_url;}catch(e){toast(e.message||'Could not connect the account.');}
