@@ -17,6 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install and verify server dependencies
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          node --input-type=module -e "import('@simplewebauthn/server').then(m => { for (const name of ['generateRegistrationOptions','verifyRegistrationResponse','generateAuthenticationOptions','verifyAuthenticationResponse']) if (typeof m[name] !== 'function') throw new Error('Missing WebAuthn export: ' + name); console.log('WebAuthn server package exports verified.'); })"
       - name: Check JavaScript syntax
         shell: bash
         run: |
