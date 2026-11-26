@@ -46,7 +46,7 @@ export async function handler(event){
    const toolSlug=String(b.tool_slug||''),allowed=allowedTools[slug]||[];
    if(!allowed.includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
    const args=b.arguments;if(!args||typeof args!=='object'||Array.isArray(args)||JSON.stringify(args).length>45000)return json(400,{error:'Invalid campaign information.'});
-   if(!(await unlockIsPaid(s.customer_id)))return json(402,{error:'Your 3-hour advertising payment unlock has expired. Unlock again for ₦3,800 to continue.'});
+   if(!(await unlockIsPaid(s.customer_id)))return json(402,{error:'Your 20-minute advertising payment unlock has expired. Unlock again for ₦3,800 to continue.'});
    const accounts=await userAccounts(userId,slug);if(!accounts.length)return json(409,{error:'Connect your advertising account before creating a campaign.'});
    const account=accounts.find(x=>x.id===String(b.connected_account_id||''))||accounts[0];
    const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
