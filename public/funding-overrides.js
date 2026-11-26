@@ -78,7 +78,14 @@
     if(!status.ok)throw new Error(unlock.error||'Could not check your payment unlock.');
     const paymentStatus=unlock.unlocked?'Payment method unlocked until '+new Date(unlock.expires_at).toLocaleString()+'.':'Payment is required only at the final Ad step. Prepare your campaign, audience and creative first.';
     const toolkit=platform==='tiktok'?'tiktok_ads':'metaads',stages=aamAdStages[toolkit];
-    shell('<button class="btn secondary back" onclick="openAamAdWorkspace(\''+platform+'\')">← Back</button><section class="form" style="max-width:700px"><span class="eyebrow">ALL ADS MANAGER</span><h2>Create your campaign</h2><p class="muted">'+paymentStatus+' Multiple campaigns are allowed during the 20-minute window. New campaigns are created paused or disabled, so they cannot spend until you review and activate them in your advertising platform.</p><div id="aamAdStageButtons">'+stages.map(x=>'<button class="btn secondary" style="margin:5px" onclick="loadAamAdStage(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div id="aamAdStageForm" class="payment-note" style="margin-top:14px">Choose a campaign step above to begin.</div><div id="aamAdStageResult"></div></section>');
+    shell('<button class="btn secondary back" onclick="openAamAdWorkspace(\''+platform+'\')">← Back</button><section class="form" style="max-width:700px"><span class="eyebrow">ALL ADS MANAGER</span><h2>Create your campaign</h2><button class="btn secondary" type="button" style="margin:8px 0" onclick="resetAamAdCampaign()">＋ New campaign</button><p class="muted">'+paymentStatus+' Multiple campaigns are allowed during the 20-minute window. New campaigns are created paused or disabled, so they cannot spend until you review and activate them in your advertising platform.</p><div id="aamAdStageButtons">'+stages.map(x=>'<button class="btn secondary" style="margin:5px" onclick="loadAamAdStage(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div id="aamAdStageForm" class="payment-note" style="margin-top:14px">Choose a campaign step above to begin.</div><div id="aamAdStageResult"></div></section>');
+  };
+  window.resetAamAdCampaign=function(){
+    sessionStorage.removeItem('aamAdCreatedRefs');
+    const area=document.getElementById('aamAdStageForm'),result=document.getElementById('aamAdStageResult');
+    if(area)area.innerHTML='Previous campaign IDs cleared. Choose a campaign step above to start a new campaign.';
+    if(result)result.innerHTML='';
+    toast('Ready for a new campaign.');
   };
   window.loadAamAdStage=async function(toolSlug){
     const platform=sessionStorage.getItem('aamAdPlatform')||'facebook',area=document.getElementById('aamAdStageForm');if(!area)return;area.textContent='Loading provider fields…';
