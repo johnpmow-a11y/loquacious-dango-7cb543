@@ -2,7 +2,7 @@ const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/
 const html=(statusCode,body)=>({statusCode,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer'},body});
 const uuid=/^[0-9a-f-]{36}$/i;
 function h(key){return {'x-api-key':key,'Content-Type':'application/json'};}
-async function customer(token){if(!uuid.test(token||''))return null;const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const r=await fetch(`${base}/rest/v1/customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`,{headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`)}});const rows=await r.json().catch(()=>[]);return r.ok?rows[0]||null:null;}
+async function customer(token){if(!uuid.test(token||''))return null;const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const url=base+'/rest/v1/customer_sessions?select=customer_id&token=eq.'+encodeURIComponent(token)+'&expires_at=gt.'+encodeURIComponent(new Date().toISOString())+'&limit=1';const r=await fetch(url,{headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+key})}});const rows=await r.json().catch(()=>[]);return r.ok?rows[0]||null:null;}
 export async function handler(event){
  if(event.httpMethod==='GET'){
   const uri=String(event.queryStringParameters?.session_uri||'');
