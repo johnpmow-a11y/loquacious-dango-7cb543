@@ -1,15 +1,16 @@
-name: Package All Ads Manager source ZIP
+name: Verify and package All Ads Manager
 
 on:
   push:
     branches:
-      - fix/livekit-call-media-attachment
+      - feature/composio-ads-integration
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  package:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,9 +36,9 @@ jobs:
                   if '.git' in html.parts or 'node_modules' in html.parts:
                       continue
                   source = html.read_text(encoding='utf-8', errors='replace')
-                  for match in re.finditer(r'<script\b([^>]*)>([\s\S]*?)</script>', source, re.I):
+                  for match in re.finditer(r'<script\\b([^>]*)>([\\s\\S]*?)</script>', source, re.I):
                       attrs, body = match.group(1), match.group(2)
-                      if re.search(r'\bsrc\s*=', attrs, re.I) or re.search(r'type\s*=\s*[\"\'](?:importmap|application/json)', attrs, re.I):
+                      if re.search(r'\\bsrc\\s*=', attrs, re.I) or re.search(r'type\\s*=\\s*[\"\\'](?:importmap|application/json)', attrs, re.I):
                           continue
                       if not body.strip():
                           continue
@@ -49,6 +50,13 @@ jobs:
           PY
       - name: Run current application contract checks
         run: node scripts/check-social-contracts.mjs
+
+  package:
+    if: github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Build ZIP and verify archive
         run: |
           zip -qr All-Ads-Manager-Final-Source.zip . -x './.git/*' './node_modules/*' './All-Ads-Manager-Final-Source.zip'
