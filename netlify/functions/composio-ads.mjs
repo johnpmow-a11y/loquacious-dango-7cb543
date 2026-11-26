@@ -52,6 +52,13 @@ async function executeReport(slug,account,userId,toolSlug,values){
  return result.data||result;
 }
 function metricNumber(row,...keys){for(const k of keys){const v=row?.[k];if(v!==undefined&&v!==null&&v!=='')return Number(v)||0;}return 0;}
+function metricConversions(row){
+ const direct=metricNumber(row,'conversions','conversion');
+ if(direct)return direct;
+ const actions=Array.isArray(row?.actions)?row.actions:[];
+ const conversionTypes=/purchase|lead|complete_registration|submit_application|subscribe|contact|schedule|donate|start_trial|add_to_cart|initiate_checkout|offsite_conversion/i;
+ return actions.filter(x=>conversionTypes.test(String(x?.action_type||''))).reduce((sum,x)=>sum+(Number(x?.value)||0),0);
+}
 
 async function unlockIsPaid(customerId){const now=new Date().toISOString();const rows=await db('aam_ad_unlocks?select=status,expires_at&customer_id=eq.'+encodeURIComponent(customerId)+'&status=eq.paid&expires_at=gt.'+encodeURIComponent(now)+'&order=expires_at.desc&limit=1');return rows.length>0;}
 async function userAccounts(userId,slug){const params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});const data=await comp('/api/v3.1/connected_accounts?'+params.toString());return (data.items||[]).filter(x=>x.user_id===userId&&x.toolkit?.slug===slug&&x.status==='ACTIVE');}
@@ -123,7 +130,7 @@ export async function handler(event){
      }
      const root=data?.data||data,raw=Array.isArray(root)?root:(root?.list||root?.rows||root?.data||root?.report_data||[]);
      const rows=Array.isArray(raw)?raw:[];
-     reports.push({account_id:accountId,rows:rows.map(x=>{const row={...(x.dimensions||{}),...(x.metrics||{}),...x};return {campaign_id:row.campaign_id||row.campaignId||'',campaign_name:row.campaign_name||row.campaignName||'Campaign',impressions:metricNumber(row,'impressions'),reach:metricNumber(row,'reach'),clicks:metricNumber(row,'clicks','click'),ctr:metricNumber(row,'ctr'),spend:metricNumber(row,'spend','cost','total_cost'),conversions:metricNumber(row,'conversions','conversion'),cpc:metricNumber(row,'cpc'),cpm:metricNumber(row,'cpm'),status:row.effective_status||row.status||row.operation_status||'—'};}),raw_count:rows.length});
+     reports.push({account_id:accountId,rows:rows.map(x=>{const row={...(x.dimensions||{}),...(x.metrics||{}),...x};return {campaign_id:row.campaign_id||row.campaignId||'',campaign_name:row.campaign_name||row.campaignName||'Campaign',impressions:metricNumber(row,'impressions'),reach:metricNumber(row,'reach'),clicks:metricNumber(row,'clicks','click'),ctr:metricNumber(row,'ctr'),spend:metricNumber(row,'spend','cost','total_cost'),conversions:metricConversions(row),cpc:metricNumber(row,'cpc'),cpm:metricNumber(row,'cpm'),status:row.effective_status||row.status||row.operation_status||'—'};}),raw_count:rows.length});
     }catch(error){reports.push({account_id:accountId,error:error.message,rows:[]});}
    }
    return json(200,{platform,start_date:startDate,end_date:endDate,reports});
