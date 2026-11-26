@@ -12,15 +12,19 @@ function collectIds(value,out={}){if(Array.isArray(value)){for(const item of val
 async function saveAdAsset(customerId,platform,toolkit,connectedAccountId,args,result){
  try{
   const ids={...collectIds(args),...collectIds(result)};
-  const campaignId=ids.campaign_id||null;
-  if(!campaignId)return;
+  let campaignId=ids.campaign_id||null,existing=[];
+  if(campaignId)existing=await db('aam_ad_campaign_assets?select=id,campaign_id&customer_id=eq.'+encodeURIComponent(customerId)+'&platform=eq.'+encodeURIComponent(platform)+'&campaign_id=eq.'+encodeURIComponent(campaignId)+'&limit=1');
+  if(!existing.length){
+   const parent=ids.adset_id||ids.ad_set_id||ids.adgroup_id||ids.ad_group_id;
+   if(parent){const column=(ids.adgroup_id||ids.ad_group_id)?'ad_group_id':'ad_set_id';existing=await db('aam_ad_campaign_assets?select=id,campaign_id&customer_id=eq.'+encodeURIComponent(customerId)+'&platform=eq.'+encodeURIComponent(platform)+'&'+column+'=eq.'+encodeURIComponent(parent)+'&limit=1');if(!campaignId)campaignId=existing[0]?.campaign_id||null;}
+  }
+  if(!campaignId&&!ids.ad_id)return;
   const row={customer_id:customerId,platform,toolkit_slug:toolkit,connected_account_id:connectedAccountId,
    ad_account_id:ids.ad_account_id||ids.account_id||ids.advertiser_id||null,
    campaign_id:campaignId,ad_set_id:ids.adset_id||ids.ad_set_id||null,ad_group_id:ids.adgroup_id||ids.ad_group_id||null,
    creative_id:ids.creative_id||null,ad_id:ids.ad_id||null,page_id:ids.page_id||null,
    post_id:ids.post_id||null,object_story_id:ids.object_story_id||ids.effective_object_story_id||null,
    provider_result:result,updated_at:new Date().toISOString()};
-  const existing=await db('aam_ad_campaign_assets?select=id&customer_id=eq.'+encodeURIComponent(customerId)+'&platform=eq.'+encodeURIComponent(platform)+'&campaign_id=eq.'+encodeURIComponent(campaignId)+'&limit=1');
   if(existing.length)await db('aam_ad_campaign_assets?id=eq.'+encodeURIComponent(existing[0].id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
   else await db('aam_ad_campaign_assets',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
  }catch(error){console.warn('Ad campaign ownership metadata was not saved; provider creation remains successful:',error.message);}
