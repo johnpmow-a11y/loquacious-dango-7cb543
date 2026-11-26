@@ -50,7 +50,10 @@
     if(service==='TikTok Ads')return window.openAamAdWorkspace('tiktok');
     return legacyServiceForm.apply(this,arguments);
   };
-  window.openAllAdsManagerPromotion=function(){window.openAamAdWorkspace('facebook');};
+  window.openAllAdsManagerPromotion=function(){
+    if(!guard())return;
+    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER PROMOTION</span><h2>Choose an advertising platform</h2><p class="muted">Connect your own advertising account, choose your audience and campaign settings, and manage your promotions from All Ads Manager.</p><button class="btn" onclick="openAamAdWorkspace(\'facebook\')">Facebook Ads</button><button class="btn" style="margin-top:10px" onclick="openAamAdWorkspace(\'instagram\')">Instagram Ads</button><button class="btn" style="margin-top:10px" onclick="openAamAdWorkspace(\'tiktok\')">TikTok Ads</button></section>');
+  };
 
   window.catalog = function(region){
     if(!guard())return;
