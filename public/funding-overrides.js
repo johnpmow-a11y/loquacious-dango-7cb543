@@ -83,7 +83,7 @@
   window.confirmAamAdUnlock=async function(button){
     if(window.aamUnlockSubmitting)return;window.aamUnlockSubmitting=true;if(button){button.disabled=true;button.textContent='Starting payment…';}
     const email=document.getElementById('aamAdUnlockEmail')?.value.trim(),method=document.getElementById('aamAdUnlockMethod')?.value;
-    if(!/^\S+@\S+\.\S+$/.test(email||''))return toast('Enter a valid receipt email.');
+    if(!/^\\S+@\\S+\\.\\S+$/.test(email||'')){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}return toast('Enter a valid receipt email.');}
     const area=document.getElementById('aamAdUnlockArea');if(area)area.textContent='Connecting securely to Paystack…';
     try{const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,attempt_id:sessionStorage.getItem('aamAdUnlockAttemptId')})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start unlock payment.');if(d.unlocked){refreshAamAdUnlock();return;}if(!d.authorization_url)throw new Error('Paystack did not return a payment link.');location.href=d.authorization_url;}
     catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
