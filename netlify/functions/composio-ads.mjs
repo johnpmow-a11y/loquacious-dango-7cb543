@@ -2,7 +2,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import { URLSearchParams } from 'node:url';
 const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify(body)});
 const uuid=/^[0-9a-f-]{36}$/i;
-const toolkits={facebook:'metaads',instagram:'metaads',meta:'metaads',tiktok:'tiktok_ads'};
+const toolkits={facebook:'metaads',instagram:'metaads',meta:'metaads',tiktok:'tiktok_ads',snapchat:'snapchat'};
 const allowedTools={metaads:['METAADS_GET_AD_ACCOUNTS','METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD_CREATIVE','METAADS_CREATE_AD'],tiktok_ads:['TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS','TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADGROUP','TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS']};
 function h(key,extra={}){return { 'x-api-key':key,'Content-Type':'application/json',...extra };}
 async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||'Customer session lookup failed.');return d;}
@@ -62,7 +62,7 @@ function metricConversions(row){
 
 async function unlockIsPaid(customerId){const now=new Date().toISOString();const rows=await db('aam_ad_unlocks?select=status,expires_at&customer_id=eq.'+encodeURIComponent(customerId)+'&status=eq.paid&expires_at=gt.'+encodeURIComponent(now)+'&order=expires_at.desc&limit=1');return rows.length>0;}
 async function userAccounts(userId,slug){const params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});const data=await comp('/api/v3.1/connected_accounts?'+params.toString());return (data.items||[]).filter(x=>x.user_id===userId&&x.toolkit?.slug===slug&&x.status==='ACTIVE');}
-async function authConfig(slug){const q=new URLSearchParams({toolkit_slug:slug,is_composio_managed:'true'});const listed=await comp('/api/v3/auth_configs?'+q.toString());const found=(listed.items||[]).find(x=>x.toolkit?.slug===slug&&x.is_composio_managed!==false);if(found?.id)return found.id;const made=await comp('/api/v3/auth_configs',{method:'POST',body:JSON.stringify({toolkit:{slug}})});const id=made.id||made.auth_config?.id;if(!id)throw new Error('Composio did not return an advertising authorization configuration.');return id;}
+async function authConfig(slug){if(slug==='snapchat'){const id=String(process.env.SNAPCHAT_AUTH_CONFIG_ID||'').trim();if(!id)throw new Error('Snapchat connection is not configured yet. The Snapchat custom auth configuration must be created in Composio and its ID saved as SNAPCHAT_AUTH_CONFIG_ID.');return id;}const q=new URLSearchParams({toolkit_slug:slug,is_composio_managed:'true'});const listed=await comp('/api/v3/auth_configs?'+q.toString());const found=(listed.items||[]).find(x=>x.toolkit?.slug===slug&&x.is_composio_managed!==false);if(found?.id)return found.id;const made=await comp('/api/v3/auth_configs',{method:'POST',body:JSON.stringify({toolkit:{slug}})});const id=made.id||made.auth_config?.id;if(!id)throw new Error('Composio did not return an advertising authorization configuration.');return id;}
 export async function handler(event){
  if(event.httpMethod==='OPTIONS')return {statusCode:204,headers:{'Access-Control-Allow-Origin':process.env.URL||'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'POST,GET'}};
  try{
@@ -73,6 +73,7 @@ export async function handler(event){
    const userId='aam_customer_'+s.customer_id;
    if(q.action==='accounts'){
     const active=await userAccounts(userId,slug);if(!active.length)return json(409,{error:'Connect your advertising account first.'});
+    if(slug==='snapchat')return json(409,{error:'Snapchat account discovery will be enabled after its custom connection is verified.'});
     const toolSlug=slug==='metaads'?'METAADS_GET_AD_ACCOUNTS':'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS';
     if(slug==='tiktok_ads'&&!String(q.advertiser_id||'').trim())return json(200,{needs_advertiser_id:true,tool_slug:toolSlug});
     const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
@@ -92,7 +93,7 @@ export async function handler(event){
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   const b=JSON.parse(event.body||'{}'),s=await session(String(b.token||''));if(!s)return json(401,{error:'Please log in again.'});
-  const platform=String(b.platform||'').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Choose Facebook, Instagram or TikTok Ads.'});
+  const platform=String(b.platform||'').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Choose Facebook, Instagram, TikTok or Snapchat Ads.'});
   const userId='aam_customer_'+s.customer_id;
 
   if(b.action==='performance'){
