@@ -62,10 +62,53 @@
     refreshAamAdAccounts('tiktok',id);
   };
 
+
   window.selectAamAdAccount=function(){
     const select=document.getElementById('aamAdAccountSelect');if(!select)return;
     const option=select.selectedOptions[0];window.aamAdAccountSelection={id:select.value,name:option?.dataset.name||'',currency:option?.dataset.currency||''};
+    sessionStorage.setItem('aamAdAccountSelection',JSON.stringify(window.aamAdAccountSelection));
     const note=document.getElementById('aamAdAccountSelected');if(note)note.textContent='Selected: '+window.aamAdAccountSelection.name+(window.aamAdAccountSelection.currency?' · '+window.aamAdAccountSelection.currency:'');
+    if(note)note.innerHTML+=' <button class="btn" style="margin-top:10px" onclick="openAamAdCampaign()">Create campaign</button>';
+  };
+  const aamAdEsc=value=>{const el=document.createElement('span');el.textContent=String(value??'');return el.innerHTML;};
+  const aamAdStages={metaads:[['METAADS_CREATE_CAMPAIGN','1 · Campaign'],['METAADS_CREATE_AD_SET','2 · Ad set and audience'],['METAADS_CREATE_AD_CREATIVE','3 · Ad creative'],['METAADS_CREATE_AD','4 · Ad']],tiktok_ads:[['TIKTOK_ADS_CREATE_CAMPAIGN','1 · Campaign'],['TIKTOK_ADS_CREATE_AD_GROUP','2 · Ad group and audience'],['TIKTOK_ADS_CREATE_AD','3 · Ad']]};
+  window.openAamAdCampaign=async function(platform){
+    platform=platform||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);
+    const status=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const unlock=await status.json();
+    if(!status.ok)throw new Error(unlock.error||'Could not check your payment unlock.');
+    if(!unlock.unlocked){window.openAamAdWorkspace(platform);setTimeout(()=>window.openAamAdUnlock(),150);return;}
+    const toolkit=platform==='tiktok'?'tiktok_ads':'metaads',stages=aamAdStages[toolkit];
+    shell('<button class="btn secondary back" onclick="openAamAdWorkspace(\''+platform+'\')">← Back</button><section class="form" style="max-width:700px"><span class="eyebrow">ALL ADS MANAGER</span><h2>Create your campaign</h2><p class="muted">Your payment method is unlocked until '+new Date(unlock.expires_at).toLocaleString()+'. Multiple campaigns are allowed during this window. New campaigns are created paused or disabled, so they cannot spend until you review and activate them in your advertising platform.</p><div id="aamAdStageButtons">'+stages.map(x=>'<button class="btn secondary" style="margin:5px" onclick="loadAamAdStage(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div id="aamAdStageForm" class="payment-note" style="margin-top:14px">Choose a campaign step above to begin.</div><div id="aamAdStageResult"></div></section>');
+  };
+  window.loadAamAdStage=async function(toolSlug){
+    const platform=sessionStorage.getItem('aamAdPlatform')||'facebook',area=document.getElementById('aamAdStageForm');if(!area)return;area.textContent='Loading provider fields…';
+    try{
+      const r=await fetch('/.netlify/functions/composio-ads?action=schema&platform='+encodeURIComponent(platform)+'&tool_slug='+encodeURIComponent(toolSlug)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not load campaign fields.');
+      const params=d.input_parameters||{},fields=params.properties||params,required=Array.isArray(params.required)?params.required:[];
+      const selected=JSON.parse(sessionStorage.getItem('aamAdAccountSelection')||'null');
+      const html=Object.entries(fields).filter(([key,v])=>v&&typeof v==='object'&&!['status','operation_status'].includes(key)).map(([key,v])=>{
+        const must=required.includes(key)||v.required===true;
+        const value=selected&&/^(account_id|ad_account_id|advertiser_id)$/.test(key)?selected.id:'';
+        const type=v.type||'string',hint=v.description||v.title||'';
+        let input;
+        if(Array.isArray(v.enum))input='<select class="field" name="'+aamAdEsc(key)+'" '+(must?'required':'')+'>'+v.enum.map(x=>'<option value="'+aamAdEsc(x)+'">'+aamAdEsc(x)+'</option>').join('')+'</select>';
+        else if(type==='object'||type==='array')input='<textarea class="field" name="'+aamAdEsc(key)+'" rows="3" placeholder="Enter valid JSON" '+(must?'required':'')+'>'+aamAdEsc(value)+'</textarea>';
+        else input='<input class="field" name="'+aamAdEsc(key)+'" type="'+(type==='integer'||type==='number'?'number':'text')+'" '+(must?'required':'')+' value="'+aamAdEsc(value)+'" placeholder="'+aamAdEsc(hint)+'">';
+        return '<label>'+aamAdEsc(key)+(must?' *':'')+'</label>'+input+(hint?'<small class="muted">'+aamAdEsc(hint)+'</small>':'');
+      }).join('');
+      area.innerHTML='<form id="aamAdDynamicForm" onsubmit="submitAamAdStage(event,\''+toolSlug+'\')"><p class="muted">Complete the fields required by the connected advertising platform. Fields marked * are required. Draft creation remains paused or disabled.</p>'+html+'<button class="btn" type="submit">Create this step</button></form>';
+    }catch(e){area.textContent=e.message||'Could not load campaign setup.';}
+  };
+  window.submitAamAdStage=async function(event,toolSlug){
+    event.preventDefault();const form=event.currentTarget,platform=sessionStorage.getItem('aamAdPlatform')||'facebook',args={};
+    for(const el of form.elements){if(!el.name||el.value==='')continue;const value=el.value;try{args[el.name]=(value.startsWith('{')||value.startsWith('['))?JSON.parse(value):el.type==='number'?Number(value):value;}catch(_){return toast('Check the JSON entered for '+el.name+'.');}}
+    const button=form.querySelector('button[type=submit]');if(button){button.disabled=true;button.textContent='Creating paused draft…';}
+    try{
+      const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform,action:'execute',tool_slug:toolSlug,arguments:args})});const d=await r.json();if(!r.ok)throw new Error(d.error||'The advertising platform rejected this step.');
+      const out=document.getElementById('aamAdStageResult');if(out)out.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a"><strong>Step created as a paused/disabled draft.</strong><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+aamAdEsc(JSON.stringify(d.result,null,2))+'</pre><p class="muted">Use returned campaign, ad set and creative IDs in the next step where required.</p></div>';
+      toast('Draft created. It will not spend until you activate it in the advertising platform.');
+    }catch(e){toast(e.message||'Could not create this campaign step.');}
+    finally{if(button){button.disabled=false;button.textContent='Create this step';}}
   };
 
   window.refreshAamAdUnlock=async function(){
