@@ -268,3 +268,206 @@ revoke all on public.aam_call_signals from anon, authenticated;
 -- Signals are intentionally short-lived. This cleanup can be run periodically.
 delete from public.aam_call_signals
 where created_at < now() - interval '1 day';
+
+
+-- ============================================================
+-- All Ads Manager: WebRTC signalling and advertising integration
+-- These are idempotent additions; the base social/call tables must already exist.
+-- ============================================================
+
+-- 20261124150000_unified_webrtc_call_signals.sql
+-- Unified signalling for customer-to-customer and administrator-to-customer WebRTC calls.
+-- Only Netlify functions using the Supabase service role may access this table.
+-- Intentionally does not delete or modify any existing call/customer data.
+begin;
+
+create table if not exists public.aam_call_signal_events (
+  id uuid primary key default gen_random_uuid(),
+  call_id uuid not null references public.aam_calls(id) on delete cascade,
+  sender_identity text not null,
+  recipient_identity text not null,
+  sender_role text not null check (sender_role in ('customer','admin')),
+  recipient_role text not null check (recipient_role in ('customer','admin')),
+  signal_type text not null check (signal_type in ('offer','answer','ice','hangup')),
+  payload jsonb,
+  created_at timestamptz not null default now(),
+  constraint aam_call_signal_events_distinct_participants check (sender_identity <> recipient_identity)
+);
+
+create index if not exists aam_call_signal_events_recipient_idx
+  on public.aam_call_signal_events (call_id, recipient_identity, created_at);
+
+alter table public.aam_call_signal_events enable row level security;
+revoke all on public.aam_call_signal_events from anon, authenticated;
+grant all on public.aam_call_signal_events to service_role;
+
+commit;
+
+-- 202611260001_aam_ad_connections.sql
+-- All Ads Manager: private customer-to-ad-platform connection metadata.
+-- Provider OAuth tokens remain in Composio and are never stored in Supabase.
+create table if not exists public.aam_ad_connections (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null,
+  platform text not null check (platform in ('facebook','instagram','tiktok','snapchat')),
+  toolkit_slug text not null,
+  connected_account_id text not null unique,
+  connection_status text not null default 'ACTIVE',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists aam_ad_connections_customer_platform_idx
+  on public.aam_ad_connections(customer_id, platform, updated_at desc);
+alter table public.aam_ad_connections enable row level security;
+revoke all on public.aam_ad_connections from anon, authenticated;
+
+-- 202611260002_aam_ad_unlocks.sql
+-- A successful ₦3,000 unlock opens a rolling 20-minute window.
+-- Multiple ad campaigns/payments are allowed during the window; another fee is due only after expiry.
+create table if not exists public.aam_ad_unlocks (
+ id uuid primary key default gen_random_uuid(), customer_id uuid not null, attempt_id uuid unique,
+ platform text, status text not null default 'pending' check(status in ('pending','paid','failed')),
+ amount_kobo integer not null default 300000 check(amount_kobo=300000), reference text unique,
+ authorization_url text, receipt_email text, payment_method text,
+ unlocked_at timestamptz, expires_at timestamptz, updated_at timestamptz not null default now(), created_at timestamptz not null default now()
+);
+alter table public.aam_ad_unlocks add column if not exists id uuid default gen_random_uuid();
+alter table public.aam_ad_unlocks add column if not exists attempt_id uuid;
+alter table public.aam_ad_unlocks add column if not exists platform text;
+alter table public.aam_ad_unlocks add column if not exists expires_at timestamptz;
+update public.aam_ad_unlocks set id=gen_random_uuid() where id is null;
+update public.aam_ad_unlocks set attempt_id=gen_random_uuid() where attempt_id is null;
+alter table public.aam_ad_unlocks alter column id set not null;
+alter table public.aam_ad_unlocks alter column attempt_id set not null;
+
+-- Older versions used customer_id as a primary/unique key. Remove that
+-- restriction so a customer can create a new unlock record after expiry.
+do $$
+declare item record;
+begin
+  for item in
+    select conname, contype, pg_get_constraintdef(oid) as definition
+    from pg_constraint
+    where conrelid='public.aam_ad_unlocks'::regclass
+      and (
+        (contype='p' and pg_get_constraintdef(oid) <> 'PRIMARY KEY (id)')
+        or (contype='u' and pg_get_constraintdef(oid) = 'UNIQUE (customer_id)')
+      )
+  loop
+    execute format('alter table public.aam_ad_unlocks drop constraint %I',item.conname);
+  end loop;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.aam_ad_unlocks'::regclass
+      and contype='p' and pg_get_constraintdef(oid)='PRIMARY KEY (id)'
+  ) then
+    alter table public.aam_ad_unlocks add constraint aam_ad_unlocks_pkey primary key(id);
+  end if;
+end $$;
+
+do $$
+declare item record;
+begin
+  for item in
+    select indexname from pg_indexes
+    where schemaname='public' and tablename='aam_ad_unlocks'
+      and indexdef ilike 'create unique index%'
+      and indexdef ilike '%(customer_id)'
+  loop
+    execute format('drop index if exists public.%I',item.indexname);
+  end loop;
+end $$;
+create unique index if not exists aam_ad_unlocks_attempt_id_uidx on public.aam_ad_unlocks(attempt_id);
+create index if not exists aam_ad_unlocks_customer_created_idx on public.aam_ad_unlocks(customer_id,created_at desc);
+create index if not exists aam_ad_unlocks_active_window_idx on public.aam_ad_unlocks(customer_id,expires_at desc) where status='paid';
+alter table public.aam_ad_unlocks enable row level security;
+revoke all on public.aam_ad_unlocks from anon,authenticated;
+grant all on public.aam_ad_unlocks to service_role;
+
+-- 202611260003_aam_ad_inbox.sql
+-- All Ads Manager: persistent ownership map for customer-created advertising campaigns.
+-- This lets the existing customer Inbox route each ad conversation to its owner.
+create table if not exists public.aam_ad_campaign_assets (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  platform text not null check (platform in ('facebook','instagram','tiktok')),
+  toolkit_slug text not null,
+  connected_account_id text not null,
+  ad_account_id text,
+  campaign_id text,
+  ad_set_id text,
+  ad_group_id text,
+  creative_id text,
+  ad_id text,
+  page_id text,
+  post_id text,
+  object_story_id text,
+  provider_result jsonb not null default '{}'::jsonb,
+  sync_cursor text,
+  last_synced_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists aam_ad_campaign_assets_owner_platform_campaign_uidx
+  on public.aam_ad_campaign_assets(customer_id, platform, campaign_id)
+  where campaign_id is not null;
+create index if not exists aam_ad_campaign_assets_customer_idx
+  on public.aam_ad_campaign_assets(customer_id, platform, updated_at desc);
+create index if not exists aam_ad_campaign_assets_post_idx
+  on public.aam_ad_campaign_assets(platform, post_id)
+  where post_id is not null;
+
+-- External ad conversations/messages are stored separately from private customer chats,
+-- but are merged into the same Inbox API/UI. No public or authenticated direct access.
+create table if not exists public.aam_ad_inbox_threads (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  campaign_asset_id uuid references public.aam_ad_campaign_assets(id) on delete set null,
+  platform text not null check (platform in ('facebook','instagram','tiktok')),
+  provider_thread_id text not null,
+  provider_post_id text,
+  provider_ad_id text,
+  thread_title text not null default 'Ad conversation',
+  sender_name text,
+  sender_avatar_url text,
+  last_message text,
+  last_message_at timestamptz not null default now(),
+  unread_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(customer_id, platform, provider_thread_id)
+);
+create index if not exists aam_ad_inbox_threads_customer_idx
+  on public.aam_ad_inbox_threads(customer_id, last_message_at desc);
+
+create table if not exists public.aam_ad_inbox_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.aam_ad_inbox_threads(id) on delete cascade,
+  customer_id uuid not null references public.customers(id) on delete cascade,
+  provider_message_id text not null,
+  sender_name text not null default 'Ad visitor',
+  sender_external_id text,
+  message_text text not null default '',
+  message_kind text not null default 'comment' check (message_kind in ('comment','reply','messenger','direct')),
+  is_from_customer boolean not null default false,
+  provider_parent_message_id text,
+  provider_created_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique(thread_id, provider_message_id)
+);
+create index if not exists aam_ad_inbox_messages_thread_idx
+  on public.aam_ad_inbox_messages(thread_id, provider_created_at asc);
+
+alter table public.aam_ad_campaign_assets enable row level security;
+alter table public.aam_ad_inbox_threads enable row level security;
+alter table public.aam_ad_inbox_messages enable row level security;
+revoke all on public.aam_ad_campaign_assets, public.aam_ad_inbox_threads, public.aam_ad_inbox_messages from anon, authenticated;
+grant all on public.aam_ad_campaign_assets, public.aam_ad_inbox_threads, public.aam_ad_inbox_messages to service_role;
+
+-- 202611260004_aam_ad_inbox_provider_metadata.sql
+-- Preserve provider-specific ad comment fields needed for safe replies (notably TikTok identity metadata).
+alter table public.aam_ad_inbox_messages
+  add column if not exists provider_metadata jsonb not null default '{}'::jsonb;
+
+alter table public.aam_ad_campaign_assets
+  add column if not exists provider_metadata jsonb not null default '{}'::jsonb;
