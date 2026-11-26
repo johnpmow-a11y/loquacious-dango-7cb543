@@ -30,16 +30,35 @@
   window.openAamAdWorkspace=function(platform){
     if(!guard())return;
     const label=platform==='tiktok'?'TikTok Ads':platform==='instagram'?'Instagram Ads':'Facebook Ads';
-    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div id="aamAdConnectionStatus" class="payment-note" role="status">Checking your account connection…</div><div id="aamAdUnlockArea"></div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
+    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div id="aamAdConnectionStatus" class="payment-note" role="status">Checking your account connection…</div><div id="aamAdUnlockArea"></div><div id="aamAdAccountsArea"></div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
     refreshAamAdConnection(platform);
   };
   window.refreshAamAdConnection=async function(platform){
     const box=document.getElementById('aamAdConnectionStatus'),btn=document.getElementById('aamAdConnectButton');if(!box)return;
     try{const r=await fetch('/.netlify/functions/composio-ads?action=status&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check the connection.');
-      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':'Meta Ads')+' account is connected.';if(btn)btn.textContent='Reconnect account';refreshAamAdUnlock();}
+      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':'Meta Ads')+' account is connected.';if(btn)btn.textContent='Reconnect account';refreshAamAdUnlock();refreshAamAdAccounts(platform);}
       else if(d.pending){box.textContent='Your account authorization is still processing. Refresh this page in a moment.';}
       else{box.textContent='No account connected yet. Select Connect to authorize your own account.';}
     }catch(e){box.textContent=e.message||'Connection status is temporarily unavailable.';}
+  };
+
+
+  window.refreshAamAdAccounts=async function(platform){
+    const area=document.getElementById('aamAdAccountsArea');if(!area)return;
+    area.innerHTML='<p class="muted">Loading your authorized ad accounts…</p>';
+    try{
+      const r=await fetch('/.netlify/functions/composio-ads?action=accounts&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not load ad accounts.');
+      const found=[];const visit=value=>{if(Array.isArray(value)){value.forEach(visit);return;}if(!value||typeof value!=='object')return;const id=value.account_id||value.advertiser_id||value.id;if(id&&(value.name||value.account_name||value.advertiser_name||value.currency||value.currency_code))found.push({id:String(id),name:String(value.name||value.account_name||value.advertiser_name||id),currency:String(value.currency||value.currency_code||'')});Object.values(value).forEach(v=>{if(v&&typeof v==='object')visit(v);});};visit(d.result);
+      const unique=[...new Map(found.map(x=>[x.id,x])).values()];
+      if(!unique.length){area.innerHTML='<p class="payment-note">Your account is connected, but the provider did not return an ad account list. Check that your login has access to an active Ads Manager account.</p>';return;}
+      area.innerHTML='<div class="form" style="margin-top:14px"><h3>Choose your ad account</h3><select class="field" id="aamAdAccountSelect">'+unique.map(x=>'<option value="'+esc(x.id)+'" data-name="'+esc(x.name)+'" data-currency="'+esc(x.currency)+'">'+esc(x.name)+' · '+esc(x.id)+(x.currency?' · '+esc(x.currency):'')+'</option>').join('')+'</select><button class="btn" style="margin-top:10px" onclick="selectAamAdAccount()">Use this ad account</button><p class="muted" id="aamAdAccountSelected" aria-live="polite"></p></div>';
+      window.aamAdAccountOptions=unique;
+    }catch(e){area.innerHTML='<p class="payment-note">'+esc(e.message||'Ad accounts are temporarily unavailable.')+'</p>';}
+  };
+  window.selectAamAdAccount=function(){
+    const select=document.getElementById('aamAdAccountSelect');if(!select)return;
+    const option=select.selectedOptions[0];window.aamAdAccountSelection={id:select.value,name:option?.dataset.name||'',currency:option?.dataset.currency||''};
+    const note=document.getElementById('aamAdAccountSelected');if(note)note.textContent='Selected: '+window.aamAdAccountSelection.name+(window.aamAdAccountSelection.currency?' · '+window.aamAdAccountSelection.currency:'');
   };
 
   window.refreshAamAdUnlock=async function(){
