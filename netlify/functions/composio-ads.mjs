@@ -8,6 +8,23 @@ function h(key,extra={}){return { 'x-api-key':key,'Content-Type':'application/js
 async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||'Customer session lookup failed.');return d;}
 async function session(token){if(!uuid.test(token))return null;const rows=await db(`customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);return rows[0]||null;}
 async function comp(path,options={}){const key=process.env.COMPOSIO_API_KEY;if(!key)throw new Error('Advertising connection is not configured on the server.');const r=await fetch('https://backend.composio.dev'+path,{...options,headers:h(key,options.headers||{})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||d.message||'Advertising provider request failed.');return d;}
+function collectIds(value,out={}){if(Array.isArray(value)){for(const item of value)collectIds(item,out);return out;}if(!value||typeof value!=='object')return out;for(const [key,item] of Object.entries(value)){if(item!==null&&item!==undefined&&/^(campaign_id|adset_id|ad_set_id|adgroup_id|ad_group_id|creative_id|ad_id|advertiser_id|account_id|ad_account_id|page_id|post_id|object_story_id|effective_object_story_id)$/i.test(key)&&(typeof item==='string'||typeof item==='number'))out[key.toLowerCase()]=String(item);if(item&&typeof item==='object')collectIds(item,out);}return out;}
+async function saveAdAsset(customerId,platform,toolkit,connectedAccountId,args,result){
+ try{
+  const ids={...collectIds(args),...collectIds(result)};
+  const campaignId=ids.campaign_id||null;
+  if(!campaignId)return;
+  const row={customer_id:customerId,platform,toolkit_slug:toolkit,connected_account_id:connectedAccountId,
+   ad_account_id:ids.ad_account_id||ids.account_id||ids.advertiser_id||null,
+   campaign_id:campaignId,ad_set_id:ids.adset_id||ids.ad_set_id||null,ad_group_id:ids.adgroup_id||ids.ad_group_id||null,
+   creative_id:ids.creative_id||null,ad_id:ids.ad_id||null,page_id:ids.page_id||null,
+   post_id:ids.post_id||null,object_story_id:ids.object_story_id||ids.effective_object_story_id||null,
+   provider_result:result,updated_at:new Date().toISOString()};
+  const existing=await db('aam_ad_campaign_assets?select=id&customer_id=eq.'+encodeURIComponent(customerId)+'&platform=eq.'+encodeURIComponent(platform)+'&campaign_id=eq.'+encodeURIComponent(campaignId)+'&limit=1');
+  if(existing.length)await db('aam_ad_campaign_assets?id=eq.'+encodeURIComponent(existing[0].id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
+  else await db('aam_ad_campaign_assets',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
+ }catch(error){console.warn('Ad campaign ownership metadata was not saved; provider creation remains successful:',error.message);}
+}
 async function unlockIsPaid(customerId){const now=new Date().toISOString();const rows=await db('aam_ad_unlocks?select=status,expires_at&customer_id=eq.'+encodeURIComponent(customerId)+'&status=eq.paid&expires_at=gt.'+encodeURIComponent(now)+'&order=expires_at.desc&limit=1');return rows.length>0;}
 async function userAccounts(userId,slug){const params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});const data=await comp('/api/v3.1/connected_accounts?'+params.toString());return (data.items||[]).filter(x=>x.user_id===userId&&x.toolkit?.slug===slug&&x.status==='ACTIVE');}
 async function authConfig(slug){const q=new URLSearchParams({toolkit_slug:slug,is_composio_managed:'true'});const listed=await comp('/api/v3/auth_configs?'+q.toString());const found=(listed.items||[]).find(x=>x.toolkit?.slug===slug&&x.is_composio_managed!==false);if(found?.id)return found.id;const made=await comp('/api/v3/auth_configs',{method:'POST',body:JSON.stringify({toolkit:{slug}})});const id=made.id||made.auth_config?.id;if(!id)throw new Error('Composio did not return an advertising authorization configuration.');return id;}
@@ -58,7 +75,9 @@ export async function handler(event){
    const missing=required.filter(k=>args[k]===undefined||args[k]===null||args[k]==='');
    if(missing.length)return json(400,{error:'Campaign setup is missing required fields: '+missing.join(', ')});
    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:account.id,user_id:userId,version:definition.version,arguments:args})});
-   return json(200,{ok:true,tool_slug:toolSlug,result:result.data||result});
+   const providerResult=result.data||result;
+   if(createAction)await saveAdAsset(s.customer_id,platform==='meta'?'facebook':platform,slug,account.id,args,providerResult);
+   return json(200,{ok:true,tool_slug:toolSlug,result:providerResult});
   }
   const auth_config_id=await authConfig(slug);
   const origin=process.env.DEPLOY_PRIME_URL||process.env.URL;if(!origin)throw new Error('The secure advertising callback URL is not configured.');
