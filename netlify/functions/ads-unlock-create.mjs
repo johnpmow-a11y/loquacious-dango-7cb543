@@ -16,7 +16,7 @@ export async function handler(event){
   if(event.httpMethod==='GET'){
    const reference=String(event.queryStringParameters?.reference||'');if(!/^aamunlock[a-f0-9]{24,40}$/i.test(reference))return {statusCode:302,headers:{Location:'/?ads_unlock=invalid','Cache-Control':'no-store'}};
    const rows=await db('aam_ad_unlocks?select=customer_id,status,amount_kobo,reference,payment_method&reference=eq.'+encodeURIComponent(reference)+'&limit=1');const row=rows[0];if(!row)return {statusCode:302,headers:{Location:'/?ads_unlock=not_found','Cache-Control':'no-store'}};
-   await verify(reference,row);return {statusCode:302,headers:{Location:'/?ads_unlock=success','Cache-Control':'no-store'}};
+   const paid=await verify(reference,row);return {statusCode:302,headers:{Location:paid?'/?ads_unlock=success':'/?ads_unlock=pending','Cache-Control':'no-store'}};
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   const b=JSON.parse(event.body||'{}'),s=await customer(String(b.token||''));if(!s)return json(401,{error:'Please log in again.'});
