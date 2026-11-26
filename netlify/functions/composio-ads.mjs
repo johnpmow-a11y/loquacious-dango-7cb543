@@ -2,7 +2,7 @@ import { URLSearchParams } from 'node:url';
 const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify(body)});
 const uuid=/^[0-9a-f-]{36}$/i;
 const toolkits={facebook:'metaads',instagram:'metaads',meta:'metaads',tiktok:'tiktok_ads'};
-const allowedTools={metaads:['METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD_CREATIVE','METAADS_CREATE_AD'],tiktok_ads:['TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADS']};
+const allowedTools={metaads:['METAADS_GET_AD_ACCOUNTS','METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD_CREATIVE','METAADS_CREATE_AD'],tiktok_ads:['TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS','TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADS']};
 function h(key,extra={}){return { 'x-api-key':key,'Content-Type':'application/json',...extra };}
 async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||'Customer session lookup failed.');return d;}
 async function session(token){if(!uuid.test(token))return null;const rows=await db(`customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);return rows[0]||null;}
@@ -17,6 +17,13 @@ export async function handler(event){
   if(event.httpMethod==='GET'&&(q.action==='status'||q.action==='schema')){
    const s=await session(String(q.token||''));if(!s)return json(401,{error:'Please log in again.'});
    const platform=String(q.platform||'facebook').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Unsupported advertising platform.'});
+   if(q.action==='accounts'){
+    const active=await userAccounts(userId,slug);if(!active.length)return json(409,{error:'Connect your advertising account first.'});
+    const toolSlug=slug==='metaads'?'METAADS_GET_AD_ACCOUNTS':'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS';
+    const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
+    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:active[0].id,user_id:userId,version:definition.version,arguments:{}})});
+    return json(200,{tool_slug:toolSlug,result:result.data||result});
+   }
    if(q.action==='schema'){
     const toolSlug=String(q.tool_slug||'');if(!(allowedTools[slug]||[]).includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
     const schema=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));return json(200,{slug:toolSlug,version:schema.version,input_parameters:schema.input_parameters||{},description:schema.description||''});
