@@ -18,7 +18,7 @@ alter table public.aam_ad_unlocks alter column attempt_id set not null;
 
 -- Older versions used customer_id as a primary/unique key. Remove that
 -- restriction so a customer can create a new unlock record after expiry.
-do $
+do $$
 declare item record;
 begin
   for item in
@@ -39,9 +39,9 @@ begin
   ) then
     alter table public.aam_ad_unlocks add constraint aam_ad_unlocks_pkey primary key(id);
   end if;
-end $;
+end $$;
 
-do $
+do $$
 declare item record;
 begin
   for item in
@@ -52,7 +52,7 @@ begin
   loop
     execute format('drop index if exists public.%I',item.indexname);
   end loop;
-end $;
+end $$;
 create unique index if not exists aam_ad_unlocks_attempt_id_uidx on public.aam_ad_unlocks(attempt_id);
 create index if not exists aam_ad_unlocks_customer_created_idx on public.aam_ad_unlocks(customer_id,created_at desc);
 create index if not exists aam_ad_unlocks_active_window_idx on public.aam_ad_unlocks(customer_id,expires_at desc) where status='paid';
