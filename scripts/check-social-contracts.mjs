@@ -50,6 +50,21 @@ const checks=[
  ['WebAuthn challenges are short-lived, single-use and bound to the signed-in customer',biometric.includes('takeChallenge(customerId')&&biometric.includes('expires_at=gt.')&&biometric.includes('expectedChallenge')],
  ['biometric credentials and challenges remain private behind service-role access',biometric.includes('SUPABASE_SERVICE_ROLE_KEY')&&biometric.includes('customer_sessions?select=customer_id')&&biometric.includes('expectedOrigin:origin.origin')]
 ];
+const xConnect=read('netlify/functions/x-ads-connect.mjs');
+const xCallback=read('netlify/functions/x-ads-oauth-callback.mjs');
+const xTerms=read('public/terms.html');
+const xPrivacy=read('public/privacy.html');
+const xMigration=read('supabase/migrations/202611260005_aam_x_ads_oauth.sql');
+const netlifyConfig=read('netlify.toml');
+checks.push(
+ ['X Ads workspace starts a customer-authenticated OAuth 1.0a connection',index.includes("x:{name:'X Ads'")&&index.includes("fetch('/.netlify/functions/x-ads-connect'")&&xConnect.includes('customer_sessions?select=customer_id')],
+ ['X request-token call signs the registered callback and verifies callback confirmation',xConnect.includes('oauth_callback:callback')&&xConnect.includes("p.get('oauth_callback_confirmed')!=='true'")&&xConnect.includes('aam_x_oauth_states')],
+ ['X callback signs the verifier for the access-token exchange but sends it only in the form body',xCallback.includes("state.oauth_token_secret,['oauth_verifier']")&&xCallback.includes("body:new URLSearchParams({oauth_verifier:verifier}).toString()")],
+ ['X OAuth callback consumes temporary state once before exchanging credentials',xCallback.includes("method:'DELETE',headers:{Prefer:'return=representation'}")&&xCallback.includes('consumed.length!==1')],
+ ['X access credentials are encrypted with AES-256-GCM before storage',xCallback.includes("createCipheriv('aes-256-gcm'")&&xCallback.includes('X_ADS_TOKEN_ENCRYPTION_KEY')&&xCallback.includes('access_secret_tag:es.tag')],
+ ['X Terms and Privacy pages exist and Netlify routes resolve to their HTML files',xTerms.includes('Terms of Service')&&xPrivacy.includes('Privacy Policy')&&netlifyConfig.includes('to = "/terms.html"')&&netlifyConfig.includes('to = "/privacy.html"')],
+ ['X OAuth database tables restrict access to service role only',xMigration.includes('aam_x_oauth_states')&&xMigration.includes('aam_x_ad_connections')&&xMigration.includes('enable row level security')&&xMigration.includes('revoke all')&&xMigration.includes('grant all')&&xMigration.includes('service_role')]
+);
 let failed=0;
 for(const [name,ok] of checks){console.log((ok?'PASS ':'FAIL ')+name);if(!ok)failed++;}
 console.log(`\\n${checks.length-failed}/${checks.length} current-build checks passed.`);
