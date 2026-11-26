@@ -2,7 +2,9 @@
 -- PENDING REVIEW ONLY. Do not execute until the user explicitly authorizes SQL.
 create table if not exists public.aam_x_oauth_states (
   oauth_token text primary key,
-  oauth_token_secret text not null,
+  oauth_token_secret_ciphertext text not null,
+  oauth_token_secret_iv text not null,
+  oauth_token_secret_tag text not null,
   customer_id uuid not null references public.customers(id) on delete cascade,
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
