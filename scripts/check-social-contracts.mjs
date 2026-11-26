@@ -21,6 +21,7 @@ const paystackCreate=read('netlify/functions/paystack-create.mjs');
 const paystackVerify=read('netlify/functions/paystack-verify.mjs');
 const mail=read('netlify/functions/send-email.mjs');
 const deployment=read('DEPLOYMENT_README.txt');
+const biometric=read('netlify/functions/tools-biometric.mjs');
 const checks=[
  ['native WebRTC is the active browser calling transport',ui.includes("import('./aam-webrtc-call.js")&&rtc.includes('new RTCPeerConnection')&&rtc.includes('pc.addTrack')&&rtc.includes('pc.ontrack')],
  ['WebRTC uses authenticated database signalling and realtime wake-ups',rtc.includes("channel('aam-call-' + callId")&&rtc.includes("channel.on('broadcast'")&&calls.includes('signal_send')&&signalMigration.includes('aam_call_signal_events')],
@@ -44,7 +45,10 @@ const checks=[
  ['existing Gmail sender configuration remains server-side',mail.includes('GMAIL_USER')&&mail.includes('GMAIL_APP_PASSWORD')&&mail.includes('nodemailer')],
  ['customer login remains username plus four-digit code with existing session RPC',index.includes('bt_customer_login')&&index.includes('exactly four digits')&&!index.includes('supabase.auth.signInWithPassword')],
  ['service worker caches the current WebRTC call, avatar and voice modules',sw.includes('/aam-webrtc-call.js')&&sw.includes('/aam-webrtc-avatar.js')&&sw.includes('/aam-webrtc-voice.js')],
- ['deployment guide documents WebRTC, TURNIX and the new chat migrations',deployment.includes('WEBRTC AUDIO AND VIDEO CALLING')&&deployment.includes('TURNIX_API_TOKEN')&&deployment.includes('20261125100000_chat_message_reactions.sql')]
+ ['deployment guide documents WebRTC, TURNIX and the new chat migrations',deployment.includes('WEBRTC AUDIO AND VIDEO CALLING')&&deployment.includes('TURNIX_API_TOKEN')&&deployment.includes('20261125100000_chat_message_reactions.sql')],
+ ['TOOLS biometric access uses server-side WebAuthn registration and assertion verification',index.includes("aamToolsBiometricRequest('auth-options')")&&index.includes("aamToolsBiometricRequest('auth-verify'")&&biometric.includes('verifyRegistrationResponse')&&biometric.includes('verifyAuthenticationResponse')],
+ ['WebAuthn challenges are short-lived, single-use and bound to the signed-in customer',biometric.includes('takeChallenge(customerId')&&biometric.includes('expires_at=gt.')&&biometric.includes('expectedChallenge')],
+ ['biometric credentials and challenges remain private behind service-role access',biometric.includes('SUPABASE_SERVICE_ROLE_KEY')&&biometric.includes('customer_sessions?select=customer_id')&&biometric.includes('expectedOrigin:origin.origin')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log((ok?'PASS ':'FAIL ')+name);if(!ok)failed++;}
