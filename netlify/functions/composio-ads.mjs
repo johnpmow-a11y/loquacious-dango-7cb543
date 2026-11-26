@@ -50,8 +50,8 @@ export async function handler(event){
    const accounts=await userAccounts(userId,slug);if(!accounts.length)return json(409,{error:'Connect your advertising account before creating a campaign.'});
    const account=accounts.find(x=>x.id===String(b.connected_account_id||''))||accounts[0];
    const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
-   if(slug==='metaads'&&['METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD'].includes(toolSlug))args.status='PAUSED';
-   if(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))args.operation_status='DISABLE';
+   const createAction=(slug==='metaads'&&['METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD'].includes(toolSlug))||(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug));
+   if(createAction){const statusField=slug==='metaads'?'status':'operation_status';if(!definition.input_parameters?.[statusField])return json(409,{error:'This provider action does not expose a safe paused/draft status. Campaign creation is blocked to prevent accidental ad spend.'});args[statusField]=slug==='metaads'?'PAUSED':'DISABLE';}
    const required=Object.entries(definition.input_parameters||{}).filter(([,v])=>v.required).map(([k])=>k);
    const missing=required.filter(k=>args[k]===undefined||args[k]===null||args[k]==='');
    if(missing.length)return json(400,{error:'Campaign setup is missing required fields: '+missing.join(', ')});
