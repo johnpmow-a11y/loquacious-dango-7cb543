@@ -147,8 +147,14 @@ export async function handler(event){
    if(!reportSlug)return json(400,{error:'Choose Facebook, Instagram or TikTok.'});
    const accounts=await userAccounts(userId,reportSlug);if(!accounts.length)return json(409,{error:'Connect your advertising account first.'});
    const assets=await db('aam_ad_campaign_assets?select=id,platform,connected_account_id,ad_account_id,campaign_id,ad_set_id,ad_group_id,ad_id&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&platform=eq.'+encodeURIComponent(platform)+'&order=updated_at.desc&limit=200');
-   const accountIds=[...new Set(assets.map(x=>String(x.ad_account_id||'')).filter(Boolean))];
-   if(!accountIds.length)return json(200,{platform,rows:[],message:'No campaign assets have been saved for this account yet. Create or connect a campaign first, then refresh performance.'});
+   let accountIds=[...new Set(assets.map(x=>String(x.ad_account_id||'')).filter(Boolean))];
+   if(!accountIds.length&&platform==='tiktok'){
+    try{
+     const discovered=await executeNamedTool(accounts[0],userId,'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS',{});
+     accountIds=providerRows(discovered).map(x=>String(x.advertiser_id||x.advertiserId||x.account_id||x.id||'')).filter(Boolean);
+    }catch(error){return json(200,{platform,rows:[],message:'TikTok connected, but advertiser accounts could not be discovered automatically: '+error.message});}
+   }
+   if(!accountIds.length)return json(200,{platform,rows:[],message:'No accessible advertiser accounts were returned. Confirm that the connected TikTok for Business user has Ads Manager access.'});
    const startDate=String(b.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10)),endDate=String(b.end_date||new Date().toISOString().slice(0,10));
    if(!/^\d{4}-\d{2}-\d{2}$/.test(startDate)||!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||startDate>endDate)return json(400,{error:'Choose a valid reporting date range.'});
    const reports=[];
