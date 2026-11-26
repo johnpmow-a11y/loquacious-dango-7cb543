@@ -17,7 +17,7 @@ export async function handler(event){
  try{
   const b=JSON.parse(event.body||'{}'),token=String(b.token||''),s=await customer(token),uri=String(b.uri||''),state=String(b.state||''),accountId=String(b.accountId||'');
   const key=process.env.COMPOSIO_API_KEY;if(!key)return json(503,{error:'Advertising connection is not configured.'});
-  let customerId,slug,connectedId;
+  let customerId,slug,connectedId,callbackPlatform='';
   if(uri){
    if(!s)return json(401,{error:'Please sign in to the same All Ads Manager account that started this connection.'});
    const r=await fetch('https://backend.composio.dev/api/v3.1/connected_accounts/complete_auth',{method:'POST',headers:h(key),body:JSON.stringify({session_uri:uri,user_id:'aam_customer_'+s.customer_id})});
@@ -29,7 +29,7 @@ export async function handler(event){
    const a=Buffer.from(expected),z=Buffer.from(parts[1]);if(a.length!==z.length||!timingSafeEqual(a,z))throw new Error('The account verification signature is invalid.');
    let claims;try{claims=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'));}catch{throw new Error('The account verification state is invalid.');}
    if(!claims.customer_id||!claims.platform||Number(claims.expires_at)<Date.now())throw new Error('The account verification link has expired.');
-   customerId=String(claims.customer_id);slug=claims.platform==='tiktok'?'tiktok_ads':'metaads';connectedId=accountId;
+   customerId=String(claims.customer_id);callbackPlatform=String(claims.platform);slug=callbackPlatform==='tiktok'?'tiktok_ads':'metaads';connectedId=accountId;
    if(!s||String(s.customer_id)!==customerId){
     await fetch('https://backend.composio.dev/api/v3.1/connected_accounts/'+encodeURIComponent(connectedId)+'/revoke',{method:'POST',headers:h(key)}).catch(()=>{});
     return json(403,{error:'This advertising account was authorized in a different customer session. The connection was revoked for your protection. Sign in to the correct account and reconnect.'});
@@ -38,7 +38,7 @@ export async function handler(event){
    const account=await check.json().catch(()=>({}));if(!check.ok||account.user_id!=='aam_customer_'+customerId||account.toolkit?.slug!==slug||account.status!=='ACTIVE')throw new Error('The provider connection does not match this customer or is not active.');
   }
   if(!connectedId||!['metaads','tiktok_ads'].includes(slug))throw new Error('The provider returned an unsupported advertising connection.');
-  const platform=slug==='metaads'?'facebook':'tiktok',base=process.env.SUPABASE_URL,keyDb=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const platform=slug==='metaads'?(callbackPlatform==='instagram'?'instagram':'facebook'):'tiktok',base=process.env.SUPABASE_URL,keyDb=process.env.SUPABASE_SERVICE_ROLE_KEY;
   const saved=await fetch(base+'/rest/v1/aam_ad_connections?on_conflict=connected_account_id',{method:'POST',headers:{apikey:keyDb,...(keyDb.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+keyDb}),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({customer_id:customerId,platform,toolkit_slug:slug,connected_account_id:connectedId,connection_status:'ACTIVE',updated_at:new Date().toISOString()})});
   if(!saved.ok)throw new Error('Account connected but its status could not be saved. Please refresh your connection status.');
   return json(200,{ok:true,platform,connected_account_id:connectedId});
