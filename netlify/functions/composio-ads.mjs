@@ -59,7 +59,7 @@ export async function handler(event){
    return json(200,{ok:true,tool_slug:toolSlug,result:result.data||result});
   }
   const auth_config_id=await authConfig(slug);
-  const origin=process.env.URL||process.env.DEPLOY_PRIME_URL;if(!origin)throw new Error('The secure advertising callback URL is not configured.');
+  const origin=process.env.DEPLOY_PRIME_URL||process.env.URL;if(!origin)throw new Error('The secure advertising callback URL is not configured.');
   const statePayload=Buffer.from(JSON.stringify({customer_id:s.customer_id,platform,expires_at:Date.now()+10*60*1000,nonce:randomUUID()})).toString('base64url');
   const stateSignature=createHmac('sha256',process.env.COMPOSIO_API_KEY).update(statePayload).digest('base64url');
   const callback=new URL('/.netlify/functions/composio-ads-callback',origin);callback.searchParams.set('state',statePayload+'.'+stateSignature);
