@@ -71,7 +71,7 @@
   window.refreshAamAdUnlock=async function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
     try{const attemptId=sessionStorage.getItem('aamAdUnlockAttemptId')||'';if(!attemptId){area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>Advertising payment unlock</strong><br>₦3,800 is required each time you start a new ad payment.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Continue to payment unlock</button></div>';return;}const r=await fetch('/.netlify/functions/ads-unlock-create?action=status&attempt_id='+encodeURIComponent(attemptId)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check payment unlock.');
-      if(d.unlocked){area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ This ad-payment attempt is unlocked. The next separate ad payment will require a new ₦3,800 unlock.</div>';}
+      if(d.unlocked){area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ This ad-payment attempt is unlocked. The next separate ad payment will require a new ₦3,800 unlock.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Start another ad payment · ₦3,800</button></div>';}
       else{area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>This ad-payment attempt is not unlocked</strong><br>Unlock fee for this attempt: <strong>₦3,800</strong><br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Unlock payment method</button></div>';}
     }catch(e){area.textContent=e.message||'Payment unlock status is unavailable.';}
   };
