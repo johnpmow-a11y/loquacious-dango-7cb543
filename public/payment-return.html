@@ -1,3 +1,26 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><title>Payment status — All Ads Manager</title><style>body{margin:0;background:#f5f7fb;color:#111827;font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh}.card{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:28px;max-width:440px;width:calc(100% - 40px);text-align:center;box-shadow:0 12px 35px #11182712}button{border:0;border-radius:12px;padding:13px 18px;background:#111827;color:#fff;font-weight:700;width:100%;margin-top:16px}.muted{color:#6b7280;line-height:1.5}</style></head><body><main class="card"><h2 id="title">Checking your payment…</h2><p class="muted" id="message">Please wait while All Ads Manager confirms the payment with Paystack.</p><button id="back" hidden onclick="location.href='/'">Return to All Ads Manager</button></main><script>
-(async()=>{const q=new URLSearchParams(location.search),reference=q.get('reference')||sessionStorage.getItem('btPendingPaymentReference'),token=sessionStorage.getItem('btToken');const title=document.getElementById('title'),message=document.getElementById('message'),back=document.getElementById('back');if(!reference||!token){title.textContent='Payment check unavailable';message.textContent='Please log in to All Ads Manager and check your payment history.';back.hidden=false;return;}try{const r=await fetch('/.netlify/functions/paystack-verify?reference='+encodeURIComponent(reference)+'&token='+encodeURIComponent(token));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not verify payment.');title.textContent=d.status==='success'?'Payment successful':'Payment pending';message.textContent=d.message||'Check your payment history for the latest status.';if(d.status==='success')sessionStorage.removeItem('btPendingPaymentReference');}catch(e){title.textContent='Payment status not confirmed yet';message.textContent=e.message||'Please check your payment history again shortly.';}back.hidden=false;})();
+(async()=>{
+ const q=new URLSearchParams(location.search),reference=q.get('reference')||sessionStorage.getItem('btPendingPaymentReference'),token=sessionStorage.getItem('btToken');
+ const title=document.getElementById('title'),message=document.getElementById('message'),back=document.getElementById('back');
+ if(!reference||!token){title.textContent='Payment check unavailable';message.textContent='Please log in to All Ads Manager and check your payment history.';back.hidden=false;return;}
+ let lastMessage='Paystack has not confirmed the transfer yet.';
+ for(let attempt=1;attempt<=5;attempt++){
+  title.textContent=attempt===1?'Verifying your payment…':'Checking payment status…';
+  message.textContent='Secure verification attempt '+attempt+' of 5. Please wait.';
+  try{
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   let r,d;try{r=await fetch('/.netlify/functions/paystack-verify?reference='+encodeURIComponent(reference)+'&token='+encodeURIComponent(token),{cache:'no-store',signal:controller.signal});d=await r.json();}finally{clearTimeout(timer);}
+   if(!r.ok)throw new Error(d.error||'Could not verify payment.');
+   if(d.status==='success'){
+    title.textContent='Payment successful';message.textContent=d.message||'Your payment has been confirmed and your wallet updated.';
+    sessionStorage.removeItem('btPendingPaymentReference');back.hidden=false;return;
+   }
+   lastMessage=d.message||'Your payment has not been confirmed yet.';
+  }catch(e){lastMessage=e.name==='AbortError'?'The verification service took too long to respond.':(e.message||'Verification is temporarily unavailable.');}
+  if(attempt<5)await new Promise(resolve=>setTimeout(resolve,2500));
+ }
+ title.textContent='Payment not confirmed yet';
+ message.textContent=lastMessage+' Do not pay again unless Paystack confirms the first attempt failed. You can return to All Ads Manager and check your balance or History.';
+ back.hidden=false;
+})();
 </script></body></html>
