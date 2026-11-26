@@ -115,8 +115,7 @@ export async function handler(event){
        level:'campaign',
        fields:'campaign_id,campaign_name,impressions,reach,frequency,clicks,inline_link_clicks,ctr,spend,cpc,cpm,actions,action_values',
        time_range:{since:startDate,until:endDate},
-       date_preset:'last_7d'
-      });
+       });
      }else{
       data=await executeReport(reportSlug,account,userId,'TIKTOK_ADS_GET_REPORT_INTEGRATED',{
        advertiser_id:accountId,
@@ -141,7 +140,7 @@ export async function handler(event){
    if(!allowed.includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
    const args=b.arguments;if(!args||typeof args!=='object'||Array.isArray(args)||JSON.stringify(args).length>45000)return json(400,{error:'Invalid campaign information.'});
    const finalAdAction=(slug==='metaads'&&toolSlug==='METAADS_CREATE_AD')||(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug));
-   if(finalAdAction&&!(await unlockIsPaid(s.customer_id)))return json(402,{error:'Your 20-minute advertising payment unlock has expired. Unlock again for ₦3,800 to create another ad.'});
+   if(finalAdAction&&!(await unlockIsPaid(s.customer_id)))return json(402,{error:'Your 20-minute advertising payment unlock has expired. Unlock again for ₦3,000 to create another ad.'});
    const accounts=await userAccounts(userId,slug);if(!accounts.length)return json(409,{error:'Connect your advertising account before creating a campaign.'});
    const account=accounts.find(x=>x.id===String(b.connected_account_id||''))||accounts[0];
    const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
