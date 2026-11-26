@@ -216,7 +216,7 @@ async function selectLibrarySound(item){
   const type=blob.type&&blob.type.startsWith('audio/')?blob.type:(/\.ogg$/i.test(item.file.name)?'audio/ogg':/\.wav$/i.test(item.file.name)?'audio/wav':/\.m4a$/i.test(item.file.name)?'audio/mp4':'audio/mpeg');
   const selected=new File([blob],item.file.name.split('/').pop(),{type});
   const attribution={title:item.title,creator:item.creator,license:item.license,source:'https://archive.org/details/'+encodeURIComponent(item.id)};
-  if(aamSoundLibraryTarget==='post'){window.aamSelectedPostAudio=selected;window.aamSelectedPostAudioAttribution=attribution;const postLabel=document.getElementById('aamPostSoundName');if(postLabel)postLabel.textContent='Selected: '+item.title+' · '+(item.license.includes('publicdomain')?'Public domain':'CC licence');}else{window.aamSelectedStatusAudio=selected;window.aamSelectedStatusAudioAttribution=attribution;if(label)label.textContent='Selected: '+item.title+' · '+(item.license.includes('publicdomain')?'Public domain':'CC licence');}
+  if(aamSoundLibraryTarget==='post'){window.aamSelectedPostAudio=selected;window.aamSelectedPostAudioAttribution=attribution;const postLabel=document.getElementById('aamPostSoundName');if(postLabel)postLabel.textContent='Selected: '+item.title+' · '+(item.license.includes('publicdomain')?'Public domain':'CC licence');}else{window.aamSelectedStatusAudio=selected;window.aamSelectedStatusAudioAttribution=attribution;if(label)label.textContent='Selected: '+item.title+' · '+(item.license.includes('publicdomain')?'Public domain':'CC licence');updateStatusAudioPreview(selected);}
   document.getElementById('aamSoundLibrary')?.remove();
  }catch(error){if(label)label.textContent=error.message;notice(error.message);}
 }
