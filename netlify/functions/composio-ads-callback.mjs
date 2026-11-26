@@ -20,6 +20,7 @@ export async function handler(event){
   const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||d.message||'The advertising account could not be verified.');
   const slug=d.toolkit_slug||d.toolkit?.slug||'';
   const platform=slug==='metaads'?'facebook':slug==='tiktok_ads'?'tiktok':'ads';
+  if(platform!=='ads'){const base=process.env.SUPABASE_URL,keyDb=process.env.SUPABASE_SERVICE_ROLE_KEY;const saved=await fetch(base+'/rest/v1/aam_ad_connections?on_conflict=connected_account_id',{method:'POST',headers:{apikey:keyDb,...(keyDb.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+keyDb}),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({customer_id:s.customer_id,platform,toolkit_slug:slug,connected_account_id:d.connected_account_id||d.id,connection_status:'ACTIVE',updated_at:new Date().toISOString()})});if(!saved.ok)throw new Error('Account connected but its status could not be saved. Please refresh your connection status.');}
   return json(200,{ok:true,platform,connected_account_id:d.connected_account_id||d.id});
  }catch(e){return json(502,{error:e.message||'Could not verify advertising account identity.'});}
 }
