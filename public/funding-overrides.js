@@ -130,7 +130,6 @@
     try{const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,platform:sessionStorage.getItem('aamAdPlatform')||'facebook'})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start unlock payment.');if(d.unlocked){window.aamUnlockSubmitting=false;refreshAamAdUnlock();return;}if(!d.authorization_url)throw new Error('Paystack did not return a payment link.');location.href=d.authorization_url;}
     catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
   };
-  window.openAamAdCampaign=function(platform){window.openAamAdWorkspace(platform||sessionStorage.getItem('aamAdPlatform')||'facebook');};
   window.connectAamAdAccount=async function(platform){
     const btn=document.getElementById('aamAdConnectButton');if(btn){btn.disabled=true;btn.textContent='Opening secure connection…';}
     try{const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform})});const d=await r.json();if(!r.ok||!d.redirect_url)throw new Error(d.error||'Could not start account connection.');location.href=d.redirect_url;}
