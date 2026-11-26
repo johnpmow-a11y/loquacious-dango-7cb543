@@ -29,17 +29,37 @@
   window.openAamAdWorkspace=function(platform){
     if(!guard())return;
     const label=platform==='tiktok'?'TikTok Ads':platform==='instagram'?'Instagram Ads':'Facebook Ads';
-    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div id="aamAdConnectionStatus" class="payment-note" role="status">Checking your account connection…</div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
+    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div id="aamAdConnectionStatus" class="payment-note" role="status">Checking your account connection…</div><div id="aamAdUnlockArea"></div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
     refreshAamAdConnection(platform);
   };
   window.refreshAamAdConnection=async function(platform){
     const box=document.getElementById('aamAdConnectionStatus'),btn=document.getElementById('aamAdConnectButton');if(!box)return;
     try{const r=await fetch('/.netlify/functions/composio-ads?action=status&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check the connection.');
-      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':'Meta Ads')+' account is connected and ready for campaign setup.';if(btn)btn.textContent='Reconnect account';}
+      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':'Meta Ads')+' account is connected.';if(btn)btn.textContent='Reconnect account';refreshAamAdUnlock();}
       else if(d.pending){box.textContent='Your account authorization is still processing. Refresh this page in a moment.';}
       else{box.textContent='No account connected yet. Select Connect to authorize your own account.';}
     }catch(e){box.textContent=e.message||'Connection status is temporarily unavailable.';}
   };
+
+  window.refreshAamAdUnlock=async function(){
+    const area=document.getElementById('aamAdUnlockArea');if(!area)return;
+    try{const r=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check payment unlock.');
+      if(d.unlocked){area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ Payment method unlocked. Your advertising payment setup is ready for the next step.</div>';}
+      else{area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>Advertising payment method locked</strong><br>One-time unlock fee: <strong>₦3,800</strong><br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Unlock payment method</button></div>';}
+    }catch(e){area.textContent=e.message||'Payment unlock status is unavailable.';}
+  };
+  window.openAamAdUnlock=function(){
+    const area=document.getElementById('aamAdUnlockArea');if(!area)return;
+    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">A one-time payment of ₦3,800 is required to unlock advertising payments. This is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock()">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="profile()">No, go back to dashboard</button></div>';
+  };
+  window.confirmAamAdUnlock=async function(){
+    const email=document.getElementById('aamAdUnlockEmail')?.value.trim(),method=document.getElementById('aamAdUnlockMethod')?.value;
+    if(!/^\S+@\S+\.\S+$/.test(email||''))return toast('Enter a valid receipt email.');
+    const area=document.getElementById('aamAdUnlockArea');if(area)area.textContent='Connecting securely to Paystack…';
+    try{const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start unlock payment.');if(d.unlocked){refreshAamAdUnlock();return;}if(!d.authorization_url)throw new Error('Paystack did not return a payment link.');location.href=d.authorization_url;}
+    catch(e){if(area)area.textContent=e.message||'Payment could not start.';}
+  };
+
   window.connectAamAdAccount=async function(platform){
     const btn=document.getElementById('aamAdConnectButton');if(btn){btn.disabled=true;btn.textContent='Opening secure connection…';}
     try{const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform})});const d=await r.json();if(!r.ok||!d.redirect_url)throw new Error(d.error||'Could not start account connection.');location.href=d.redirect_url;}
