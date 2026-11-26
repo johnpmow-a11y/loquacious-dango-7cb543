@@ -109,7 +109,32 @@ export async function handler(event){
   const userId='aam_customer_'+s.customer_id;
 
   if(b.action==='performance'){
-   const platform=String(b.platform||'').toLowerCase(),reportSlug=platform==='facebook'||platform==='instagram'?'metaads':platform==='tiktok'?'tiktok_ads':'';
+   const platform=String(b.platform||'').toLowerCase();
+   if(platform==='snapchat'){
+    const accounts=await userAccounts(userId,'snapchat');if(!accounts.length)return json(409,{error:'Connect your Snapchat Ads account first.'});
+    const startDate=String(b.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10)),endDate=String(b.end_date||new Date().toISOString().slice(0,10));
+    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate)||startDate>endDate)return json(400,{error:'Choose a valid reporting date range.'});
+    const reports=[];
+    for(const account of accounts){
+     try{
+      const orgs=providerRows(await executeNamedTool(account,userId,'SNAPCHAT_LIST_ORGANIZATIONS',{})),adAccounts=[];
+      for(const org of orgs){const orgId=String(org.organization_id||org.id||'');if(!orgId)continue;const listed=providerRows(await executeNamedTool(account,userId,'SNAPCHAT_LIST_AD_ACCOUNTS',{organization_id:orgId}));for(const a of listed){const id=String(a.ad_account_id||a.id||'');if(id)adAccounts.push({id,name:a.name||a.ad_account_name||'Snapchat Ad Account',currency:a.currency||''});}}
+      for(const adAccount of adAccounts){
+       const campaigns=providerRows(await executeNamedTool(account,userId,'SNAPCHAT_LIST_CAMPAIGNS',{ad_account_id:adAccount.id}));
+       for(const campaign of campaigns.slice(0,100)){
+        const campaignId=String(campaign.campaign_id||campaign.id||'');if(!campaignId)continue;
+        const stats=await executeNamedTool(account,userId,'SNAPCHAT_GET_CAMPAIGN_STATS',{campaign_id:campaignId,granularity:'DAY',start_time:startDate,end_time:endDate});
+        const statRoot=stats?.data||stats,series=Array.isArray(statRoot?.timeseries)?statRoot.timeseries:(Array.isArray(statRoot?.stats?.timeseries)?statRoot.stats.timeseries:[statRoot]);
+        const totals=series.reduce((acc,item)=>{const m=item?.stats||item||{};for(const k of ['impressions','swipes','spend','video_views','conversion_purchases','conversion_sign_ups','conversion_page_views'])acc[k]+=(Number(m[k])||0);return acc;},{impressions:0,swipes:0,spend:0,video_views:0,conversion_purchases:0,conversion_sign_ups:0,conversion_page_views:0});
+        const conversions=totals.conversion_purchases+totals.conversion_sign_ups+totals.conversion_page_views;
+        reports.push({account_id:adAccount.id,account_name:adAccount.name,currency:adAccount.currency,rows:[{campaign_id:campaignId,campaign_name:campaign.name||campaign.campaign_name||'Snapchat Campaign',impressions:totals.impressions,reach:metricNumber(statRoot,'reach'),clicks:totals.swipes,ctr:totals.impressions?totals.swipes/totals.impressions*100:0,spend:totals.spend/1000000,conversions,status:campaign.status||campaign.delivery_status||'—'}],raw_count:series.length});
+       }
+      }
+     }catch(error){reports.push({account_id:account.id,error:error.message,rows:[]});}
+    }
+    return json(200,{platform,start_date:startDate,end_date:endDate,reports});
+   }
+   const reportSlug=platform==='facebook'||platform==='instagram'?'metaads':platform==='tiktok'?'tiktok_ads':'';
    if(!reportSlug)return json(400,{error:'Choose Facebook, Instagram or TikTok.'});
    const accounts=await userAccounts(userId,reportSlug);if(!accounts.length)return json(409,{error:'Connect your advertising account first.'});
    const assets=await db('aam_ad_campaign_assets?select=id,platform,connected_account_id,ad_account_id,campaign_id,ad_set_id,ad_group_id,ad_id&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&platform=eq.'+encodeURIComponent(platform)+'&order=updated_at.desc&limit=200');
