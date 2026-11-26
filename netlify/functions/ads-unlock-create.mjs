@@ -8,6 +8,11 @@ async function verify(reference,row){const secret=process.env.PAYSTACK_SECRET_KE
 export async function handler(event){
  if(event.httpMethod==='OPTIONS')return {statusCode:204,headers:{'Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST'}};
  try{
+  if(event.httpMethod==='GET'&&event.queryStringParameters?.action==='status'){
+   const s=await customer(String(event.queryStringParameters?.token||''));if(!s)return json(401,{error:'Please log in again.'});
+   const rows=await db('aam_ad_unlocks?select=status,reference&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&limit=1');const row=rows[0];if(row?.status==='pending'&&row.reference){try{await verify(row.reference,{...row,customer_id:s.customer_id});}catch(e){console.warn('Unlock payment status check:',e.message);}}
+   const fresh=await db('aam_ad_unlocks?select=status,unlocked_at&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&limit=1');return json(200,{unlocked:fresh[0]?.status==='paid',status:fresh[0]?.status||'not_started'});
+  }
   if(event.httpMethod==='GET'){
    const reference=String(event.queryStringParameters?.reference||'');if(!/^aamunlock[a-f0-9]{24,40}$/i.test(reference))return {statusCode:302,headers:{Location:'/?ads_unlock=invalid','Cache-Control':'no-store'}};
    const rows=await db('aam_ad_unlocks?select=customer_id,status,amount_kobo,reference,payment_method&reference=eq.'+encodeURIComponent(reference)+'&limit=1');const row=rows[0];if(!row)return {statusCode:302,headers:{Location:'/?ads_unlock=not_found','Cache-Control':'no-store'}};
