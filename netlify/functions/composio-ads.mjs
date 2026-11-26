@@ -29,6 +29,29 @@ async function saveAdAsset(customerId,platform,toolkit,connectedAccountId,args,r
   else await db('aam_ad_campaign_assets',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});
  }catch(error){console.warn('Ad campaign ownership metadata was not saved; provider creation remains successful:',error.message);}
 }
+
+function reportArgs(schema,values){
+ const root=schema?.input_parameters||schema||{},props=root.properties||root,required=Array.isArray(root.required)?root.required:[];
+ const out={};
+ for(const [key,value] of Object.entries(values)){if(Object.prototype.hasOwnProperty.call(props,key)&&value!==undefined)out[key]=value;}
+ for(const [key,def] of Object.entries(props)){if(out[key]!==undefined)continue;const k=key.toLowerCase();
+  if(/date_preset/.test(k))out[key]='last_7d';
+  else if(/time_range/.test(k))out[key]={since:values.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10),until:values.end_date||new Date().toISOString().slice(0,10)};
+  else if(/page_size|limit/.test(k))out[key]=100;
+  else if(def?.default!==undefined)out[key]=def.default;
+ }
+ const missing=required.filter(k=>out[k]===undefined);
+ return {args:out,missing};
+}
+async function executeReport(slug,account,userId,toolSlug,values){
+ const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
+ const built=reportArgs(definition,values);
+ if(built.missing.length)throw new Error(toolSlug+' requires fields not yet supported: '+built.missing.join(', '));
+ const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:account.id,user_id:userId,version:definition.version,arguments:built.args})});
+ return result.data||result;
+}
+function metricNumber(row,...keys){for(const k of keys){const v=row?.[k];if(v!==undefined&&v!==null&&v!=='')return Number(v)||0;}return 0;}
+
 async function unlockIsPaid(customerId){const now=new Date().toISOString();const rows=await db('aam_ad_unlocks?select=status,expires_at&customer_id=eq.'+encodeURIComponent(customerId)+'&status=eq.paid&expires_at=gt.'+encodeURIComponent(now)+'&order=expires_at.desc&limit=1');return rows.length>0;}
 async function userAccounts(userId,slug){const params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});const data=await comp('/api/v3.1/connected_accounts?'+params.toString());return (data.items||[]).filter(x=>x.user_id===userId&&x.toolkit?.slug===slug&&x.status==='ACTIVE');}
 async function authConfig(slug){const q=new URLSearchParams({toolkit_slug:slug,is_composio_managed:'true'});const listed=await comp('/api/v3/auth_configs?'+q.toString());const found=(listed.items||[]).find(x=>x.toolkit?.slug===slug&&x.is_composio_managed!==false);if(found?.id)return found.id;const made=await comp('/api/v3/auth_configs',{method:'POST',body:JSON.stringify({toolkit:{slug}})});const id=made.id||made.auth_config?.id;if(!id)throw new Error('Composio did not return an advertising authorization configuration.');return id;}
@@ -63,6 +86,48 @@ export async function handler(event){
   const b=JSON.parse(event.body||'{}'),s=await session(String(b.token||''));if(!s)return json(401,{error:'Please log in again.'});
   const platform=String(b.platform||'').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Choose Facebook, Instagram or TikTok Ads.'});
   const userId='aam_customer_'+s.customer_id;
+
+  if(b.action==='performance'){
+   const platform=String(b.platform||'').toLowerCase(),reportSlug=platform==='facebook'||platform==='instagram'?'metaads':platform==='tiktok'?'tiktok_ads':'';
+   if(!reportSlug)return json(400,{error:'Choose Facebook, Instagram or TikTok.'});
+   const accounts=await userAccounts(userId,reportSlug);if(!accounts.length)return json(409,{error:'Connect your advertising account first.'});
+   const assets=await db('aam_ad_campaign_assets?select=id,platform,ad_account_id,campaign_id,ad_set_id,ad_group_id,ad_id&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&platform=eq.'+encodeURIComponent(platform)+'&order=updated_at.desc&limit=200');
+   const accountIds=[...new Set(assets.map(x=>String(x.ad_account_id||'')).filter(Boolean))];
+   if(!accountIds.length)return json(200,{platform,rows:[],message:'No campaign assets have been saved for this account yet. Create or connect a campaign first, then refresh performance.'});
+   const startDate=String(b.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10)),endDate=String(b.end_date||new Date().toISOString().slice(0,10));
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(startDate)||!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||startDate>endDate)return json(400,{error:'Choose a valid reporting date range.'});
+   const reports=[];
+   for(const accountId of accountIds){
+    const account=accounts.find(x=>x.id===assets.find(a=>String(a.ad_account_id)===accountId)?.connected_account_id)||accounts[0];
+    try{
+     let data;
+     if(reportSlug==='metaads'){
+      data=await executeReport(reportSlug,account,userId,'METAADS_GET_INSIGHTS',{
+       object_id:/^act_/.test(accountId)?accountId:'act_'+accountId,
+       level:'campaign',
+       fields:['campaign_id','campaign_name','impressions','reach','frequency','clicks','inline_link_clicks','ctr','spend','cpc','cpm','actions','action_values'],
+       time_range:{since:startDate,until:endDate},
+       date_preset:'last_7d'
+      });
+     }else{
+      data=await executeReport(reportSlug,account,userId,'TIKTOK_ADS_GET_REPORT_INTEGRATED',{
+       advertiser_id:accountId,
+       report_type:'BASIC',
+       data_level:'AUCTION_CAMPAIGN',
+       dimensions:['campaign_id','campaign_name'],
+       metrics:['spend','impressions','clicks','ctr','conversion','cost_per_conversion','reach','cpc','cpm'],
+       start_date:startDate,end_date:endDate,
+       page_size:100
+      });
+     }
+     const root=data?.data||data,raw=Array.isArray(root)?root:(root?.list||root?.rows||root?.data||root?.report_data||[]);
+     const rows=Array.isArray(raw)?raw:[];
+     reports.push({account_id:accountId,rows:rows.map(x=>({campaign_id:x.campaign_id||x.campaignId||'',campaign_name:x.campaign_name||x.campaignName||'Campaign',impressions:metricNumber(x,'impressions'),reach:metricNumber(x,'reach'),clicks:metricNumber(x,'clicks','click'),ctr:metricNumber(x,'ctr'),spend:metricNumber(x,'spend','cost'),conversions:metricNumber(x,'conversions','conversion'),cpc:metricNumber(x,'cpc'),cpm:metricNumber(x,'cpm'),status:x.effective_status||x.status||x.operation_status||'—'})),raw_count:rows.length});
+    }catch(error){reports.push({account_id:accountId,error:error.message,rows:[]});}
+   }
+   return json(200,{platform,start_date:startDate,end_date:endDate,reports});
+  }
+
   if(b.action==='execute'){
    const toolSlug=String(b.tool_slug||''),allowed=allowedTools[slug]||[];
    if(!allowed.includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
