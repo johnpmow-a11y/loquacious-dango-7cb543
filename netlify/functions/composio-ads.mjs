@@ -91,7 +91,7 @@ export async function handler(event){
    const platform=String(b.platform||'').toLowerCase(),reportSlug=platform==='facebook'||platform==='instagram'?'metaads':platform==='tiktok'?'tiktok_ads':'';
    if(!reportSlug)return json(400,{error:'Choose Facebook, Instagram or TikTok.'});
    const accounts=await userAccounts(userId,reportSlug);if(!accounts.length)return json(409,{error:'Connect your advertising account first.'});
-   const assets=await db('aam_ad_campaign_assets?select=id,platform,ad_account_id,campaign_id,ad_set_id,ad_group_id,ad_id&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&platform=eq.'+encodeURIComponent(platform)+'&order=updated_at.desc&limit=200');
+   const assets=await db('aam_ad_campaign_assets?select=id,platform,connected_account_id,ad_account_id,campaign_id,ad_set_id,ad_group_id,ad_id&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&platform=eq.'+encodeURIComponent(platform)+'&order=updated_at.desc&limit=200');
    const accountIds=[...new Set(assets.map(x=>String(x.ad_account_id||'')).filter(Boolean))];
    if(!accountIds.length)return json(200,{platform,rows:[],message:'No campaign assets have been saved for this account yet. Create or connect a campaign first, then refresh performance.'});
    const startDate=String(b.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10)),endDate=String(b.end_date||new Date().toISOString().slice(0,10));
