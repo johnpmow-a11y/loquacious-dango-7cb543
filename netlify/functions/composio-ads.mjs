@@ -105,7 +105,7 @@ export async function handler(event){
       data=await executeReport(reportSlug,account,userId,'METAADS_GET_INSIGHTS',{
        object_id:/^act_/.test(accountId)?accountId:'act_'+accountId,
        level:'campaign',
-       fields:['campaign_id','campaign_name','impressions','reach','frequency','clicks','inline_link_clicks','ctr','spend','cpc','cpm','actions','action_values'],
+       fields:'campaign_id,campaign_name,impressions,reach,frequency,clicks,inline_link_clicks,ctr,spend,cpc,cpm,actions,action_values',
        time_range:{since:startDate,until:endDate},
        date_preset:'last_7d'
       });
