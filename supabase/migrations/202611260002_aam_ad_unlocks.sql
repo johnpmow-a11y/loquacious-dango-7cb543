@@ -1,9 +1,9 @@
--- A successful ₦3,800 unlock opens a rolling 20-minute window.
+-- A successful ₦3,000 unlock opens a rolling 20-minute window.
 -- Multiple ad campaigns/payments are allowed during the window; another fee is due only after expiry.
 create table if not exists public.aam_ad_unlocks (
  id uuid primary key default gen_random_uuid(), customer_id uuid not null, attempt_id uuid unique,
  platform text, status text not null default 'pending' check(status in ('pending','paid','failed')),
- amount_kobo integer not null default 380000 check(amount_kobo=380000), reference text unique,
+ amount_kobo integer not null default 300000 check(amount_kobo=300000), reference text unique,
  authorization_url text, receipt_email text, payment_method text,
  unlocked_at timestamptz, expires_at timestamptz, updated_at timestamptz not null default now(), created_at timestamptz not null default now()
 );
