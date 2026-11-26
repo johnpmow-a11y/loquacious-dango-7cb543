@@ -23,6 +23,35 @@
     <button class="btn" onclick="shadowOtpEmailPage()">✉️ Temporary Email OTP</button>`;
   };
 
+
+  // Secure customer-owned advertising account connection replaces legacy fixed-price ad forms.
+  const legacyServiceForm=window.serviceForm;
+  window.openAamAdWorkspace=function(platform){
+    if(!guard())return;
+    const label=platform==='tiktok'?'TikTok Ads':platform==='instagram'?'Instagram Ads':'Facebook Ads';
+    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div id="aamAdConnectionStatus" class="payment-note" role="status">Checking your account connection…</div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
+    refreshAamAdConnection(platform);
+  };
+  window.refreshAamAdConnection=async function(platform){
+    const box=document.getElementById('aamAdConnectionStatus'),btn=document.getElementById('aamAdConnectButton');if(!box)return;
+    try{const r=await fetch('/.netlify/functions/composio-ads?action=status&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check the connection.');
+      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':'Meta Ads')+' account is connected and ready for campaign setup.';if(btn)btn.textContent='Reconnect account';}
+      else if(d.pending){box.textContent='Your account authorization is still processing. Refresh this page in a moment.';}
+      else{box.textContent='No account connected yet. Select Connect to authorize your own account.';}
+    }catch(e){box.textContent=e.message||'Connection status is temporarily unavailable.';}
+  };
+  window.connectAamAdAccount=async function(platform){
+    const btn=document.getElementById('aamAdConnectButton');if(btn){btn.disabled=true;btn.textContent='Opening secure connection…';}
+    try{const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform})});const d=await r.json();if(!r.ok||!d.redirect_url)throw new Error(d.error||'Could not start account connection.');location.href=d.redirect_url;}
+    catch(e){toast(e.message||'Could not connect the advertising account.');if(btn){btn.disabled=false;btn.textContent='Try connecting again';}}
+  };
+  window.serviceForm=function(service){
+    if(service==='Facebook Ads')return window.openAamAdWorkspace('facebook');
+    if(service==='TikTok Ads')return window.openAamAdWorkspace('tiktok');
+    return legacyServiceForm.apply(this,arguments);
+  };
+  window.openAllAdsManagerPromotion=function(){window.openAamAdWorkspace('facebook');};
+
   window.catalog = function(region){
     if(!guard())return;
     const vals=region==='UK'?UK_VALUES:USA_VALUES;
