@@ -34,8 +34,9 @@ function reportArgs(schema,values){
  const root=schema?.input_parameters||schema||{},props=root.properties||root,required=Array.isArray(root.required)?root.required:[];
  const out={};
  for(const [key,value] of Object.entries(values)){if(Object.prototype.hasOwnProperty.call(props,key)&&value!==undefined)out[key]=value;}
+ const hasExplicitRange=Object.keys(out).some(key=>/time_range/i.test(key));
  for(const [key,def] of Object.entries(props)){if(out[key]!==undefined)continue;const k=key.toLowerCase();
-  if(/date_preset/.test(k))out[key]='last_7d';
+  if(/date_preset/.test(k)){if(!hasExplicitRange)out[key]='last_7d';}
   else if(/time_range/.test(k))out[key]={since:values.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10),until:values.end_date||new Date().toISOString().slice(0,10)};
   else if(/page_size|limit/.test(k))out[key]=100;
   else if(def?.default!==undefined)out[key]=def.default;
