@@ -352,20 +352,13 @@ body.aam-video-focus-open{overflow:hidden!important}
 #aamAdminCallOverlay #aamIncomingCall,#aamIncomingCallOverlay #aamIncomingCall{position:absolute!important;z-index:22!important;top:64px!important;left:12px!important;right:12px!important;color:#fff!important}
 
 
-/* Home video feed: each uploaded video occupies a full phone screen. */
-#aamSocialPosts.aam-social-feed-video-mode{width:100vw!important;height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior-y:contain!important;scroll-snap-type:y mandatory!important;scrollbar-width:none!important;margin-left:calc(50% - 50vw)!important;padding:0!important;background:#000!important}
-#aamSocialPosts.aam-social-feed-video-mode::-webkit-scrollbar{display:none}
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode 
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(
-#aamSocialPosts.aam-social-feed-video-mode .aam-video-focus-trigger{display:none!important}
-@media(min-width:760px){#aamSocialPosts.aam-social-feed-video-mode .aam-social-feed-item:has(}
+/* Local uploaded videos share the vertical, one-video-per-screen home feed. */
+.aam-discovery-feed .aam-social-feed-item:has(video.aam-social-media){height:100%;min-height:100%;margin:0;padding:12px;box-sizing:border-box;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;background:#05070b;color:#fff}
+.aam-discovery-feed .aam-social-feed-item:has(video.aam-social-media) .aam-social-media{flex:1 1 auto;width:100%;height:100%;min-height:0;max-height:none;object-fit:contain;background:#000}
+.aam-discovery-feed .aam-social-feed-item:has(video.aam-social-media) .aam-social-creator,
+.aam-discovery-feed .aam-social-feed-item:has(video.aam-social-media)>.aam-social-muted,
+.aam-discovery-feed .aam-social-feed-item:has(video.aam-social-media)>p{color:#fff}
+.aam-discovery-feed .aam-social-feed-item:has(video.aam-social-media) .aam-social-actions{flex:0 0 auto}
 
 /* Compact native-app sizing */
 .aam-social-card .aam-social-btn,.aam-social-card button,.aam-profile-hero button{min-height:34px!important;height:auto!important;padding:7px 11px!important;font-size:13px!important;border-radius:10px!important;line-height:1.25!important}
