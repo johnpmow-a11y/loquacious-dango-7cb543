@@ -1,4 +1,4 @@
--- A successful ₦3,800 unlock opens a rolling 3-hour window.
+-- A successful ₦3,800 unlock opens a rolling 20-minute window.
 -- Multiple ad campaigns/payments are allowed during the window; another fee is due only after expiry.
 create table if not exists public.aam_ad_unlocks (
  id uuid primary key default gen_random_uuid(), customer_id uuid not null, attempt_id uuid unique,
