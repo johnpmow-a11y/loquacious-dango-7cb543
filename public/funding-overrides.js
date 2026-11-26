@@ -77,7 +77,7 @@
   };
   window.openAamAdUnlock=function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
-    const attemptId=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));sessionStorage.setItem('aamAdUnlockAttemptId',attemptId);
+    const attemptId=(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)}));sessionStorage.setItem('aamAdUnlockAttemptId',attemptId);
     area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">A ₦3,800 unlock fee is charged for this ad-payment attempt only. A new ad payment later requires a new unlock. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock()">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="sessionStorage.removeItem('aamAdUnlockAttemptId');profile()">No, go back to dashboard</button></div>';
   };
   window.confirmAamAdUnlock=async function(){
