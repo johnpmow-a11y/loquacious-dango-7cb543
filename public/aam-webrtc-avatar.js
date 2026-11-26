@@ -98,7 +98,7 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
   for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.17,.95,0);root.add(leg);const thigh=capsule(THREE,.13,.43,pants);thigh.position.y=-.26;leg.add(thigh);const shin=capsule(THREE,.105,.43,pants);shin.position.y=-.75;leg.add(shin);const shoe=new THREE.Mesh(new THREE.BoxGeometry(.18,.09,.32),dark);shoe.position.set(0,-1.02,.08);leg.add(shoe);}
   const capture=canvas.captureStream(24),avatarTrack=capture.getVideoTracks()[0];
   if(!avatarTrack)throw new Error('Could not create the animated avatar video.');
-  let raf=0,lastDetect=0,lastVideoTime=-1,lastFace=null,lastPose=null,lastHands=null,headTarget={x:0,y:0,z:0},mouthTarget=0;
+  let raf=0,lastDetect=0,lastVideoTime=-1,lastFace=null,lastPose=null,lastHands=null,headTarget={x:0,y:0,z:0},mouthTarget=0,blinkLeftTarget=0,blinkRightTarget=0,smileTarget=0;
   let audioContext=null,analyser=null,audioData=null;
   try{const mic=localStream?.getAudioTracks?.()[0];if(mic){audioContext=new (window.AudioContext||window.webkitAudioContext)();const source=audioContext.createMediaStreamSource(new MediaStream([mic]));analyser=audioContext.createAnalyser();analyser.fftSize=256;source.connect(analyser);audioData=new Uint8Array(analyser.frequencyBinCount);}}catch(_){}
   const poseAngle=(a,b)=>Math.atan2(b.x-a.x,a.y-b.y);
@@ -114,7 +114,10 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
       const matrix=lastFace?.facialTransformationMatrixes?.[0]?.data;
       if(matrix?.length===16){const m=new THREE.Matrix4().fromArray(Array.from(matrix)),q=new THREE.Quaternion();m.decompose(new THREE.Vector3(),q,new THREE.Vector3());const e=new THREE.Euler().setFromQuaternion(q,'YXZ');headTarget={x:clamp(e.x,-.4,.4),y:clamp(e.y,-.55,.55),z:clamp(e.z,-.4,.4)};}
       const cats=lastFace?.faceBlendshapes?.[0]?.categories||[];
-      mouthTarget=Math.max(0,...cats.filter(c=>['jawOpen','mouthOpen'].includes(c.categoryName)).map(c=>c.score||0));
+      const blend=name=>cats.find(item=>item.categoryName===name)?.score||0;
+      mouthTarget=Math.max(0,blend('jawOpen'),blend('mouthOpen'));
+      blinkLeftTarget=blend('eyeBlinkLeft');blinkRightTarget=blend('eyeBlinkRight');
+      smileTarget=clamp((blend('mouthSmileLeft')+blend('mouthSmileRight'))/2,0,1);
     }
     const p=lastPose?.landmarks?.[0];
     if(p?.length>16){
@@ -126,7 +129,11 @@ export async function createAamWebRtcAvatar({photoFile,cameraTrack,localStream,s
     if(lastHands?.landmarks?.length){lastHands.landmarks.forEach((points,i)=>{const arm=arms[i===0?0:1];if(!arm)return;[0,1,2,3].forEach(f=>{const a=points[[5,9,13,17][f]],b=points[[6,10,14,18][f]],c=points[[8,12,16,20][f]];if(a&&b&&c){const bend=clamp(Math.hypot(c.x-a.x,c.y-a.y)/Math.max(.001,Math.hypot(b.x-a.x,b.y-a.y)),.65,2.1);arm.fingers[f].pivot.rotation.z=smooth(arm.fingers[f].pivot.rotation.z,(1.6-bend)*.65,.25);}});});}
     if(analyser&&audioData){analyser.getByteTimeDomainData(audioData);let sum=0;for(const v of audioData){const n=(v-128)/128;sum+=n*n;}mouthTarget=Math.max(mouthTarget,clamp(Math.sqrt(sum/audioData.length)*5,0,.8));}
     head.rotation.x=smooth(head.rotation.x,headTarget.x,.24);head.rotation.y=smooth(head.rotation.y,headTarget.y,.24);head.rotation.z=smooth(head.rotation.z,headTarget.z,.24);
+    mouth.scale.x=smooth(mouth.scale.x,1+smileTarget*.75,.3);
     mouth.scale.y=smooth(mouth.scale.y,.25+mouthTarget*2.4,.3);
+    mouth.position.y=smooth(mouth.position.y,-.145+smileTarget*.018,.3);
+    eyeL.scale.y=smooth(eyeL.scale.y,Math.max(.08,1-blinkLeftTarget*.94),.45);
+    eyeR.scale.y=smooth(eyeR.scale.y,Math.max(.08,1-blinkRightTarget*.94),.45);
     renderer.render(scene,camera);raf=requestAnimationFrame(draw);
   };
   try{await session.replaceTrack('video',avatarTrack);if(audioContext?.state==='suspended')await audioContext.resume();raf=requestAnimationFrame(draw);}
