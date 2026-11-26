@@ -125,7 +125,7 @@ export async function handler(event){
    if(platform==='snapchat'){
     const accounts=await userAccounts(userId,'snapchat');if(!accounts.length)return json(409,{error:'Connect your Snapchat Ads account first.'});
     const startDate=String(b.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10)),endDate=String(b.end_date||new Date().toISOString().slice(0,10));
-    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate)||startDate>endDate)return json(400,{error:'Choose a valid reporting date range.'});
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(startDate)||!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||startDate>endDate)return json(400,{error:'Choose a valid reporting date range.'});
     const reports=[];
     for(const account of accounts){
      try{
