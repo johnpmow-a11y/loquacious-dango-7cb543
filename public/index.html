@@ -253,29 +253,57 @@ async function adminLockerCardVisibility(customer_id,revealed){
 function toolBiometricClose(){document.getElementById('aamBiometricGate')?.remove()}
 function aamB64urlToBytes(value){const s=String(value||'').replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s+'='.repeat((4-s.length%4)%4));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
 function aamBytesToB64url(value){const bytes=new Uint8Array(value);let raw='';bytes.forEach(b=>raw+=String.fromCharCode(b));return btoa(raw).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')}
+function aamPrepareWebAuthnOptions(options){
+ const prepared={...options,challenge:aamB64urlToBytes(options.challenge)};
+ if(options.user)prepared.user={...options.user,id:aamB64urlToBytes(options.user.id)};
+ for(const field of ['allowCredentials','excludeCredentials'])if(Array.isArray(options[field]))prepared[field]=options[field].map(item=>({...item,id:aamB64urlToBytes(item.id)}));
+ return prepared;
+}
+function aamWebAuthnCredentialJSON(credential){
+ const r=credential.response,out={id:credential.id,rawId:aamBytesToB64url(credential.rawId),type:credential.type,authenticatorAttachment:credential.authenticatorAttachment,clientExtensionResults:credential.getClientExtensionResults(),response:{clientDataJSON:aamBytesToB64url(r.clientDataJSON)}};
+ if(r.attestationObject)out.response.attestationObject=aamBytesToB64url(r.attestationObject);
+ if(r.authenticatorData)out.response.authenticatorData=aamBytesToB64url(r.authenticatorData);
+ if(r.signature)out.response.signature=aamBytesToB64url(r.signature);
+ if(r.userHandle)out.response.userHandle=aamBytesToB64url(r.userHandle);
+ if(typeof r.getTransports==='function')out.response.transports=r.getTransports();
+ return out;
+}
+async function aamToolsBiometricRequest(action,response){
+ const token=sessionStorage.getItem('btToken');
+ if(!token)throw new Error('Your account session has expired. Please sign in again.');
+ const result=await fetch('/.netlify/functions/tools-biometric',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action,response})});
+ const data=await result.json().catch(()=>({}));
+ if(!result.ok)throw new Error(data.error||'Secure device verification is unavailable.');
+ return data;
+}
 function toolBiometricScreen(target){
  toolBiometricClose();
  const modal=document.createElement('div');modal.id='aamBiometricGate';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','aamBiometricTitle');
  modal.style.cssText='position:fixed;inset:0;z-index:20000;background:rgba(8,15,28,.82);display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));';
- modal.innerHTML='<section style="width:min(100%,420px);background:#fff;border:1px solid #dbe7e5;border-radius:26px;padding:28px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.3)"><div style="width:76px;height:76px;margin:0 auto 18px;border-radius:23px;background:linear-gradient(135deg,#263238,#0f766e);display:grid;place-items:center;color:#fff;font-size:36px">⌁</div><div style="font-size:11px;font-weight:900;letter-spacing:.17em;color:#0f766e">ALL ADS MANAGER · SECURITY</div><h2 id="aamBiometricTitle" style="font-size:25px;margin:10px 0 8px;color:#111827">Verify it’s you</h2><p id="aamBiometricMessage" style="color:#64748b;line-height:1.55;margin:0 0 22px">Use your phone’s built-in fingerprint or biometric security to continue to TOOLS.</p><button id="aamBiometricVerify" class="btn" type="button">Verify with fingerprint</button><button class="btn secondary" type="button" style="margin-top:10px" onclick="toolBiometricClose()">Cancel</button><p style="font-size:11px;line-height:1.5;color:#94a3b8;margin:17px 0 0">Your fingerprint or face data stays with your device. All Ads Manager does not receive it.</p></section>';
+ modal.innerHTML='<section style="width:min(100%,420px);background:#fff;border:1px solid #dbe7e5;border-radius:26px;padding:28px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.3)"><div style="width:76px;height:76px;margin:0 auto 18px;border-radius:23px;background:linear-gradient(135deg,#263238,#0f766e);display:grid;place-items:center;color:#fff;font-size:36px">⌁</div><div style="font-size:11px;font-weight:900;letter-spacing:.17em;color:#0f766e">ALL ADS MANAGER · SECURITY</div><h2 id="aamBiometricTitle" style="font-size:25px;margin:10px 0 8px;color:#111827">Verify it’s you</h2><p id="aamBiometricMessage" style="color:#64748b;line-height:1.55;margin:0 0 22px">Use your phone’s built-in fingerprint or biometric security to continue to TOOLS.</p><button id="aamBiometricVerify" class="btn" type="button">Verify with fingerprint</button><button class="btn secondary" type="button" style="margin-top:10px" onclick="toolBiometricClose()">Cancel</button><p style="font-size:11px;line-height:1.5;color:#94a3b8;margin:17px 0 0">Your fingerprint or face data stays with your device. All Ads Manager verifies a cryptographic passkey response; it never receives biometric data.</p></section>';
  document.body.appendChild(modal);
- const btn=modal.querySelector('#aamBiometricVerify');
+ const btn=modal.querySelector('#aamBiometricVerify'),msg=modal.querySelector('#aamBiometricMessage');
  btn.addEventListener('click',async()=>{
   btn.disabled=true;btn.textContent='Waiting for device verification…';
-  const msg=modal.querySelector('#aamBiometricMessage');
   try{
    if(!window.isSecureContext||!navigator.credentials||!window.PublicKeyCredential)throw new Error('This browser does not support secure biometric verification. Please open All Ads Manager in Safari or Chrome on a supported device.');
-   const storageKey='aam_tools_platform_credential_v1';let saved=localStorage.getItem(storageKey);
-   if(!saved){
-    msg.textContent='Set up your device’s secure passkey. Your phone may ask for Touch ID, Face ID or its screen lock.';
-    const userId=crypto.getRandomValues(new Uint8Array(24));
-    const created=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'All Ads Manager',id:location.hostname},user:{id:userId,name:'aam-tools-user',displayName:'All Ads Manager user'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',residentKey:'preferred',userVerification:'required'},attestation:'none',timeout:60000}});
-    if(!created)throw new Error('Biometric setup was cancelled.');
-    saved=aamBytesToB64url(created.rawId);localStorage.setItem(storageKey,saved);
+   let optionsResponse;
+   try{optionsResponse=await aamToolsBiometricRequest('auth-options');}
+   catch(error){
+    if(!String(error.message).includes('No device passkey is registered'))throw error;
+    msg.textContent='Register this phone’s secure passkey. Your device may ask for Touch ID, Face ID or its screen lock.';
+    const registration=await aamToolsBiometricRequest('register-options');
+    const created=await navigator.credentials.create({publicKey:aamPrepareWebAuthnOptions(registration.options)});
+    if(!created)throw new Error('Device registration was cancelled.');
+    const registered=await aamToolsBiometricRequest('register-verify',aamWebAuthnCredentialJSON(created));
+    if(!registered.verified)throw new Error('Your device could not complete secure registration.');
+    toolBiometricClose();target();return;
    }
    msg.textContent='Confirm your identity on your device to open TOOLS.';
-   const assertion=await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:aamB64urlToBytes(saved)}],userVerification:'required',timeout:60000}});
-   if(!assertion||!assertion.response)throw new Error('Device verification was not completed.');
+   const assertion=await navigator.credentials.get({publicKey:aamPrepareWebAuthnOptions(optionsResponse.options)});
+   if(!assertion)throw new Error('Device verification was cancelled.');
+   const verified=await aamToolsBiometricRequest('auth-verify',aamWebAuthnCredentialJSON(assertion));
+   if(!verified.verified)throw new Error('Device verification failed.');
    toolBiometricClose();target();
   }catch(e){
    const message=String(e?.message||'Biometric verification failed.');
