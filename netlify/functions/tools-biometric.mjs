@@ -23,7 +23,7 @@ async function customer(token) {
 }
 function requestOrigin(event) {
   const origin=String(event.headers?.origin||event.headers?.Origin||'');
-  const host=String(event.headers?.host||event.headers?.Host||'').split(':')[0].toLowerCase();
+  const host=String(event.headers?.['x-forwarded-host']||event.headers?.['X-Forwarded-Host']||event.headers?.host||event.headers?.Host||'').split(':')[0].toLowerCase();
   let parsed;
   try{parsed=new URL(origin);}catch{return null;}
   if(parsed.protocol!=='https:'&&!(parsed.hostname==='localhost'&&parsed.protocol==='http:'))return null;
