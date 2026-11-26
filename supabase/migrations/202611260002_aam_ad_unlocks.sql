@@ -58,3 +58,4 @@ create index if not exists aam_ad_unlocks_customer_created_idx on public.aam_ad_
 create index if not exists aam_ad_unlocks_active_window_idx on public.aam_ad_unlocks(customer_id,expires_at desc) where status='paid';
 alter table public.aam_ad_unlocks enable row level security;
 revoke all on public.aam_ad_unlocks from anon,authenticated;
+grant all on public.aam_ad_unlocks to service_role;
