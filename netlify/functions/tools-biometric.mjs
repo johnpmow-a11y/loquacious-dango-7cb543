@@ -67,8 +67,7 @@ export async function handler(event) {
     if(action==='register-verify') {
       const response=body.response;
       if(!response?.id||!response?.response?.clientDataJSON)return json(400,{error:'Invalid biometric registration response.'});
-      const challenge=await takeChallenge(customerId,'registration',response.response.clientDataJSON?undefined:undefined);
-      // The challenge is looked up from the submitted clientDataJSON after decoding it.
+      // Match and consume the one-time challenge embedded in the browser response.
       const clientData=JSON.parse(Buffer.from(response.response.clientDataJSON,'base64url').toString('utf8'));
       const expectedChallenge=await takeChallenge(customerId,'registration',clientData.challenge);
       if(!expectedChallenge)return json(400,{error:'Registration expired. Please try again.'});
