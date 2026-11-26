@@ -449,7 +449,8 @@ function adCampaignWorkspace(platform){
  const item=configs[String(platform||'').toLowerCase()];
  if(!item)return toast('Choose a supported advertising platform.');
  if(String(platform).toLowerCase()==='x'){
-  shell('<button class="btn secondary back" onclick="profile()">←</button><div class="form" style="max-width:760px;margin:auto"><span class="eyebrow">'+item.tag+'</span><h2>'+item.name+'</h2><p class="muted">'+item.description+'</p><div class="profile-card" style="margin:16px 0;padding:18px"><strong>SECURE X AD ACCOUNT CONNECTION</strong><p class="muted">Each customer authorizes their own X account. All Ads Manager uses OAuth 1.0a and stores the returned access credentials encrypted on the server.</p><button class="btn" onclick="connectXAdsAccount()">CONNECT X ADS ACCOUNT</button><div id="aamXAdsStatus" class="muted" style="margin-top:12px">X Ads API access is reviewed separately by X. Connecting an account does not itself grant campaign-management access.</div></div><div class="profile-card" style="margin:12px 0;padding:16px"><strong>CAMPAIGN TOOLS</strong><p class="muted">Campaign creation, editing, reporting and publishing will be enabled after X approves this developer app for the Ads API and the integration is verified. No campaign will be launched automatically.</p></div></div>');
+  shell('<button class="btn secondary back" onclick="profile()">←</button><div class="form" style="max-width:760px;margin:auto"><span class="eyebrow">'+item.tag+'</span><h2>'+item.name+'</h2><p class="muted">'+item.description+'</p><div class="profile-card" style="margin:16px 0;padding:18px"><strong>SECURE X AD ACCOUNT CONNECTION</strong><p class="muted">Each customer authorizes their own X account. All Ads Manager uses OAuth 1.0a and stores the returned access credentials encrypted on the server.</p><button class="btn" onclick="connectXAdsAccount()">CONNECT X ADS ACCOUNT</button><div id="aamXAdsStatus" class="muted" style="margin-top:12px">Checking X account connection…</div></div><div class="profile-card" style="margin:12px 0;padding:16px"><strong>CAMPAIGN TOOLS</strong><p class="muted">Campaign creation, editing, reporting and publishing will be enabled after X approves this developer app for the Ads API and the integration is verified. No campaign will be launched automatically.</p></div></div>');
+  checkXAdsConnection();
   return;
  }
  if(String(platform).toLowerCase()==='snapchat'){
@@ -540,6 +541,12 @@ async function loadTikTokAdAccounts(){
   if(!rows.length){box.innerHTML='<p class="muted">The connection is active, but TikTok returned no advertiser accounts. Check that this TikTok for Business user has access to an Ads Manager account.</p>';return;}
   box.innerHTML='<strong>YOUR TIKTOK ADVERTISER ACCOUNTS</strong>'+rows.map(a=>'<div class="profile-card" style="margin-top:10px;padding:12px"><strong>'+esc(a.name||'TikTok Ads Account')+'</strong><div class="muted" style="font-size:12px">Advertiser ID: '+esc(a.id)+' · '+esc(a.currency||'Currency unavailable')+' · '+esc(a.status||'')+'</div></div>').join('');
  }catch(e){box.innerHTML='<p class="muted">'+esc(e.message||'TikTok account discovery failed.')+'</p>';}
+}
+async function checkXAdsConnection(){
+ const box=document.getElementById('aamXAdsStatus');if(!box)return;
+ try{const r=await fetch('/.netlify/functions/x-ads-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken')})}),d=await r.json();if(!r.ok)throw Error(d.error||'Could not check X connection.');
+ box.textContent=d.connected?'Connected to X as @'+d.username+'. Campaign tools still require X Ads API approval.':'No X account is connected yet. Connect your X Ads account to continue.';
+ }catch(e){box.textContent='X connection status is temporarily unavailable.';}
 }
 async function connectXAdsAccount(){
  const box=document.getElementById('aamXAdsStatus');if(box)box.textContent='Starting secure X authorization…';
