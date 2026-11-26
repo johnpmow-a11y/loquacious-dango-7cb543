@@ -98,9 +98,12 @@ export async function handler(event){
       throw error;
      }
     }
-    const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
-    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:active[0].id,user_id:userId,version:definition.version,arguments:{}})});
-    return json(200,{tool_slug:toolSlug,result:result.data||result});
+    const result=await executeNamedTool(active[0],userId,toolSlug,{});
+    const accounts=slug==='metaads'?providerRows(result).map(item=>{
+     const id=String(item.account_id||item.ad_account_id||item.id||'');
+     return id?{id:id.startsWith('act_')?id:'act_'+id,name:item.name||item.account_name||item.ad_account_name||'Meta Ad Account',currency:item.currency||item.currency_code||'',status:item.account_status||item.status||'',business_id:item.business_id||''}:null;
+    }).filter(Boolean):[];
+    return json(200,{platform:'meta',tool_slug:toolSlug,accounts,result});
    }
    if(q.action==='schema'){
     const toolSlug=String(q.tool_slug||'');if(!(allowedTools[slug]||[]).includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
@@ -154,7 +157,13 @@ export async function handler(event){
      accountIds=providerRows(discovered).map(x=>String(x.advertiser_id||x.advertiserId||x.account_id||x.id||'')).filter(Boolean);
     }catch(error){return json(200,{platform,rows:[],message:'TikTok connected, but advertiser accounts could not be discovered automatically: '+error.message});}
    }
-   if(!accountIds.length)return json(200,{platform,rows:[],message:'No accessible advertiser accounts were returned. Confirm that the connected TikTok for Business user has Ads Manager access.'});
+   if(!accountIds.length&&(platform==='facebook'||platform==='instagram')){
+    try{
+     const discovered=await executeNamedTool(accounts[0],userId,'METAADS_GET_AD_ACCOUNTS',{});
+     accountIds=providerRows(discovered).map(x=>String(x.account_id||x.ad_account_id||x.id||'')).filter(Boolean).map(x=>x.startsWith('act_')?x:'act_'+x);
+    }catch(error){return json(200,{platform,rows:[],message:'Meta is connected, but ad accounts could not be discovered: '+error.message});}
+   }
+   if(!accountIds.length)return json(200,{platform,rows:[],message:platform==='tiktok'?'No accessible TikTok advertiser accounts were returned. Confirm that the connected TikTok for Business user has Ads Manager access.':'No accessible Meta ad accounts were returned. Confirm that the connected Facebook profile has access to a Meta Ads account.'});
    const startDate=String(b.start_date||new Date(Date.now()-7*86400000).toISOString().slice(0,10)),endDate=String(b.end_date||new Date().toISOString().slice(0,10));
    if(!/^\d{4}-\d{2}-\d{2}$/.test(startDate)||!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||startDate>endDate)return json(400,{error:'Choose a valid reporting date range.'});
    const reports=[];
