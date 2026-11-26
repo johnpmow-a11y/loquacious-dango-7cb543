@@ -5,6 +5,7 @@
   "description": "ALL ADS MANAGER site with Netlify support email function",
   "dependencies": {
     "nodemailer": "^6.9.16",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "@simplewebauthn/server": "^14.1.0"
   }
 }
