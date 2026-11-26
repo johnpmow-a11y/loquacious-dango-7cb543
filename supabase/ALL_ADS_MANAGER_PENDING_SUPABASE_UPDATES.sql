@@ -4,8 +4,8 @@
 -- Do not paste or execute this file in Supabase until the user explicitly authorizes it.
 -- This consolidated file is provided for later review and one-step application only.
 -- Project: ftwhcqrtmfxdzokmudvu
--- Run this script in Supabase SQL Editor AFTER the existing core All Ads Manager
--- customer/session, social, calls, and wallet setup is already installed.
+-- If the user later authorizes execution, review prerequisites and apply only after
+-- confirming the existing core customer/session, social, calls, and wallet setup.
 -- Safe to re-run: statements use IF NOT EXISTS / CREATE OR REPLACE where applicable.
 -- IMPORTANT: This script does not configure VAPID keys; those belong in Netlify env vars.
 -- WebRTC signaling requires the existing public.aam_calls and public.aam_call_participants tables.
