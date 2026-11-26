@@ -44,6 +44,8 @@ function reportArgs(schema,values){
  const missing=required.filter(k=>out[k]===undefined);
  return {args:out,missing};
 }
+async function executeNamedTool(account,userId,toolSlug,values={}){const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));const built=reportArgs(definition,values);if(built.missing.length)throw new Error(toolSlug+' requires fields not yet supported: '+built.missing.join(', '));const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:account.id,user_id:userId,version:definition.version,arguments:built.args})});return result.data||result;}
+function providerRows(value){if(Array.isArray(value))return value.filter(x=>x&&typeof x==='object');if(!value||typeof value!=='object')return[];for(const key of ['items','organizations','ad_accounts','adaccounts','accounts','results','data']){const v=value[key];if(Array.isArray(v))return v.filter(x=>x&&typeof x==='object');if(v&&typeof v==='object'){const nested=providerRows(v);if(nested.length)return nested;}}return[];}
 async function executeReport(slug,account,userId,toolSlug,values){
  const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
  const built=reportArgs(definition,values);
@@ -73,7 +75,17 @@ export async function handler(event){
    const userId='aam_customer_'+s.customer_id;
    if(q.action==='accounts'){
     const active=await userAccounts(userId,slug);if(!active.length)return json(409,{error:'Connect your advertising account first.'});
-    if(slug==='snapchat')return json(409,{error:'Snapchat account discovery will be enabled after its custom connection is verified.'});
+    if(slug==='snapchat'){
+     const orgResult=await executeNamedTool(active[0],userId,'SNAPCHAT_LIST_ORGANIZATIONS',{});
+     const organizations=providerRows(orgResult);
+     const accounts=[];
+     for(const org of organizations){
+      const organizationId=String(org.organization_id||org.id||'');if(!organizationId)continue;
+      const accountResult=await executeNamedTool(active[0],userId,'SNAPCHAT_LIST_AD_ACCOUNTS',{organization_id:organizationId});
+      for(const item of providerRows(accountResult)){const id=String(item.ad_account_id||item.id||'');if(id)accounts.push({id,name:item.name||item.ad_account_name||'Snapchat Ad Account',currency:item.currency||'',timezone:item.timezone||item.time_zone||'',status:item.status||'',organization_id:organizationId});}
+     }
+     return json(200,{platform:'snapchat',tool_slug:'SNAPCHAT_LIST_AD_ACCOUNTS',accounts,organizations:organizations.map(o=>({id:String(o.organization_id||o.id||''),name:o.name||o.organization_name||'Snapchat Organization'}))});
+    }
     const toolSlug=slug==='metaads'?'METAADS_GET_AD_ACCOUNTS':'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS';
     if(slug==='tiktok_ads'&&!String(q.advertiser_id||'').trim())return json(200,{needs_advertiser_id:true,tool_slug:toolSlug});
     const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
