@@ -83,7 +83,10 @@
   window.loadAamAdStage=async function(toolSlug){
     const platform=sessionStorage.getItem('aamAdPlatform')||'facebook',area=document.getElementById('aamAdStageForm');if(!area)return;area.textContent='Loading provider fields…';
     try{
-      const r=await fetch('/.netlify/functions/composio-ads?action=schema&platform='+encodeURIComponent(platform)+'&tool_slug='+encodeURIComponent(toolSlug)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not load campaign fields.');
+      const candidates=platform==='tiktok'&&toolSlug==='TIKTOK_ADS_CREATE_AD_GROUP'?[toolSlug,'TIKTOK_ADS_CREATE_ADGROUP']:platform==='tiktok'&&toolSlug==='TIKTOK_ADS_CREATE_AD'?[toolSlug,'TIKTOK_ADS_CREATE_ADS']:[toolSlug];
+      let d=null,lastError='Could not load campaign fields.';
+      for(const candidate of candidates){const response=await fetch('/.netlify/functions/composio-ads?action=schema&platform='+encodeURIComponent(platform)+'&tool_slug='+encodeURIComponent(candidate)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const data=await response.json();if(response.ok){d=data;toolSlug=candidate;break;}lastError=data.error||lastError;}
+      if(!d)throw new Error(lastError);
       const params=d.input_parameters||{},fields=params.properties||params,required=Array.isArray(params.required)?params.required:[];
       const selected=JSON.parse(sessionStorage.getItem('aamAdAccountSelection')||'null');
       const html=Object.entries(fields).filter(([key,v])=>v&&typeof v==='object'&&!['status','operation_status'].includes(key)).map(([key,v])=>{
