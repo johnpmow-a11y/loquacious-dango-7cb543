@@ -45,7 +45,7 @@ function reportArgs(schema,values){
  return {args:out,missing};
 }
 async function executeNamedTool(account,userId,toolSlug,values={}){const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));const built=reportArgs(definition,values);if(built.missing.length)throw new Error(toolSlug+' requires fields not yet supported: '+built.missing.join(', '));const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:account.id,user_id:userId,version:definition.version,arguments:built.args})});return result.data||result;}
-function providerRows(value){if(Array.isArray(value))return value.filter(x=>x&&typeof x==='object');if(!value||typeof value!=='object')return[];for(const key of ['items','organizations','ad_accounts','adaccounts','accounts','results','data']){const v=value[key];if(Array.isArray(v))return v.filter(x=>x&&typeof x==='object');if(v&&typeof v==='object'){const nested=providerRows(v);if(nested.length)return nested;}}return[];}
+function providerRows(value){if(Array.isArray(value))return value.filter(x=>x&&typeof x==='object');if(!value||typeof value!=='object')return[];for(const key of ['items','organizations','ad_accounts','adaccounts','advertiser_accounts','advertisers','accounts','results','data']){const v=value[key];if(Array.isArray(v))return v.filter(x=>x&&typeof x==='object');if(v&&typeof v==='object'){const nested=providerRows(v);if(nested.length)return nested;}}return[];}
 async function executeReport(slug,account,userId,toolSlug,values){
  const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
  const built=reportArgs(definition,values);
@@ -64,7 +64,7 @@ function metricConversions(row){
 
 async function unlockIsPaid(customerId){const now=new Date().toISOString();const rows=await db('aam_ad_unlocks?select=status,expires_at&customer_id=eq.'+encodeURIComponent(customerId)+'&status=eq.paid&expires_at=gt.'+encodeURIComponent(now)+'&order=expires_at.desc&limit=1');return rows.length>0;}
 async function userAccounts(userId,slug){const params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});const data=await comp('/api/v3.1/connected_accounts?'+params.toString());return (data.items||[]).filter(x=>x.user_id===userId&&x.toolkit?.slug===slug&&x.status==='ACTIVE');}
-async function authConfig(slug){if(slug==='snapchat'){const id=String(process.env.SNAPCHAT_AUTH_CONFIG_ID||'6e094f58-12b9-4272-8103-dc9f0527787a').trim();if(!id)throw new Error('Snapchat connection is not configured yet. The Snapchat custom auth configuration must be created in Composio and its ID saved as SNAPCHAT_AUTH_CONFIG_ID.');return id;}const q=new URLSearchParams({toolkit_slug:slug,is_composio_managed:'true'});const listed=await comp('/api/v3/auth_configs?'+q.toString());const found=(listed.items||[]).find(x=>x.toolkit?.slug===slug&&x.is_composio_managed!==false);if(found?.id)return found.id;const made=await comp('/api/v3/auth_configs',{method:'POST',body:JSON.stringify({toolkit:{slug}})});const id=made.id||made.auth_config?.id;if(!id)throw new Error('Composio did not return an advertising authorization configuration.');return id;}
+async function authConfig(slug){if(slug==='snapchat'){const id=String(process.env.SNAPCHAT_AUTH_CONFIG_ID).trim();if(!id)throw new Error('Snapchat connection is not configured yet. The Snapchat custom auth configuration must be created in Composio and its ID saved as SNAPCHAT_AUTH_CONFIG_ID.');return id;}const q=new URLSearchParams({toolkit_slug:slug,is_composio_managed:'true'});const listed=await comp('/api/v3/auth_configs?'+q.toString());const found=(listed.items||[]).find(x=>x.toolkit?.slug===slug&&x.is_composio_managed!==false);if(found?.id)return found.id;const made=await comp('/api/v3/auth_configs',{method:'POST',body:JSON.stringify({toolkit:{slug}})});const id=made.id||made.auth_config?.id;if(!id)throw new Error('Composio did not return an advertising authorization configuration.');return id;}
 export async function handler(event){
  if(event.httpMethod==='OPTIONS')return {statusCode:204,headers:{'Access-Control-Allow-Origin':process.env.URL||'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'POST,GET'}};
  try{
@@ -87,10 +87,19 @@ export async function handler(event){
      return json(200,{platform:'snapchat',tool_slug:'SNAPCHAT_LIST_AD_ACCOUNTS',accounts,organizations:organizations.map(o=>({id:String(o.organization_id||o.id||''),name:o.name||o.organization_name||'Snapchat Organization'}))});
     }
     const toolSlug=slug==='metaads'?'METAADS_GET_AD_ACCOUNTS':'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS';
-    if(slug==='tiktok_ads'&&!String(q.advertiser_id||'').trim())return json(200,{needs_advertiser_id:true,tool_slug:toolSlug});
+    if(slug==='tiktok_ads'){
+     try{
+      const result=await executeNamedTool(active[0],userId,toolSlug,{});
+      const rows=providerRows(result);
+      const accounts=rows.map(item=>{const id=String(item.advertiser_id||item.advertiserId||item.account_id||item.id||'');return id?{id,name:item.advertiser_name||item.name||item.advertiser_account_name||'TikTok Ads Account',currency:item.currency||item.currency_code||'',status:item.status||item.account_status||''}:null;}).filter(Boolean);
+      return json(200,{platform:'tiktok',tool_slug:toolSlug,accounts,result});
+     }catch(error){
+      if(error.message.includes('requires fields not yet supported')||error.message.includes('advertiser_ids')||error.message.includes('advertiser_id'))return json(200,{platform:'tiktok',needs_advertiser_id:true,tool_slug:toolSlug,message:'TikTok requires an advertiser ID for this connection. The connected TikTok authorization may need approved Ads permissions that expose authorized advertiser accounts.'});
+      throw error;
+     }
+    }
     const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
-    const args=slug==='tiktok_ads'?{advertiser_ids:[String(q.advertiser_id).trim()]}:{};
-    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:active[0].id,user_id:userId,version:definition.version,arguments:args})});
+    const result=await comp('/api/v3.1/tools/execute/'+encodeURIComponent(toolSlug),{method:'POST',body:JSON.stringify({connected_account_id:active[0].id,user_id:userId,version:definition.version,arguments:{}})});
     return json(200,{tool_slug:toolSlug,result:result.data||result});
    }
    if(q.action==='schema'){
