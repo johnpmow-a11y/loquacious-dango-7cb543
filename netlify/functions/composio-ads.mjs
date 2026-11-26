@@ -15,9 +15,10 @@ export async function handler(event){
  if(event.httpMethod==='OPTIONS')return {statusCode:204,headers:{'Access-Control-Allow-Origin':process.env.URL||'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'POST,GET'}};
  try{
   const q=event.queryStringParameters||{};
-  if(event.httpMethod==='GET'&&(q.action==='status'||q.action==='schema')){
+  if(event.httpMethod==='GET'&&(q.action==='status'||q.action==='schema'||q.action==='accounts')){
    const s=await session(String(q.token||''));if(!s)return json(401,{error:'Please log in again.'});
    const platform=String(q.platform||'facebook').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Unsupported advertising platform.'});
+   const userId='aam_customer_'+s.customer_id;
    if(q.action==='accounts'){
     const active=await userAccounts(userId,slug);if(!active.length)return json(409,{error:'Connect your advertising account first.'});
     const toolSlug=slug==='metaads'?'METAADS_GET_AD_ACCOUNTS':'TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS';
@@ -31,7 +32,7 @@ export async function handler(event){
     const toolSlug=String(q.tool_slug||'');if(!(allowedTools[slug]||[]).includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
     const schema=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));return json(200,{slug:toolSlug,version:schema.version,input_parameters:schema.input_parameters||{},description:schema.description||''});
    }
-   const userId='aam_customer_'+s.customer_id,params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});
+   const params=new URLSearchParams({user_ids:userId,toolkit_slugs:slug,limit:'100'});
    const data=await comp('/api/v3.1/connected_accounts?'+params.toString());
    const items=(data.items||[]).filter(x=>x.user_id===userId&&x.toolkit?.slug===slug);
    const active=items.filter(x=>x.status==='ACTIVE').map(x=>({id:x.id,status:x.status,toolkit:slug,created_at:x.created_at}));
