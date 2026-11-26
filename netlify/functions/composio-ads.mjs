@@ -1,3 +1,4 @@
+import { createHmac, randomUUID } from 'node:crypto';
 import { URLSearchParams } from 'node:url';
 const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify(body)});
 const uuid=/^[0-9a-f-]{36}$/i;
@@ -55,7 +56,11 @@ export async function handler(event){
    return json(200,{ok:true,tool_slug:toolSlug,result:result.data||result});
   }
   const auth_config_id=await authConfig(slug);
-  const link=await comp('/api/v3.1/connected_accounts/link',{method:'POST',body:JSON.stringify({auth_config_id,user_id:userId,alias:`aam-${s.customer_id}-${platform}-${Date.now()}`})});
+  const origin=process.env.URL||process.env.DEPLOY_PRIME_URL;if(!origin)throw new Error('The secure advertising callback URL is not configured.');
+  const statePayload=Buffer.from(JSON.stringify({customer_id:s.customer_id,platform,expires_at:Date.now()+10*60*1000,nonce:randomUUID()})).toString('base64url');
+  const stateSignature=createHmac('sha256',process.env.COMPOSIO_API_KEY).update(statePayload).digest('base64url');
+  const callback=new URL('/.netlify/functions/composio-ads-callback',origin);callback.searchParams.set('state',statePayload+'.'+stateSignature);
+  const link=await comp('/api/v3.1/connected_accounts/link',{method:'POST',body:JSON.stringify({auth_config_id,user_id:userId,alias:`aam-${s.customer_id}-${platform}-${Date.now()}`,callback_url:callback.toString()})});
   if(!link.redirect_url||!link.connected_account_id)throw new Error('Composio did not return a complete secure connection link.');
   return json(200,{redirect_url:link.redirect_url,connected_account_id:link.connected_account_id,expires_at:link.expires_at,platform});
  }catch(e){return json(502,{error:e.message||'Could not start the advertising account connection.'});}
