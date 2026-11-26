@@ -753,3 +753,11 @@ body.aam-chat-fullscreen-active #app,body.aam-chat-fullscreen-active #aamSocialR
 body.aam-chat-fullscreen-active .aam-social-chat-screen{position:fixed!important;inset:0!important;z-index:2147483000!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:100vw!important;height:var(--aam-chat-viewport-height,100dvh)!important;min-height:0!important;max-height:var(--aam-chat-viewport-height,100dvh)!important;margin:0!important;transform:translateY(var(--aam-chat-viewport-offset,0px))!important;overflow:hidden!important;border:0!important;border-radius:0!important}
 body.aam-chat-fullscreen-active #aamSocialDock,body.aam-chat-fullscreen-active #aamSocialToolsDock,body.aam-chat-fullscreen-active #aamAdminSocialLauncher,body.aam-chat-fullscreen-active .aam-bottom-nav,body.aam-chat-fullscreen-active .aam-social-dock,body.aam-chat-fullscreen-active header.site-header,body.aam-chat-fullscreen-active footer{display:none!important}
 body.aam-chat-fullscreen-active .aam-social-chat-screen>*{min-width:0!important;max-width:100%!important}
+
+/* Larger social navigation targets; retain the All Ads Manager palette. */
+#aamSocialDock{padding:9px 8px!important;gap:4px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important}
+#aamSocialDock button{min-height:62px!important;padding:7px 3px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important}
+#aamSocialDock .aam-dock-icon{font-size:25px!important;line-height:1.05!important;font-weight:850!important}
+#aamSocialDock .aam-dock-label{font-size:12px!important;line-height:1.1!important;font-weight:800!important}
+#aamSocialDock .aam-dock-create .aam-dock-icon{font-size:31px!important}
+#aamSocialRoot{padding-bottom:112px!important}
