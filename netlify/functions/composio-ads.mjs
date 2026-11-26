@@ -3,7 +3,7 @@ import { URLSearchParams } from 'node:url';
 const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify(body)});
 const uuid=/^[0-9a-f-]{36}$/i;
 const toolkits={facebook:'metaads',instagram:'metaads',meta:'metaads',tiktok:'tiktok_ads',snapchat:'snapchat'};
-const allowedTools={metaads:['METAADS_GET_AD_ACCOUNTS','METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD_CREATIVE','METAADS_CREATE_AD'],tiktok_ads:['TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS','TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADGROUP','TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS']};
+const allowedTools={metaads:['METAADS_GET_AD_ACCOUNTS','METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD_CREATIVE','METAADS_CREATE_AD'],tiktok_ads:['TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS','TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADGROUP','TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'],snapchat:['SNAPCHAT_CREATE_CAMPAIGN','SNAPCHAT_CREATE_AD_SQUAD','SNAPCHAT_CREATE_CREATIVES','SNAPCHAT_CREATE_ADS']};
 function h(key,extra={}){return { 'x-api-key':key,'Content-Type':'application/json',...extra };}
 async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||'Customer session lookup failed.');return d;}
 async function session(token){if(!uuid.test(token))return null;const rows=await db(`customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);return rows[0]||null;}
@@ -177,14 +177,14 @@ export async function handler(event){
    const toolSlug=String(b.tool_slug||''),allowed=allowedTools[slug]||[];
    if(!allowed.includes(toolSlug))return json(400,{error:'This advertising action is not enabled.'});
    const args=b.arguments;if(!args||typeof args!=='object'||Array.isArray(args)||JSON.stringify(args).length>45000)return json(400,{error:'Invalid campaign information.'});
-   const finalAdAction=(slug==='metaads'&&toolSlug==='METAADS_CREATE_AD')||(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug));
+   const finalAdAction=(slug==='metaads'&&toolSlug==='METAADS_CREATE_AD')||(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))||(slug==='snapchat'&&toolSlug==='SNAPCHAT_CREATE_ADS');
    if(finalAdAction&&!(await unlockIsPaid(s.customer_id)))return json(402,{error:'Your 20-minute advertising payment unlock has expired. Unlock again for ₦3,000 to create another ad.'});
    const accounts=await userAccounts(userId,slug);if(!accounts.length)return json(409,{error:'Connect your advertising account before creating a campaign.'});
    const account=accounts.find(x=>x.id===String(b.connected_account_id||''))||accounts[0];
    const definition=await comp('/api/v3.1/tools/'+encodeURIComponent(toolSlug));
    const inputSchema=definition.input_parameters||{},properties=inputSchema.properties||inputSchema;
-   const createAction=(slug==='metaads'&&['METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD'].includes(toolSlug))||(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADGROUP','TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug));
-   if(createAction){const statusField=slug==='metaads'?'status':'operation_status';if(!properties[statusField])return json(409,{error:'This provider action does not expose a safe paused/draft status. Campaign creation is blocked to prevent accidental ad spend.'});args[statusField]=slug==='metaads'?'PAUSED':'DISABLE';}
+   const createAction=(slug==='metaads'&&['METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD'].includes(toolSlug))||(slug==='tiktok_ads'&&['TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADGROUP','TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))||(slug==='snapchat'&&['SNAPCHAT_CREATE_CAMPAIGN','SNAPCHAT_CREATE_AD_SQUAD','SNAPCHAT_CREATE_CREATIVES','SNAPCHAT_CREATE_ADS'].includes(toolSlug));
+   if(createAction){const statusField=slug==='metaads'||slug==='snapchat'?'status':'operation_status';if(!properties[statusField])return json(409,{error:'This provider action does not expose a safe paused/draft status. Campaign creation is blocked to prevent accidental ad spend.'});args[statusField]=slug==='metaads'||slug==='snapchat'?'PAUSED':'DISABLE';}
    const required=Array.isArray(inputSchema.required)?inputSchema.required:Object.entries(properties).filter(([,v])=>v.required).map(([k])=>k);
    const missing=required.filter(k=>args[k]===undefined||args[k]===null||args[k]==='');
    if(missing.length)return json(400,{error:'Campaign setup is missing required fields: '+missing.join(', ')});
