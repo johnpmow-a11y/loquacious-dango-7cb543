@@ -70,11 +70,24 @@
 
   window.refreshAamAdUnlock=async function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
-    try{const attemptId=sessionStorage.getItem('aamAdUnlockAttemptId')||'';if(!attemptId){area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>Advertising payment unlock</strong><br>₦3,800 is required each time you start a new ad payment.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Continue to payment unlock</button></div>';return;}const r=await fetch('/.netlify/functions/ads-unlock-create?action=status&attempt_id='+encodeURIComponent(attemptId)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check payment unlock.');
-      if(d.unlocked){area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ This ad-payment attempt is unlocked. The next separate ad payment will require a new ₦3,800 unlock.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Start another ad payment · ₦3,800</button></div>';}
-      else{area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>This ad-payment attempt is not unlocked</strong><br>Unlock fee for this attempt: <strong>₦3,800</strong><br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Unlock payment method</button></div>';}
+    try{const r=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check payment unlock.');
+      if(d.unlocked){const started=new Date(d.unlocked_at),expires=new Date(d.expires_at);area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ Payment method unlocked for 3 hours.<br><small>Paid: '+started.toLocaleString()+'<br>Expires: '+expires.toLocaleString()+'</small><br><strong>Run multiple ads during this window without another ₦3,800 unlock.</strong><button class="btn" style="margin-top:10px" onclick="openAamAdCampaign()">Continue to ADS</button></div>';}
+      else{area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>Advertising payment method locked</strong><br>₦3,800 unlocks it for 3 hours.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Unlock payment method</button></div>';}
     }catch(e){area.textContent=e.message||'Payment unlock status is unavailable.';}
   };
+  window.openAamAdUnlock=function(){
+    const area=document.getElementById('aamAdUnlockArea');if(!area)return;
+    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">₦3,800 unlocks your advertising payment method for 3 hours. You can run multiple ads during that time without paying this fee again. After 3 hours, a new unlock is required. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock(this)">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="profile()">No, go back to dashboard</button></div>';
+  };
+  window.confirmAamAdUnlock=async function(button){
+    if(window.aamUnlockSubmitting)return;window.aamUnlockSubmitting=true;if(button){button.disabled=true;button.textContent='Starting payment…';}
+    const email=document.getElementById('aamAdUnlockEmail')?.value.trim(),method=document.getElementById('aamAdUnlockMethod')?.value;
+    if(!/^\S+@\S+\.\S+$/.test(email||'')){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}return toast('Enter a valid receipt email.');}
+    const area=document.getElementById('aamAdUnlockArea');if(area)area.textContent='Connecting securely to Paystack…';
+    try{const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,platform:sessionStorage.getItem('aamAdPlatform')||'facebook'})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start unlock payment.');if(d.unlocked){window.aamUnlockSubmitting=false;refreshAamAdUnlock();return;}if(!d.authorization_url)throw new Error('Paystack did not return a payment link.');location.href=d.authorization_url;}
+    catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
+  };
+  window.openAamAdCampaign=function(platform){window.openAamAdWorkspace(platform||sessionStorage.getItem('aamAdPlatform')||'facebook');};
   window.openAamAdUnlock=function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
     const platform=sessionStorage.getItem('aamAdPlatform')||'facebook';
@@ -89,7 +102,8 @@
     catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
   };
 
-  window.openAamAdCampaign=function(platform){window.openAamAdWorkspace(platform||sessionStorage.getItem('aamAdPlatform')||'facebook');};\n  window.connectAamAdAccount=async function(platform){
+  window.openAamAdCampaign=function(platform){window.openAamAdWorkspace(platform||sessionStorage.getItem('aamAdPlatform')||'facebook');};
+  window.connectAamAdAccount=async function(platform){
     const btn=document.getElementById('aamAdConnectButton');if(btn){btn.disabled=true;btn.textContent='Opening secure connection…';}
     try{const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform})});const d=await r.json();if(!r.ok||!d.redirect_url)throw new Error(d.error||'Could not start account connection.');location.href=d.redirect_url;}
     catch(e){toast(e.message||'Could not connect the advertising account.');if(btn){btn.disabled=false;btn.textContent='Try connecting again';}}
@@ -105,6 +119,9 @@
     shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER PROMOTION</span><h2>Choose an advertising platform</h2><p class="muted">Connect your own advertising account, choose your audience and campaign settings, and manage your promotions from All Ads Manager.</p><button class="btn" onclick="openAamAdWorkspace(\'facebook\')">Facebook Ads</button><button class="btn" style="margin-top:10px" onclick="openAamAdWorkspace(\'instagram\')">Instagram Ads</button><button class="btn" style="margin-top:10px" onclick="openAamAdWorkspace(\'tiktok\')">TikTok Ads</button></section>');
   };
 
+  const unlockReturn=new URLSearchParams(location.search);
+  if(unlockReturn.get('ads_unlock')==='success'){const platform=unlockReturn.get('platform')||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);setTimeout(()=>{window.openAamAdWorkspace(platform);toast('Payment successful. Your advertising payment method is unlocked for 3 hours.');},800);history.replaceState({},'',location.pathname);}
+  else if(unlockReturn.get('ads_unlock')==='pending'){setTimeout(()=>toast('Payment is not confirmed yet. Your advertising payment method remains locked.'),800);history.replaceState({},'',location.pathname);}
   const unlockParams=new URLSearchParams(location.search);if(unlockParams.get('ads_unlock')==='success'){const platform=unlockParams.get('platform')||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);setTimeout(()=>{window.openAamAdWorkspace(platform);toast('Payment successful. Your advertising payment method is unlocked for 3 hours. Continue to your campaign.');},700);history.replaceState({},'',location.pathname);}else if(unlockParams.get('ads_unlock')==='pending'){setTimeout(()=>toast('Payment is not confirmed yet. Your advertising payment method remains locked.'),700);history.replaceState({},'',location.pathname);}\n\n  window.catalog = function(region){
     if(!guard())return;
     const vals=region==='UK'?UK_VALUES:USA_VALUES;
