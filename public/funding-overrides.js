@@ -88,21 +88,6 @@
     catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
   };
   window.openAamAdCampaign=function(platform){window.openAamAdWorkspace(platform||sessionStorage.getItem('aamAdPlatform')||'facebook');};
-  window.openAamAdUnlock=function(){
-    const area=document.getElementById('aamAdUnlockArea');if(!area)return;
-    const platform=sessionStorage.getItem('aamAdPlatform')||'facebook';
-    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">₦3,800 unlocks your advertising payment method for 3 hours. During that time, you can run multiple ads without paying this unlock fee again. After 3 hours, a new unlock is required. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock(this)">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="sessionStorage.removeItem('aamAdUnlockAttemptId');profile()">No, go back to dashboard</button></div>';
-  };
-  window.confirmAamAdUnlock=async function(button){
-    if(window.aamUnlockSubmitting)return;window.aamUnlockSubmitting=true;if(button){button.disabled=true;button.textContent='Starting payment…';}
-    const email=document.getElementById('aamAdUnlockEmail')?.value.trim(),method=document.getElementById('aamAdUnlockMethod')?.value;
-    if(!/^\\S+@\\S+\\.\\S+$/.test(email||'')){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}return toast('Enter a valid receipt email.');}
-    const area=document.getElementById('aamAdUnlockArea');if(area)area.textContent='Connecting securely to Paystack…';
-    try{const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,platform})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start unlock payment.');if(d.unlocked){refreshAamAdUnlock();return;}if(!d.authorization_url)throw new Error('Paystack did not return a payment link.');location.href=d.authorization_url;}
-    catch(e){window.aamUnlockSubmitting=false;if(button){button.disabled=false;button.textContent='Yes, unlock';}if(area)area.textContent=e.message||'Payment could not start.';}
-  };
-
-  window.openAamAdCampaign=function(platform){window.openAamAdWorkspace(platform||sessionStorage.getItem('aamAdPlatform')||'facebook');};
   window.connectAamAdAccount=async function(platform){
     const btn=document.getElementById('aamAdConnectButton');if(btn){btn.disabled=true;btn.textContent='Opening secure connection…';}
     try{const r=await fetch('/.netlify/functions/composio-ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),platform})});const d=await r.json();if(!r.ok||!d.redirect_url)throw new Error(d.error||'Could not start account connection.');location.href=d.redirect_url;}
