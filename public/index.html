@@ -493,7 +493,7 @@ async function loadSnapchatAdAccounts(){const box=document.getElementById('aamSn
 async function prepareSnapchatCampaign(encodedAccountId,encodedOrganizationId){
  const accountId=decodeURIComponent(String(encodedAccountId||'')),organizationId=decodeURIComponent(String(encodedOrganizationId||''));
  const box=document.getElementById('aamSnapchatAccounts');if(!box||!accountId)return;
- box.insertAdjacentHTML('beforeend','<div id="aamSnapchatCampaignForm" class="profile-card" style="margin-top:14px;padding:14px"><p class="muted">Loading Snapchat campaign requirements…</p></div>');
+ document.getElementById('aamSnapchatCampaignForm')?.remove();box.insertAdjacentHTML('beforeend','<div id="aamSnapchatCampaignForm" class="profile-card" style="margin-top:14px;padding:14px"><p class="muted">Loading Snapchat campaign requirements…</p></div>');
  const form=document.getElementById('aamSnapchatCampaignForm');
  try{
   const token=encodeURIComponent(sessionStorage.getItem('btToken')||''),url='/.netlify/functions/composio-ads?action=schema&platform=snapchat&tool_slug=SNAPCHAT_CREATE_CAMPAIGN&token='+token;
