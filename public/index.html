@@ -395,7 +395,7 @@ async function loadAdUnlockStatus(platform){
 }
 async function startAdUnlock(platform){
  const button=document.getElementById('aamUnlockButton'),email=document.getElementById('aamUnlockEmail')?.value.trim()||'',method=document.getElementById('aamUnlockMethod')?.value||'bank_transfer';
- if(!/^\\S+@\\S+\\.\\S+$/.test(email))return toast('Enter a valid receipt email.');
+ if(!/^\S+@\S+\.\S+$/.test(email))return toast('Enter a valid receipt email.');
  if(button){button.disabled=true;button.textContent='OPENING PAYSTACK…';}
  try{
   const r=await fetch('/.netlify/functions/ads-unlock-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),email,method,platform})}),d=await r.json();
