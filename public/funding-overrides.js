@@ -107,6 +107,7 @@
   const unlockReturn=new URLSearchParams(location.search);
   if(unlockReturn.get('ads_unlock')==='success'){const platform=unlockReturn.get('platform')||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);setTimeout(()=>{window.openAamAdWorkspace(platform);toast('Payment successful. Your advertising payment method is unlocked for 3 hours.');},800);history.replaceState({},'',location.pathname);}
   else if(unlockReturn.get('ads_unlock')==='pending'){setTimeout(()=>toast('Payment is not confirmed yet. Your advertising payment method remains locked.'),800);history.replaceState({},'',location.pathname);}
+  window.catalog = function(region){
     if(!guard())return;
     const vals=region==='UK'?UK_VALUES:USA_VALUES;
     const symbol=region==='UK'?'£':'$';
