@@ -1,4 +1,8 @@
 -- ALL ADS MANAGER: CURRENT ADDITIVE SUPABASE UPDATES
+-- STATUS: PENDING REVIEW ONLY — NOT EXECUTED.
+-- IMPORTANT: The user has explicitly instructed that NO SQL be run yet.
+-- Do not paste or execute this file in Supabase until the user explicitly authorizes it.
+-- This consolidated file is provided for later review and one-step application only.
 -- Project: ftwhcqrtmfxdzokmudvu
 -- Run this script in Supabase SQL Editor AFTER the existing core All Ads Manager
 -- customer/session, social, calls, and wallet setup is already installed.
