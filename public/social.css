@@ -208,3 +208,25 @@ body.aam-full-chat-open .aam-social-wrap{width:100%!important;max-width:none!imp
 .aam-social-chat-screen .aam-chat-media-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
 .aam-social-chat-screen .aam-chat-recording-status{flex:0 0 auto;padding:0 12px;color:#087443;font-size:12px;background:#fff}
 @media(min-width:760px){.aam-chat-header{padding-left:max(12px,calc((100vw - 760px)/2));padding-right:max(12px,calc((100vw - 760px)/2))}.aam-social-chat-screen .aam-chat-composer{padding-left:max(9px,calc((100vw - 760px)/2));padding-right:max(9px,calc((100vw - 760px)/2))}}
+
+/* Full-screen chat photo viewer and pre-send editor */
+.aam-chat-photo-open{display:block;padding:0;border:0;background:transparent;max-width:100%;text-align:left}
+.aam-chat-photo-open img{display:block;max-width:min(72vw,340px);max-height:360px;object-fit:contain;border-radius:12px}
+#aamChatOverlay.aam-chat-viewer,#aamChatOverlay.aam-chat-editor{position:fixed;inset:0;z-index:999999;background:#080b0a;color:#fff;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.aam-chat-viewer .aam-viewer-close{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 12px);left:14px;width:44px;height:44px;border:0;border-radius:50%;background:#ffffff22;color:#fff;font-size:30px}
+.aam-chat-viewer .aam-viewer-zoom{position:absolute;z-index:2;right:14px;top:calc(env(safe-area-inset-top) + 12px);width:42px;height:42px;border:0;border-radius:50%;background:#ffffff22;color:#fff;font-size:24px}
+.aam-chat-viewer .aam-viewer-zoom.out{right:62px}
+.aam-viewer-stage{flex:1;min-height:0;display:grid;place-items:center;overflow:auto;touch-action:pan-x pan-y}
+.aam-viewer-stage img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;transition:transform .12s}
+#aamChatOverlay.aam-chat-editor{background:#111713}
+.aam-chat-editor header{height:58px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#17201b}
+.aam-chat-editor header button{border:0;border-radius:18px;padding:9px 13px;background:#ffffff18;color:#fff;font-weight:700}
+.aam-chat-editor header button:last-child{background:#087443}
+.aam-editor-stage{flex:1;min-height:0;display:grid;place-items:center;overflow:hidden;padding:10px}
+.aam-editor-stage canvas{max-width:100%;max-height:100%;object-fit:contain;touch-action:none}
+.aam-editor-stage video{max-width:100%;max-height:100%}
+.aam-editor-tools{flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:10px 12px;background:#17201b}
+.aam-editor-tools button{flex:0 0 auto;min-width:42px;height:40px;border:1px solid #ffffff35;border-radius:12px;background:#ffffff15;color:#fff;font-weight:700}
+.aam-editor-tools button[style]{min-width:32px;width:32px;height:32px;align-self:center;border:2px solid #fff}
+.aam-editor-caption{flex:0 0 auto;margin:8px 12px 12px;padding:13px;border:1px solid #ffffff35;border-radius:14px;background:#ffffff12;color:#fff;font-size:16px}
+.aam-editor-hint{flex:0 0 auto;margin:0;padding:0 14px 8px;color:#cbd5d0;font-size:12px}
