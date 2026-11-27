@@ -129,7 +129,7 @@ function viewChatPhoto(url){
  const apply=()=>{window.aamViewerScale=scale;img.style.transform='translate('+x+'px,'+y+'px) scale('+scale+')';};
  const point=e=>({x:e.clientX,y:e.clientY});
  const distance=()=>{const a=[...pointers.values()];return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
- img.addEventListener('load',()=>{scale=1;x=0;y=0;apply();});
+ const initializeImage=()=>{if(!img.naturalWidth)return;scale=1;x=0;y=0;apply();};img.addEventListener('load',initializeImage,{once:true});if(img.complete&&img.naturalWidth)initializeImage();
  img.addEventListener('wheel',e=>{e.preventDefault();zoomChatPhoto(e.deltaY<0?1.12:.89);},{passive:false});
  stage.addEventListener('pointerdown',e=>{if(e.target!==img)return;stage.setPointerCapture(e.pointerId);pointers.set(e.pointerId,point(e));if(pointers.size===1)start={x:e.clientX,y:e.clientY,tx:x,ty:y};else if(pointers.size===2)pinch={distance:distance(),scale,x,y};});
  stage.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,point(e));if(pointers.size===2&&pinch){const next=Math.max(1,Math.min(5,pinch.scale*distance()/Math.max(1,pinch.distance)));scale=next;x=pinch.x;y=pinch.y;clamp();apply();}else if(pointers.size===1&&start&&scale>1){x=start.tx+e.clientX-start.x;y=start.ty+e.clientY-start.y;clamp();apply();}});
