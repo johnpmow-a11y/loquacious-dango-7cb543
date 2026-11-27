@@ -58,7 +58,16 @@ export async function handler(event){
    const otherIds=[...new Set(allParts.filter(p=>p.customer_id!==s.customer_id).map(p=>p.customer_id))];
    const profiles=otherIds.length?await db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=in.(${otherIds.join(',')})`):[];
    const pm=new Map(profiles.map(p=>[p.customer_id,p]));
-   return json(200,{conversations:conversations.map(c=>c.conversation_type==='group'?({...c,other:{display_name:c.title||'All Ads Manager Community',is_group:true,is_typing:allParts.some(p=>p.conversation_id===c.id&&p.customer_id!==s.customer_id&&!!p.typing_at&&(Date.now()-new Date(p.typing_at).getTime()<6000)),group_role:ownRoles.get(c.id)||'member',member_count:memberships.filter(m=>m.conversation_id===c.id).length},last_message:messages.find(m=>m.conversation_id===c.id)||null}):({...c,other:allParts.filter(p=>p.conversation_id===c.id&&p.customer_id!==s.customer_id).map(p=>({...pm.get(p.customer_id),last_seen_at:p.last_seen_at,is_typing:!!p.typing_at&&(Date.now()-new Date(p.typing_at).getTime()<6000)}))[0]||{},last_message:messages.find(m=>m.conversation_id===c.id)||null})),ad_threads:adThreads.map(t=>({...t,conversation_type:'ad',last_message:{body:t.last_message,created_at:t.last_message_at},other:{display_name:t.sender_name||t.platform+' ad reply',is_ad:true,unread_count:t.unread_count}}))});
+   const conversationItems=await Promise.all(conversations.map(async c=>{
+    const lastMessage=messages.find(m=>m.conversation_id===c.id)||null;
+    if(c.conversation_type==='group')return {...c,other:{display_name:c.title||'All Ads Manager Community',is_group:true,is_typing:allParts.some(p=>p.conversation_id===c.id&&p.customer_id!==s.customer_id&&!!p.typing_at&&(Date.now()-new Date(p.typing_at).getTime()<6000)),group_role:ownRoles.get(c.id)||'member',member_count:memberships.filter(m=>m.conversation_id===c.id).length},last_message:lastMessage};
+    const otherPart=allParts.find(p=>p.conversation_id===c.id&&p.customer_id!==s.customer_id);
+    const profile=otherPart?pm.get(otherPart.customer_id)||{}:{};
+    const {avatar_path,...publicProfile}=profile;
+    const avatar_url=avatar_path?await signedRead(avatar_path):null;
+    return {...c,other:{...publicProfile,avatar_url,last_seen_at:otherPart?.last_seen_at||null,is_typing:!!otherPart?.typing_at&&(Date.now()-new Date(otherPart.typing_at).getTime()<6000)},last_message:lastMessage};
+   }));
+   return json(200,{conversations:conversationItems,ad_threads:adThreads.map(t=>({...t,conversation_type:'ad',last_message:{body:t.last_message,created_at:t.last_message_at},other:{display_name:t.sender_name||t.platform+' ad reply',is_ad:true,unread_count:t.unread_count}}))});
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   if(b.action==='sign_media_upload'){
