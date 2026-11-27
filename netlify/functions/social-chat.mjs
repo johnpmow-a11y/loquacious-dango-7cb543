@@ -21,6 +21,8 @@ export async function handler(event){
     const part=await db(`aam_chat_participants?select=conversation_id&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`);
     if(!part.length)return json(404,{error:'Conversation not found.'});
     const [conversationRows,groupMember,otherParticipants]=await Promise.all([db(`aam_chat_conversations?select=id,conversation_type,title&id=eq.${conv}&limit=1`),db(`aam_chat_group_members?select=group_role&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`),db(`aam_chat_participants?select=customer_id&conversation_id=eq.${conv}&customer_id=neq.${s.customer_id}&limit=1`)]);
+    const otherProfileRows=otherParticipants[0]?.customer_id?await db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=eq.${otherParticipants[0].customer_id}&limit=1`):[];
+    const otherProfile=otherProfileRows[0]?{...otherProfileRows[0],avatar_url:otherProfileRows[0].avatar_path?await signedRead(otherProfileRows[0].avatar_path,300):null}:null;
     const messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at,deleted_at,view_once,viewed_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);
     messages.reverse();
     const reads=messages.length?await db(`aam_chat_message_reads?select=message_id,customer_id,read_at&message_id=in.(${messages.map(m=>m.id).join(',')})`):[];
@@ -30,7 +32,7 @@ export async function handler(event){
     const senderNames=new Map(profiles.map(p=>[p.customer_id,p]));
     const pm=new Map(profiles.map(p=>[p.customer_id,p]));
     await rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv});
-    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,group_role:groupMember[0]?.group_role||null,messages:await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;const profile=pm.get(m.sender_id)||{display_name:'Creator'};return {...publicMessage,body:m.deleted_at?'This message was deleted':publicMessage.body,media_url:media_path&&!m.view_once?await signedRead(media_path):null,creator:{...profile,avatar_url:profile.avatar_path?await signedRead(profile.avatar_path,300):null},read_by:reads.filter(r=>r.message_id===m.id),reactions:reactions.filter(r=>r.message_id===m.id)}}))});
+    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,other_profile:otherProfile,group_role:groupMember[0]?.group_role||null,messages:await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;const profile=pm.get(m.sender_id)||{display_name:'Creator'};return {...publicMessage,body:m.deleted_at?'This message was deleted':publicMessage.body,media_url:media_path&&!m.view_once?await signedRead(media_path):null,creator:{...profile,avatar_url:profile.avatar_path?await signedRead(profile.avatar_path,300):null},read_by:reads.filter(r=>r.message_id===m.id),reactions:reactions.filter(r=>r.message_id===m.id)}}))});
    }
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
    if(!parts.length)return json(200,{conversations:[]});
