@@ -19,8 +19,9 @@ export async function handler(event){
     return json(200,{order:{id:activationId,service:local.service_code,number:local.phone_number,status:'waiting',customer_price_ngn:Number(local.customer_charge_kobo)/100}});
    }
    if(reply==='STATUS_CANCEL'){
-    await db('rpc/bt_dansms_refund_order',{method:'POST',body:JSON.stringify({p_reference:local.wallet_reference,p_final_status:new Date(local.expires_at)<=new Date()?'expired':'cancelled',p_provider_response:{status:reply,source:'provider_terminal_status'}})});
-    return json(200,{order:{id:activationId,service:local.service_code,number:local.phone_number,status:'cancelled',refunded:true,customer_price_ngn:Number(local.customer_charge_kobo)/100}});
+    const finalStatus=new Date(local.expires_at)<=new Date()?'expired':'cancelled';
+    await db('rpc/bt_dansms_refund_order',{method:'POST',body:JSON.stringify({p_reference:local.wallet_reference,p_final_status:finalStatus,p_provider_response:{status:reply,source:'provider_terminal_status'}})});
+    return json(200,{order:{id:activationId,service:local.service_code,number:local.phone_number,status:finalStatus,refunded:true,customer_price_ngn:Number(local.customer_charge_kobo)/100}});
    }
    const match=reply.match(/^STATUS_OK:(\d+)$/);
    if(match){
