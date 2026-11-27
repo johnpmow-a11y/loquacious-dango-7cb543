@@ -1,17 +1,16 @@
 /* All Ads Manager: manual gift-card fulfilment and Facebook Ads funding overrides. */
 (function(){
-  const oldButtons = window.serviceButtons;
   window.serviceButtons = function(){
     return `<button class="btn" onclick="readyAccountsPage()">SOCIAL MEDIA ACCOUNTS</button>
     <button class="btn" onclick="catalog('UK')">🇬🇧 UK Gift Card</button>
     <button class="btn" onclick="catalog('USA')">🇺🇸 USA Gift Card</button>
-    <button class="btn" onclick="serviceForm('Facebook Page')">CREATE FACEBOOK PAGE</button>
-    <button class="btn" onclick="serviceForm('Facebook Ads')">CREATE FACEBOOK ADS</button>
-    <button class="btn" onclick="serviceForm('Instagram Ads')">INSTAGRAM ADS</button>
-    <button class="btn" onclick="serviceForm('TikTok Ads')">TIKTOK ADS</button>
-    <button class="btn" onclick="serviceForm('Snapchat Ads')">SNAPCHAT ADS</button>
-    <button class="btn" onclick="serviceForm('WhatsApp Ads')">WHATSAPP ADS</button>
-    <button class="btn" onclick="serviceForm('TikTok Funding')">TIKTOK DOLLAR CARD FUNDING</button>
+    <button class="btn" onclick="serviceForm('Facebook Page')">CREATE FACEBOOK PAGE</button>`+
+    adPlatformButton('facebook','CREATE FACEBOOK ADS')+
+    adPlatformButton('instagram','INSTAGRAM ADS')+
+    adPlatformButton('tiktok','TIKTOK ADS')+
+    adPlatformButton('snapchat','SNAPCHAT ADS')+
+    adPlatformButton('whatsapp','WHATSAPP ADS')+
+    `<button class="btn" onclick="serviceForm('TikTok Funding')">TIKTOK DOLLAR CARD FUNDING</button>
     <button class="btn" onclick="serviceForm('Netflix Login')">NETFLIX LOGIN</button>
     <button class="btn" onclick="serviceForm('International Gift Delivery')">INTERNATIONAL GIFT DELIVERY</button>
     <button class="btn" onclick="pizzaDeliveryPage()">🍕 30-MINUTE PIZZA DELIVERY · USA / CANADA</button>
@@ -34,6 +33,8 @@
     shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div class="payment-note" style="margin:12px 0"><strong>Why use Ads Manager?</strong><br>Ads Manager gives you more control over campaign goals, audiences, placements, budgets and performance reporting than the simple Promote option inside an app. That control can help you optimize for viewers, clicks and messages. Results still depend on your content, audience and budget.</div><div id="aamAdConnectionStatus class="payment-note" role="status">Checking your account connection…</div><div id="aamAdUnlockArea"></div><div id="aamAdAccountsArea"></div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
     refreshAamAdConnection(platform);
   };
+  window.adCampaignWorkspace=function(platform){return window.openAamAdWorkspace(platform);};
+
   window.refreshAamAdConnection=async function(platform){
     const box=document.getElementById('aamAdConnectionStatus'),btn=document.getElementById('aamAdConnectButton');if(!box)return;
     try{const r=await fetch('/.netlify/functions/composio-ads?action=status&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check the connection.');
