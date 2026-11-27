@@ -43,7 +43,7 @@ export async function handler(event){
    const path=String(b.media_path||''),mime=String(b.mime_type||''),ext=mimeExt[mime];
    const thumb=String(b.thumbnail_path||'');
    if(!ext||!path.startsWith('admin/')||path.includes('..')||(thumb&&(!thumb.startsWith('thumbnails/admin/')||thumb.includes('..'))))return json(400,{error:'Invalid administrator media.'});
-   const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:null,author_role:'admin',media_type:mime.startsWith('video/')?'video':'image',media_path:path,thumbnail_path:thumb||null,caption:String(b.caption||'').trim().slice(0,2200),moderation_status:'published',is_locked:mime.startsWith('video/')&&b.is_locked===true}])});
+   const soundId=String(b.sound_track_id||'').trim();if(soundId&&!/^[a-zA-Z0-9_-]{3,100}$/.test(soundId))return json(400,{error:'Choose a valid Audius sound.'});const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:null,author_role:'admin',media_type:mime.startsWith('video/')?'video':'image',media_path:path,thumbnail_path:thumb||null,caption:String(b.caption||'').trim().slice(0,2200),sound_track_id:soundId||null,sound_title:String(b.sound_title||'').slice(0,180),sound_artist:String(b.sound_artist||'').slice(0,120),sound_artwork_url:String(b.sound_artwork_url||'').slice(0,500)||null,moderation_status:'published',is_locked:mime.startsWith('video/')&&b.is_locked===true}])});
    return json(200,{ok:true,post:rows[0]});
   }
   if(b.action==='delete_post'){
