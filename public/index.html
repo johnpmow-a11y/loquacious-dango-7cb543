@@ -380,9 +380,16 @@ function setReadyAccountCategory(id){
  const select=document.getElementById('readyAccountCategory');if(!select)return;
  select.value=String(id||'');renderReadyAccountCategoryButtons();filterReadyAccounts();
 }
+function readyCountryCode(value){
+ const raw=String(value||'').trim().toUpperCase();
+ if(/^[A-Z]{2}$/.test(raw))return raw;
+ const key=raw.toLowerCase();
+ const aliases={'usa':'US','united states':'US','america':'US','uk':'GB','united kingdom':'GB','great britain':'GB','britain':'GB','canada':'CA','germany':'DE','spain':'ES','china':'CN'};
+ return aliases[key]||'';
+}
 function readyCountryFlag(code){
- const c=String(code||'').trim().toUpperCase();
- if(!/^[A-Z]{2}$/.test(c))return '';
+ const c=readyCountryCode(code);
+ if(!c)return '';
  return String.fromCodePoint(...[...c].map(x=>127397+x));
 }
 function renderReadyAccountCountries(){
@@ -394,8 +401,13 @@ function renderReadyAccountCountries(){
  const query=String(document.getElementById('readyAccountCountrySearch')?.value||'').trim().toLowerCase();
  const aliases={usa:['usa','us','united states','america'],uk:['uk','gb','great britain','united kingdom','britain']};
  const terms=[query,...(aliases[query]||[])];
- const rows=[...names.values()].filter(x=>!query||terms.some(t=>(x.name+' '+x.code).toLowerCase().includes(t)));
- select.innerHTML='<option value="">All countries (scroll to browse)</option>'+rows.map(x=>'<option value="'+esc(x.code||x.name)+'">'+esc(x.name||x.code)+'</option>').join('')||'<option value="">No matching country</option>';
+ const priority=['US','CA','GB','DE','ES','CN'];
+ const rows=[...names.values()].filter(x=>!query||terms.some(t=>(x.name+' '+x.code).toLowerCase().includes(t))).sort((a,b)=>{
+  const ac=readyCountryCode(a.code||a.name),bc=readyCountryCode(b.code||b.name),ai=priority.indexOf(ac),bi=priority.indexOf(bc);
+  if(ai!==-1||bi!==-1)return (ai===-1?99:ai)-(bi===-1?99:bi);
+  return String(a.name||a.code).localeCompare(String(b.name||b.code));
+ });
+ select.innerHTML='<option value="">All countries (scroll to browse)</option>'+rows.map(x=>'<option value="'+esc(x.code||x.name)+'">'+readyCountryFlag(x.code||x.name)+' '+esc(x.name||x.code)+'</option>').join('')||'<option value="">No matching country</option>';
  if([...select.options].some(o=>o.value===current))select.value=current;
 }
 function filterReadyAccountCountries(){
@@ -432,7 +444,7 @@ function filterReadyAccounts(){
   const followers=item.followers_count??item.follower_count??item.followers??null;
   const categoryName=item.category_name||'Social / Email Account';
   const countryLabel=String(item.country_name||item.country||item.country_code||'').trim();
-  const countryFlag=readyCountryFlag(item.country_code);
+  const countryFlag=readyCountryFlag(item.country_code||countryLabel);
   const isInstagram=(name+' '+categoryName+' '+description).toLowerCase().includes('instagram');
   const hasPhoto=!!image&&/^https:\/\//i.test(String(image));
   const photo=hasPhoto
