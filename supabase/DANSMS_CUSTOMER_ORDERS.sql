@@ -69,18 +69,23 @@ create or replace function public.bt_dansms_refund_order(
  p_reference text,p_final_status text,p_provider_response jsonb default null
 ) returns jsonb language plpgsql security definer set search_path=''
 as $function$
-declare v_order public.dansms_orders;
+declare v_order public.dansms_orders; v_refund_transaction_id uuid;
 begin
  select * into v_order from public.dansms_orders where wallet_reference=p_reference for update;
  if v_order.id is null then raise exception 'DANSMS_ORDER_NOT_FOUND'; end if;
  if p_final_status not in ('cancelled','expired','failed') then raise exception 'INVALID_DANSMS_REFUND_STATUS'; end if;
  if v_order.refunded_at is null then
-  update public.wallet_balances set balance_kobo=balance_kobo+v_order.customer_charge_kobo,updated_at=now()
-   where customer_id=v_order.customer_id;
+  -- Insert the unique refund ledger entry first. Credit the balance only if
+  -- this transaction was newly inserted, so a replay can never double-credit.
   insert into public.wallet_transactions(customer_id,reference,amount_kobo,transaction_type,description)
    values(v_order.customer_id,'refund-'||p_reference,v_order.customer_charge_kobo,'refund',
     'DanSMS number order refund: '||v_order.service_code)
-   on conflict(reference) do nothing;
+   on conflict(reference) do nothing
+   returning id into v_refund_transaction_id;
+  if v_refund_transaction_id is not null then
+   update public.wallet_balances set balance_kobo=balance_kobo+v_order.customer_charge_kobo,updated_at=now()
+    where customer_id=v_order.customer_id;
+  end if;
  end if;
  update public.dansms_orders set status=p_final_status,refunded_at=coalesce(refunded_at,now()),
   provider_response=coalesce(p_provider_response,provider_response),updated_at=now()
