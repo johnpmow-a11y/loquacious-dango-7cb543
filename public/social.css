@@ -366,3 +366,19 @@ body.aam-full-status-open .aam-status-viewer>.aam-social-actions{flex:0 0 auto;a
 body.aam-full-status-open .aam-status-fullmedia,body.aam-full-status-open .aam-status-cloudflare{flex:1 1 0!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;object-fit:contain!important;border-radius:0!important;background:#000!important}
 body.aam-full-status-open .aam-status-text{flex:1 1 0!important;width:100%!important;min-height:0!important;height:100%!important;border-radius:0!important;display:grid!important;place-items:center}
 body.aam-full-status-open .aam-status-viewer>.aam-social-actions:last-child{padding-bottom:env(safe-area-inset-bottom)}
+
+/* TikTok-inspired creator profile with visible post and video grid. */
+.aam-profile-grid-card{margin:12px 0 16px;padding:0!important;overflow:hidden;background:#fff;border:1px solid #e5e9ef;border-radius:20px}
+.aam-profile-stats{display:flex;justify-content:space-around;gap:8px;padding:14px 8px;text-align:center;color:#475467;font-size:12px}
+.aam-profile-stats span{display:flex;flex-direction:column;gap:3px}
+.aam-profile-stats strong{font-size:18px;color:#101828;font-weight:850}
+.aam-profile-tabs{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3}
+.aam-profile-tabs button{min-height:46px;border:0;border-bottom:2px solid transparent;background:#fff;color:#667085;font-size:13px;font-weight:800}
+.aam-profile-tabs button.active{border-bottom-color:#111827;color:#111827}
+.aam-profile-post-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+.aam-profile-post-grid[hidden],#aamProfileAbout[hidden]{display:none!important}
+.aam-profile-post-tile{position:relative;display:block;width:100%;aspect-ratio:3/4;min-width:0;overflow:hidden;padding:0;border:0;border-radius:0;background:#e9edf0}
+.aam-profile-post-tile img{display:block;width:100%;height:100%;object-fit:cover}
+.aam-profile-tile-text,.aam-profile-tile-placeholder{width:100%;height:100%;display:grid;place-items:center;padding:8px;color:#fff;font-size:12px;font-weight:800;text-align:center;overflow:hidden}
+.aam-profile-tile-play{position:absolute;right:7px;bottom:7px;color:#fff;font-size:15px;text-shadow:0 1px 5px #000}
+#aamProfileAbout{padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;color:#344054;line-height:1.6}
