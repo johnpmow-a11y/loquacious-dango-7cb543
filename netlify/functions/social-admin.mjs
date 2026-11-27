@@ -5,6 +5,8 @@ const uuid=/^[0-9a-f-]{36}$/i;
 const mimeExt={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm'};
 const h=(key,extra={})=>({apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),...extra});
 async function db(path,options={}){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!u||!k)throw new Error('Admin social service is not configured.');const r=await fetch(`${u}/rest/v1/${path}`,{...options,headers:h(k,{'Content-Type':'application/json',...(options.headers||{})})});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||d.error||'Admin social request failed.');return d;}
+async function createCloudflareUpload(mime,owner,role){const account=process.env.CLOUDFLARE_ACCOUNT_ID||process.env.CLOUDFLARE_STREAM_ACCOUNT_ID,apiToken=process.env.CLOUDFLARE_STREAM_API_TOKEN||process.env.CLOUDFLARE_API_TOKEN||process.env.CLOUDFLARE_STREAM_TOKEN;if(!account||!apiToken)throw new Error('Cloudflare Stream is not configured. Check your Cloudflare Account ID and Stream API token in Netlify.');const r=await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/stream/direct_upload`,{method:'POST',headers:{Authorization:`Bearer ${apiToken}`,'Content-Type':'application/json'},body:JSON.stringify({maxDurationSeconds:3600,requireSignedURLs:false,meta:{owner:String(owner||'admin'),role:String(role||'customer'),mime_type:String(mime||'video/mp4')}}),signal:AbortSignal.timeout(15000)});const d=await r.json().catch(()=>({}));if(!r.ok||!d.success||!d.result?.uid||!d.result?.uploadURL)throw new Error(d.errors?.[0]?.message||'Cloudflare could not prepare the video upload.');return {uid:d.result.uid,upload_url:d.result.uploadURL};}
+
 async function dbAll(path,pageSize=1000){const all=[];for(let offset=0;;offset+=pageSize){const rows=await db(path,{headers:{Range:`${offset}-${offset+pageSize-1}`}});all.push(...rows);if(rows.length<pageSize)return all;if(offset>=1000000)throw new Error('Admin accounting result is too large to load safely.');}}
 async function adminSession(token){if(!uuid.test(token))return null;const rows=await db(`admin_sessions?select=token&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);return rows[0]||null;}
 export async function handler(event){
@@ -28,6 +30,7 @@ export async function handler(event){
   }
   if(b.action==='sign_upload'){
    const mime=String(b.mime_type||''),ext=mimeExt[mime];if(!ext)return json(400,{error:'Choose a supported image or video.'});
+   if(mime.startsWith('video/')){const cf=await createCloudflareUpload(mime,'admin','admin');return json(200,{provider:'cloudflare',path:'cloudflare:'+cf.uid,upload_url:cf.upload_url,uid:cf.uid});}
    const path=`admin/${randomUUID()}.${ext}`,u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;
    const r=await fetch(`${u}/storage/v1/object/upload/sign/aam-social-media/${path}`,{method:'POST',headers:h(k,{'Content-Type':'application/json'}),body:'{}'});
    const d=await r.json().catch(()=>({}));if(!r.ok)return json(502,{error:d.message||'Could not prepare admin media upload.'});
@@ -42,8 +45,8 @@ export async function handler(event){
   if(b.action==='publish_post'){
    const path=String(b.media_path||''),mime=String(b.mime_type||''),ext=mimeExt[mime];
    const thumb=String(b.thumbnail_path||'');
-   if(!ext||!path.startsWith('admin/')||path.includes('..')||(thumb&&(!thumb.startsWith('thumbnails/admin/')||thumb.includes('..'))))return json(400,{error:'Invalid administrator media.'});
-   const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:null,author_role:'admin',media_type:mime.startsWith('video/')?'video':'image',media_path:path,thumbnail_path:thumb||null,caption:String(b.caption||'').trim().slice(0,2200),moderation_status:'published',is_locked:mime.startsWith('video/')&&b.is_locked===true}])});
+   const cloudVideo=path.startsWith('cloudflare:')&&/^cloudflare:[a-f0-9]{20,80}$/i.test(path);if(!ext||(!cloudVideo&&!path.startsWith('admin/'))||(cloudVideo&&!mime.startsWith('video/'))||(!cloudVideo&&path.includes('..'))||(thumb&&(!thumb.startsWith('thumbnails/admin/')||thumb.includes('..'))))return json(400,{error:'Invalid administrator media.'});
+   const soundId=String(b.sound_track_id||'').trim();if(soundId&&!/^[a-zA-Z0-9_-]{3,100}$/.test(soundId))return json(400,{error:'Choose a valid Audius sound.'});const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:null,author_role:'admin',media_type:mime.startsWith('video/')?'video':'image',media_path:path,thumbnail_path:thumb||null,caption:String(b.caption||'').trim().slice(0,2200),sound_track_id:soundId||null,sound_title:String(b.sound_title||'').slice(0,180),sound_artist:String(b.sound_artist||'').slice(0,120),sound_artwork_url:String(b.sound_artwork_url||'').slice(0,500)||null,moderation_status:'published',is_locked:mime.startsWith('video/')&&b.is_locked===true}])});
    return json(200,{ok:true,post:rows[0]});
   }
   if(b.action==='delete_post'){

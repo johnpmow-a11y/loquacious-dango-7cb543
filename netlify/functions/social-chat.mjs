@@ -6,7 +6,7 @@ const headers=(key,extra={})=>({apikey:key,...(key.startsWith('sb_secret_')?{}:{
 async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Chat service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:headers(key,{'Content-Type':'application/json',...(options.headers||{})})});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.message||data.error||'Chat request failed.');return data;}
 async function session(token){if(!uuid.test(token))return null;const rows=await db(`customer_sessions?select=customer_id&token=eq.${encodeURIComponent(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);return rows[0]||null;}
 async function adultConfirmed(customerId){const rows=await db(`aam_social_profiles?select=adult_confirmed_at&customer_id=eq.${encodeURIComponent(customerId)}&limit=1`);return !!rows[0]?.adult_confirmed_at;}
-async function signedRead(path){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY,bucket=path.startsWith('voice/')?'aam-social-voice':'aam-social-media';const r=await fetch(`${u}/storage/v1/object/sign/${bucket}/${path}`,{method:'POST',headers:headers(k,{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:1800})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||'Could not load chat media.');const p=d.signedURL||d.signedUrl||'';return /^https?:\/\//i.test(p)?p:u+(p.startsWith('/storage/v1/')?p:'/storage/v1'+(p.startsWith('/')?p:'/'));}
+async function signedRead(path,expiresIn=1800){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY,bucket=path.startsWith('voice/')?'aam-social-voice':'aam-social-media';const r=await fetch(`${u}/storage/v1/object/sign/${bucket}/${path}`,{method:'POST',headers:headers(k,{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||'Could not load chat media.');const p=d.signedURL||d.signedUrl||'';return /^https?:\/\//i.test(p)?p:u+(p.startsWith('/storage/v1/')?p:'/storage/v1'+(p.startsWith('/')?p:'/'));}
 async function rpc(name,args){return db(`rpc/${name}`,{method:'POST',body:JSON.stringify(args)});}
 export async function handler(event){
  if(event.httpMethod==='OPTIONS')return json(204,{});
@@ -21,15 +21,19 @@ export async function handler(event){
     const part=await db(`aam_chat_participants?select=conversation_id&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`);
     if(!part.length)return json(404,{error:'Conversation not found.'});
     const [conversationRows,groupMember,otherParticipants]=await Promise.all([db(`aam_chat_conversations?select=id,conversation_type,title&id=eq.${conv}&limit=1`),db(`aam_chat_group_members?select=group_role&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`),db(`aam_chat_participants?select=customer_id&conversation_id=eq.${conv}&customer_id=neq.${s.customer_id}&limit=1`)]);
-    const messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);
+    const otherProfileRows=otherParticipants[0]?.customer_id?await db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=eq.${otherParticipants[0].customer_id}&limit=1`):[];
+    const otherProfile=otherProfileRows[0]?{...otherProfileRows[0],avatar_url:otherProfileRows[0].avatar_path?await signedRead(otherProfileRows[0].avatar_path,300):null}:null;
+    let messages;try{messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at,deleted_at,view_once,viewed_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);}catch(error){if(!/view_once|column|schema cache/i.test(String(error.message||'')))throw error;messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at,deleted_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);messages=messages.map(message=>({...message,view_once:false,viewed_at:null}));}
     messages.reverse();
     const reads=messages.length?await db(`aam_chat_message_reads?select=message_id,customer_id,read_at&message_id=in.(${messages.map(m=>m.id).join(',')})`):[];
+    let viewOnceReads=[];if(messages.length){try{viewOnceReads=await db(`aam_chat_message_view_once_reads?select=message_id,customer_id,viewed_at&message_id=in.(${messages.map(m=>m.id).join(',')})&customer_id=eq.${s.customer_id}`);}catch(error){if(!/view_once|schema cache/i.test(String(error.message||'')))throw error;}}
+    const reactions=messages.length?await db(`aam_chat_message_reactions?select=message_id,customer_id,emoji&message_id=in.(${messages.map(m=>m.id).join(',')})`):[];
     const ids=[...new Set(messages.map(m=>m.sender_id))];
     const profiles=ids.length?await db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=in.(${ids.join(',')})`):[];
     const senderNames=new Map(profiles.map(p=>[p.customer_id,p]));
     const pm=new Map(profiles.map(p=>[p.customer_id,p]));
     await rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv});
-    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,group_role:groupMember[0]?.group_role||null,messages:await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id)}}))});
+    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,other_profile:otherProfile,group_role:groupMember[0]?.group_role||null,messages:await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;const profile=pm.get(m.sender_id)||{display_name:'Creator'};return {...publicMessage,body:m.deleted_at?'This message was deleted':publicMessage.body,media_url:media_path&&!m.view_once?await signedRead(media_path):null,creator:{...profile,avatar_url:profile.avatar_path?await signedRead(profile.avatar_path,300):null},viewed_by_me:viewOnceReads.some(r=>r.message_id===m.id),read_by:reads.filter(r=>r.message_id===m.id),reactions:reactions.filter(r=>r.message_id===m.id)}}))});
    }
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
    if(!parts.length)return json(200,{conversations:[]});
@@ -45,7 +49,7 @@ export async function handler(event){
    const otherIds=[...new Set(allParts.filter(p=>p.customer_id!==s.customer_id).map(p=>p.customer_id))];
    const profiles=otherIds.length?await db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=in.(${otherIds.join(',')})`):[];
    const pm=new Map(profiles.map(p=>[p.customer_id,p]));
-   return json(200,{conversations:conversations.map(c=>c.conversation_type==='group'?({...c,other:{display_name:c.title||'All Ads Manager Community',is_group:true,group_role:ownRoles.get(c.id)||'member',member_count:memberships.filter(m=>m.conversation_id===c.id).length},last_message:messages.find(m=>m.conversation_id===c.id)||null}):({...c,other:allParts.filter(p=>p.conversation_id===c.id&&p.customer_id!==s.customer_id).map(p=>({...pm.get(p.customer_id),last_seen_at:p.last_seen_at}))[0]||{},last_message:messages.find(m=>m.conversation_id===c.id)||null}))});
+   return json(200,{conversations:conversations.map(c=>{const mine=allParts.find(p=>p.conversation_id===c.id&&p.customer_id===s.customer_id);const lastSeen=mine?.last_seen_at?new Date(mine.last_seen_at).getTime():0;const unread_count=messages.filter(m=>m.conversation_id===c.id&&m.sender_id!==s.customer_id&&new Date(m.created_at).getTime()>lastSeen).length;const last_message=messages.find(m=>m.conversation_id===c.id)||null;return c.conversation_type==='group'?({...c,other:{display_name:c.title||'All Ads Manager Community',is_group:true,group_role:ownRoles.get(c.id)||'member',member_count:memberships.filter(m=>m.conversation_id===c.id).length},last_message,unread_count}):({...c,other:allParts.filter(p=>p.conversation_id===c.id&&p.customer_id!==s.customer_id).map(p=>({...pm.get(p.customer_id),last_seen_at:p.last_seen_at}))[0]||{},last_message,unread_count});})});
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   if(b.action==='sign_media_upload'){
@@ -63,12 +67,30 @@ export async function handler(event){
    const d=await r.json().catch(()=>({}));if(!r.ok)return json(502,{error:d.message||'Could not prepare the voice note.'});
    return json(200,{path,token:d.token});
   }
+  if(b.action==='view_once'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   const result=await rpc('aam_chat_view_once',{p_token:token,p_message_id:b.message_id});
+   if(!result?.media_path)throw new Error('View-once media is unavailable.');
+   return json(200,{ok:true,message_type:result.message_type,media_url:await signedRead(result.media_path,120)});
+  }
+  if(b.action==='edit_message'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   return json(200,await rpc('aam_chat_edit_message',{p_token:token,p_message_id:b.message_id,p_body:String(b.body||'')}));
+  }
+  if(b.action==='delete_message'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   return json(200,await rpc('aam_chat_delete_message',{p_token:token,p_message_id:b.message_id}));
+  }
+  if(b.action==='react_message'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   return json(200,await rpc('aam_chat_toggle_reaction',{p_token:token,p_message_id:b.message_id,p_emoji:String(b.emoji||'')}));
+  }
   if(b.action==='touch'){if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});return json(200,await rpc('aam_chat_touch',{p_token:token,p_conversation:b.conversation_id}));}
   if(b.action==='start'){if(!uuid.test(String(b.target_customer_id||'')))return json(400,{error:'Choose a valid profile.'});return json(200,await rpc('aam_chat_start',{p_token:token,p_target:b.target_customer_id}));}
   if(b.action==='send'){
    if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});
    const recipients=await db(`aam_chat_participants?select=customer_id&conversation_id=eq.${b.conversation_id}&customer_id=neq.${s.customer_id}`);
-   const result=await rpc('aam_chat_send',{p_token:token,p_conversation:b.conversation_id,p_body:String(b.body||''),p_type:String(b.message_type||'text'),p_media_path:b.media_path||null,p_shared_post:b.shared_post_id||null});
+   let result;if(b.view_once===true){try{result=await rpc('aam_chat_send_v2',{p_token:token,p_conversation:b.conversation_id,p_body:String(b.body||''),p_type:String(b.message_type||'text'),p_media_path:b.media_path||null,p_shared_post:b.shared_post_id||null,p_view_once:true});}catch(error){if(/function|schema cache|aam_chat_send_v2/i.test(String(error.message||'')))throw new Error('View Once is not enabled yet. Run the new All Ads Manager chat View Once SQL migration first.');throw error;}}else{result=await rpc('aam_chat_send',{p_token:token,p_conversation:b.conversation_id,p_body:String(b.body||''),p_type:String(b.message_type||'text'),p_media_path:b.media_path||null,p_shared_post:b.shared_post_id||null});}
    await Promise.allSettled(recipients.map(x=>sendPush({role:'customer',customerId:x.customer_id,title:'New message',body:String(b.message_type==='voice'?'You received a voice note.':b.message_type==='shared_post'?'Someone shared a post with you.':b.message_type==='image'||b.message_type==='video'?'You received a media message.':b.body||'You have a new message.').slice(0,180),eventType:b.message_type==='shared_post'?'share':'message'})));
    return json(200,result);
   }
