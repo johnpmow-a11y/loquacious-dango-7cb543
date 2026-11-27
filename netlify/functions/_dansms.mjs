@@ -9,7 +9,7 @@ export async function dansms(params){
  const raw=(await r.text()).trim();
  if(!r.ok)throw Object.assign(new Error('DanSMS request failed ('+r.status+').'),{status:r.status});
  let data=raw;try{data=JSON.parse(raw)}catch{}
- if(typeof data==='string'&&/^(ERROR|BAD_|NO_|ACCESS_DENIED)/i.test(data))throw Object.assign(new Error(data),{status:502});
+ if(typeof data==='string'&&/^(ERROR|BAD_|NO_|ACCESS_DENIED)/i.test(data))throw Object.assign(new Error(data),{status:409});
  return data;
 }
 export function customerPriceUsd(cost){
