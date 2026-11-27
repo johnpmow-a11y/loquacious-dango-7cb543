@@ -255,7 +255,7 @@ body.aam-full-chat-open .aam-social-wrap{width:100%!important;max-width:none!imp
 .aam-photo-crop-box[hidden]{display:none}
 
 /* WhatsApp-style message actions */
-.aam-social-chat-screen .aam-social-message{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.aam-social-chat-screen .aam-social-message{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
 .aam-message-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
 .aam-message-reaction{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid #d1d5db;border-radius:14px;background:#fff;font-size:12px}
 .aam-message-deleted{color:#64748b;font-style:italic}
