@@ -248,3 +248,8 @@ body.aam-full-chat-open .aam-social-wrap{width:100%!important;max-width:none!imp
 .aam-social-chat-screen .aam-chat-emoji{flex:0 0 34px!important;width:34px!important;min-width:34px!important;font-size:24px!important;color:#087443}
 .aam-social-chat-screen .aam-social-chat-messages{min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .aam-social-chat-screen{min-height:0;}
+
+.aam-editor-canvas-wrap{position:relative;display:grid;place-items:center;max-width:100%;max-height:100%;min-width:0;min-height:0}
+.aam-editor-canvas-wrap canvas{display:block;max-width:100%;max-height:100%;object-fit:contain;touch-action:none}
+.aam-photo-crop-box{position:absolute;z-index:3;border:2px solid #fff;outline:1px dashed #111;box-shadow:0 0 0 9999px rgba(0,0,0,.42);background:transparent;pointer-events:none}
+.aam-photo-crop-box[hidden]{display:none}
