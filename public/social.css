@@ -83,7 +83,7 @@
 .aam-social-chat-screen{position:fixed!important;inset:0!important;z-index:9500!important;width:100vw!important;height:100dvh!important;max-width:none!important;margin:0!important;padding:calc(12px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;overflow:hidden!important;background:#f7f5f0!important}
 .aam-social-chat-screen .aam-chat-back{flex:0 0 42px;width:42px;min-height:42px;padding:0;font-size:24px;border-radius:50%;align-self:flex-start}
 .aam-social-chat-screen .aam-chat-title{flex:0 0 auto;margin:0 0 4px;padding:0 0 10px;border-bottom:1px solid #e5e7eb;font-size:18px}
-.aam-social-chat-screen .aam-social-chat-messages{flex:1 1 auto;min-height:0;max-height:none!important;width:100%;padding:12px 8px;overflow-y:auto;overscroll-behavior:contain;border-radius:14px;background-color:#f3eee7}
+.aam-social-chat-screen .aam-social-chat-messages{flex:1 1 auto;min-height:0;max-height:none!important;width:100%;padding:12px 8px;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y;border-radius:14px;background-color:#f3eee7}
 .aam-social-chat-screen #aamChatBody{flex:0 0 auto;min-height:48px;max-height:120px;margin:0;background:#fff;border-radius:22px}
 .aam-social-chat-screen .aam-voice-controls{flex:0 0 auto;margin:0}
 .aam-social-chat-screen>label,.aam-social-chat-screen>#aamChatMedia{display:none}
