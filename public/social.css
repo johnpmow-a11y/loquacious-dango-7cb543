@@ -230,3 +230,12 @@ body.aam-full-chat-open .aam-social-wrap{width:100%!important;max-width:none!imp
 .aam-editor-tools button[style]{min-width:32px;width:32px;height:32px;align-self:center;border:2px solid #fff}
 .aam-editor-caption{flex:0 0 auto;margin:8px 12px 12px;padding:13px;border:1px solid #ffffff35;border-radius:14px;background:#ffffff12;color:#fff;font-size:16px}
 .aam-editor-hint{flex:0 0 auto;margin:0;padding:0 14px 8px;color:#cbd5d0;font-size:12px}
+
+/* Hold-to-record voice controls */
+.aam-social-chat-screen .aam-chat-mic{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.aam-social-chat-screen .aam-chat-recording-status.recording{padding:8px 12px;background:#fff7ed;color:#b42318}
+.aam-voice-locked{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:7px 0}
+.aam-voice-locked span{font-weight:800;margin-right:auto}
+.aam-voice-locked button{min-height:34px;padding:6px 10px;border:1px solid #d0d5dd;border-radius:18px;background:#fff;color:#344054;font-weight:700}
+.aam-voice-locked button:last-child{background:#087443;color:#fff;border-color:#087443}
+.aam-voice-preview audio{width:100%;max-width:100%}
