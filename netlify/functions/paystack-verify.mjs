@@ -20,7 +20,7 @@ export async function handler(event) {
     const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, { signal: AbortSignal.timeout(12000), headers: { Authorization: `Bearer ${secret}` } });
     const verified = await verifyResponse.json();
     const tx = verified.data;
-    if (verifyResponse.ok && verified.status && tx?.status === 'success') {
+    if (verifyResponse.ok && verified.status && tx?.status === 'success' && String(tx?.reference || '') === String(reference)) {
       const credit = await fetch(`${supabase}/rest/v1/rpc/bt_paystack_credit_deposit`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_reference: reference, p_transaction_id: String(tx.id), p_channel: String(tx.channel || ''), p_paid_at: tx.paid_at || tx.paidAt || new Date().toISOString(), p_amount_kobo: Number(tx.amount), p_currency: String(tx.currency || '') }) });
       if (!credit.ok) {
   const creditError = await credit.text();
