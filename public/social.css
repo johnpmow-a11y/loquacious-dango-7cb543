@@ -69,16 +69,6 @@
 
 .aam-social-locked{position:relative;min-height:250px;overflow:hidden;display:grid;place-items:center;text-align:center;border-radius:14px;margin-top:10px;padding:24px;background:#172554}.aam-social-locked>div{position:relative;z-index:2;background:rgba(15,23,42,.76);padding:18px;border-radius:14px;max-width:100%}.aam-social-locked .aam-social-thumbnail{width:100%;height:100%;max-height:420px;object-fit:cover;filter:brightness(.4) blur(2px);position:absolute;inset:0}
 
-.aam-social-call-panel{display:grid;gap:10px;margin:14px 0 18px;padding:14px;border:1px solid #cbd5e1;border-radius:16px;background:#f8fafc}
-.aam-social-call-actions{display:flex;flex-wrap:wrap;gap:8px}
-.aam-social-call-actions .aam-social-btn{flex:1;min-width:105px}
-.aam-social-call-media{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.aam-social-call-media video{width:min(100%,320px);max-height:280px;object-fit:cover;border-radius:12px;background:#111827}
-.aam-social-call-media audio{width:100%;max-width:360px}
-.aam-social-incoming{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px;border-radius:12px;background:#dbeafe;color:#1e3a8a}
-.aam-social-incoming strong{width:100%}
-
-.aam-social-call-media video.aam-social-local-preview{outline:2px solid #2563eb;outline-offset:2px}
 
 .aam-social-loading{min-height:42vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#334155;text-align:center}.aam-social-loading strong{font-size:14px;font-weight:700}.aam-social-loading-spinner{width:34px;height:34px;border:3px solid #dbe5e8;border-top-color:#0f766e;border-radius:50%;animation:aamSocialSpin .7s linear infinite}@keyframes aamSocialSpin{to{transform:rotate(360deg)}}
 
@@ -93,7 +83,6 @@
 .aam-social-chat-screen{position:fixed!important;inset:0!important;z-index:9500!important;width:100vw!important;height:100dvh!important;max-width:none!important;margin:0!important;padding:calc(12px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;overflow:hidden!important;background:#f7f5f0!important}
 .aam-social-chat-screen .aam-chat-back{flex:0 0 42px;width:42px;min-height:42px;padding:0;font-size:24px;border-radius:50%;align-self:flex-start}
 .aam-social-chat-screen .aam-chat-title{flex:0 0 auto;margin:0 0 4px;padding:0 0 10px;border-bottom:1px solid #e5e7eb;font-size:18px}
-.aam-social-chat-screen .aam-social-call-panel{flex:0 0 auto;max-height:34dvh;overflow:auto;margin:0;padding:8px;border-radius:14px}
 .aam-social-chat-screen .aam-social-chat-messages{flex:1 1 auto;min-height:0;max-height:none!important;width:100%;padding:12px 8px;overflow-y:auto;overscroll-behavior:contain;border-radius:14px;background-color:#f3eee7}
 .aam-social-chat-screen #aamChatBody{flex:0 0 auto;min-height:48px;max-height:120px;margin:0;background:#fff;border-radius:22px}
 .aam-social-chat-screen .aam-voice-controls{flex:0 0 auto;margin:0}
@@ -101,9 +90,7 @@
 .aam-social-chat-screen>button.aam-social-btn{flex:0 0 auto;min-height:44px}
 .aam-social-chat-screen .aam-social-message{max-width:86%;border-radius:18px;padding:10px 13px}
 .aam-social-chat-screen .aam-social-message.mine{background:#d8f8cf}
-.aam-social-chat-screen .aam-social-call-media{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-.aam-social-chat-screen .aam-social-call-media video{width:100%;height:clamp(110px,24dvh,220px);max-height:none;object-fit:cover;border-radius:12px;background:#111}
-@media(min-width:760px){.aam-social-chat-screen{padding:18px max(24px,calc((100vw - 760px)/2))!important}.aam-social-chat-screen .aam-social-chat-messages{max-width:760px;width:100%;align-self:center}.aam-social-chat-screen .aam-social-call-panel{max-width:760px;width:100%;align-self:center}}
+@media(min-width:760px){.aam-social-chat-screen{padding:18px max(24px,calc((100vw - 760px)/2))!important}.aam-social-chat-screen .aam-social-chat-messages{max-width:760px;width:100%;align-self:center}}
 
 /* Compact designed wallet card */
 .aam-wallet-card{position:relative;overflow:hidden;margin:12px 0 16px;padding:18px;border-radius:22px;background:radial-gradient(circle at 100% 0%,rgba(96,165,250,.32),transparent 38%),linear-gradient(145deg,#101d3b,#172b55 58%,#243f70);color:#fff;box-shadow:0 12px 28px rgba(15,23,42,.2)}
@@ -131,47 +118,7 @@
 .aam-post-camera-top,.aam-post-camera-bottom{position:absolute;left:0;right:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;color:#fff}
 .aam-post-camera-top{top:env(safe-area-inset-top)}.aam-post-camera-bottom{bottom:env(safe-area-inset-bottom);justify-content:center;gap:30px;padding-bottom:24px}
 .aam-post-camera-top button{width:42px;height:42px;border:0;border-radius:50%;background:#111a;color:#fff;font-size:28px}.aam-post-camera-bottom button{width:64px;height:64px;border:5px solid #fff;border-radius:50%;background:#fff;color:#f43f5e;font-size:25px}.aam-post-camera-bottom #aamPostRecordToggle{background:#f43f5e;color:#fff;border-color:#fff}.aam-post-camera-bottom span{position:absolute;bottom:4px;left:0;right:0;text-align:center;color:#fff;font-size:13px;text-shadow:0 1px 5px #000}
-/* Full-screen two-sided LiveKit call surface */
-#aamIncomingCallOverlay,#aamAdminCallOverlay{position:fixed!important;inset:0!important;z-index:100001!important;padding:0!important;align-items:stretch!important;justify-content:stretch!important;background:#05070b!important}
-#aamIncomingCallOverlay>.aam-social-card,#aamAdminCallOverlay>.aam-social-card{width:100%!important;height:100dvh!important;max-height:none!important;overflow:hidden!important;border:0!important;border-radius:0!important;padding:calc(16px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom))!important;background:#080b12!important;color:#fff!important;display:flex!important;flex-direction:column!important;gap:12px!important}
-#aamIncomingCallOverlay h2,#aamAdminCallOverlay h2{margin:4px 0;font-size:20px}
-#aamIncomingCallOverlay #aamCallMedia,#aamAdminCallOverlay #aamCallMedia{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr;grid-auto-rows:minmax(0,1fr);gap:8px;overflow:hidden}
-#aamIncomingCallOverlay #aamCallMedia video,#aamAdminCallOverlay #aamCallMedia video{width:100%;height:100%;min-height:0;max-height:none;object-fit:cover;border-radius:14px;background:#000}
-#aamIncomingCallOverlay .aam-social-call-actions,#aamAdminCallOverlay .aam-social-call-actions{flex:0 0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding-bottom:env(safe-area-inset-bottom)}
-#aamIncomingCallOverlay .aam-social-call-actions button,#aamAdminCallOverlay .aam-social-call-actions button{min-height:46px;border-radius:24px}
-#aamIncomingCallOverlay #aamCallStatus,#aamAdminCallOverlay #aamCallStatus{color:#cbd5e1}
-.aam-social-chat-screen .aam-chat-media-input{display:none!important}.aam-social-chat-screen .aam-chat-attach-row{display:flex;gap:8px;flex:0 0 auto}.aam-social-chat-screen .aam-chat-attach-row button{flex:1;min-width:0;min-height:42px;padding:8px 10px;font-size:13px}
-#aamIncomingCallOverlay #aamCallMedia:has(video:nth-child(2)),#aamAdminCallOverlay #aamCallMedia:has(video:nth-child(2)){grid-template-columns:1fr 1fr}
-.aam-active-call-overlay{position:fixed;inset:0;z-index:100002;background:#05070b;color:#fff;padding:calc(16px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column}.aam-active-call-surface{width:100%;height:100%;min-height:0;display:flex;flex-direction:column;gap:12px}.aam-active-call-surface #aamCallStatus{color:#cbd5e1}.aam-active-call-surface #aamCallMedia{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr;grid-auto-rows:minmax(0,1fr);gap:8px;overflow:hidden}.aam-active-call-surface #aamCallMedia video{width:100%;height:100%;max-height:none;object-fit:cover;border-radius:14px;background:#000}.aam-active-call-surface .aam-social-call-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding-bottom:env(safe-area-inset-bottom)}.aam-active-call-surface .aam-social-call-actions button{min-height:46px;border-radius:24px}.aam-active-call-surface #aamCallMedia:has(video:nth-child(2)){grid-template-columns:1fr 1fr}
 
-/* WhatsApp-style call: remote caller fills the screen; self-view floats in a corner. */
-#aamIncomingCallOverlay>.aam-incoming-call-surface,
-#aamIncomingCallOverlay>.aam-social-card.aam-incoming-call-surface{width:100%!important;height:100dvh!important;max-height:none!important;overflow:hidden!important;border:0!important;border-radius:0!important;padding:calc(18px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom))!important;background:#05070b!important;color:#fff!important;display:flex!important;flex-direction:column!important;gap:12px!important}
-#aamCallMedia.aam-call-has-local{position:relative!important;display:block!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;background:#000!important;border-radius:0!important}
-#aamCallMedia.aam-call-has-local video{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;border-radius:0!important;background:#000!important;cursor:pointer}
-#aamCallMedia.aam-call-has-local video[data-local="true"]{inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid rgba(255,255,255,.9)!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important;object-fit:cover!important}
-#aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"]{inset:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-#aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]){inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important}
-#aamIncomingCallOverlay #aamIncomingCall{flex:0 0 auto}
-#aamIncomingCallOverlay .aam-social-incoming{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 0 16px}
-#aamIncomingCallOverlay .aam-social-incoming strong{grid-column:1/-1;text-align:center;font-size:18px;padding:12px}
-#aamIncomingCallOverlay .aam-social-incoming button{min-height:54px;border-radius:28px;font-size:16px;font-weight:700}
-#aamIncomingCallOverlay .aam-social-incoming button:first-of-type{background:#16a34a!important;color:#fff!important}
-#aamIncomingCallOverlay .aam-social-incoming button:last-of-type{background:#dc2626!important;color:#fff!important}
-#aamAdminCallOverlay #aamCallMedia.aam-call-has-local,#aamActiveCallOverlay #aamCallMedia.aam-call-has-local{position:relative!important;display:block!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;background:#000!important}
-#aamAdminCallOverlay #aamCallMedia.aam-call-has-local video,#aamActiveCallOverlay #aamCallMedia.aam-call-has-local video{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;border-radius:0!important}
-#aamAdminCallOverlay #aamCallMedia.aam-call-has-local video[data-local="true"],#aamActiveCallOverlay #aamCallMedia.aam-call-has-local video[data-local="true"]{inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important}
-#aamAdminCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"],#aamActiveCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"]{inset:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-#aamAdminCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]),#aamActiveCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]){inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important}
-/* Default camera priority requested: my camera is full-screen; customer is the floating tile. */
-#aamCallMedia.aam-call-has-local video[data-local="true"]{inset:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-#aamCallMedia.aam-call-has-local video:not([data-local="true"]){inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important}
-#aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"]{inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important}
-#aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]){inset:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-#aamIncomingCallOverlay #aamCallMedia.aam-call-has-local video[data-local="true"],#aamAdminCallOverlay #aamCallMedia.aam-call-has-local video[data-local="true"],#aamActiveCallOverlay #aamCallMedia.aam-call-has-local video[data-local="true"]{inset:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-#aamIncomingCallOverlay #aamCallMedia.aam-call-has-local video:not([data-local="true"]),#aamAdminCallOverlay #aamCallMedia.aam-call-has-local video:not([data-local="true"]),#aamActiveCallOverlay #aamCallMedia.aam-call-has-local video:not([data-local="true"]){inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important}
-#aamIncomingCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"],#aamAdminCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"],#aamActiveCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"]{inset:auto 14px 18px auto!important;width:clamp(104px,29vw,142px)!important;height:clamp(150px,24vh,210px)!important;z-index:3!important;border:2px solid #fff!important;border-radius:16px!important;box-shadow:0 5px 22px #0009!important}
-#aamIncomingCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]),#aamAdminCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]),#aamActiveCallOverlay #aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]){inset:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0!important;border-radius:0!important;box-shadow:none!important}
 
 /* Final mobile interaction and feed layout safeguards */
 html,body{overscroll-behavior-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
@@ -195,14 +142,6 @@ body:has(#aamSocialDock) .container,#aamSocialRoot,.aam-social-wrap{touch-action
 
 .tiny-admin::after{content:"";position:absolute;inset:-9px;border-radius:50%;}
 
-/* Final call layout: show both live cameras side by side on both phones. */
-#aamCallMedia.aam-call-has-local{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;gap:6px!important;position:relative!important;overflow:hidden!important;min-height:0!important;background:#05070b!important}
-#aamCallMedia.aam-call-has-local video,#aamIncomingCallOverlay #aamCallMedia.aam-call-has-local video,#aamAdminCallOverlay #aamCallMedia.aam-call-has-local video,#aamActiveCallOverlay #aamCallMedia.aam-call-has-local video{position:relative!important;inset:auto!important;grid-row:1!important;grid-column:auto!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-height:none!important;object-fit:cover!important;border:0!important;border-radius:12px!important;box-shadow:none!important}
-#aamCallMedia.aam-call-has-local video[data-local="true"]{grid-column:1!important;z-index:1!important}
-#aamCallMedia.aam-call-has-local video:not([data-local="true"]){grid-column:2!important;z-index:1!important}
-#aamCallMedia.aam-call-has-local.aam-call-swapped video[data-local="true"]{grid-column:2!important}
-#aamCallMedia.aam-call-has-local.aam-call-swapped video:not([data-local="true"]){grid-column:1!important}
-@media(max-width:360px){#aamCallMedia.aam-call-has-local{gap:3px!important}}
 
 /* All Ads Manager — modern, app-first interface refresh */
 :root{--aam-ink:#101828;--aam-muted:#667085;--aam-line:#e8edf4;--aam-surface:#fff;--aam-bg:#f4f6fb;--aam-brand:#315efb;--aam-brand2:#7048e8;--aam-radius:22px}
