@@ -39,14 +39,15 @@ export function markupFor(country,service={}){
   const name=String(service.name||service.service_name||'').toLowerCase();
   const supplierPrice=Number(service.price_ngn||0);
   if((c==='US'||c==='USA')&&/whatsapp/.test(name))return 180000;
-  if((c==='US'||c==='USA')&&/e-?sim/.test(name))return 300000;
+  if((c==='US'||c==='USA')&&(/e-?sim/.test(name)||Math.round(supplierPrice*100)===4500000))return 300000;
   if(/google voice/.test(name))return 200000;
   if(c==='BR'||c==='BRAZIL'){
     if(Math.round(supplierPrice*100)===463500)return 150000;
     return 100000;
   }
+  if(Object.prototype.hasOwnProperty.call(COUNTRY_MARKUP_KOBO,c))return COUNTRY_MARKUP_KOBO[c];
   if(Math.round(supplierPrice*100)===42000)return 30000;
-  return COUNTRY_MARKUP_KOBO[c]??100000;
+  return 100000;
 }
 export function normalizeType(value){return ['short_term','long_term','other_countries'].includes(value)?value:'short_term';}
 export function customerPrice(service,type){
