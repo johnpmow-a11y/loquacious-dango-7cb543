@@ -754,3 +754,12 @@ body.aam-chat-fullscreen-active .aam-social-chat-screen>*{min-width:0!important;
 #aamSocialDock .aam-dock-label{font-size:12px!important;line-height:1.1!important;font-weight:800!important}
 #aamSocialDock .aam-dock-create .aam-dock-icon{font-size:31px!important}
 #aamSocialRoot{padding-bottom:112px!important}
+
+/* Customer portraits in the chat list */
+.aam-social-chat-row:not(.aam-ad-inbox-row){display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;column-gap:11px;row-gap:3px}
+.aam-social-chat-row .aam-chat-row-avatar{grid-column:1;grid-row:1;display:grid;place-items:center;width:42px;height:42px;overflow:hidden;border-radius:50%;background:linear-gradient(145deg,#173b70,#557ed0);color:#fff;font-size:17px;font-weight:800}
+.aam-social-chat-row .aam-chat-row-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.aam-social-chat-row .aam-chat-row-copy{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.aam-social-chat-row .aam-chat-row-copy strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aam-social-chat-row .aam-chat-row-copy .aam-chat-row-status{font-size:11px;color:#64748b}
+.aam-social-chat-row .aam-chat-row-copy>span{font-size:13px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
