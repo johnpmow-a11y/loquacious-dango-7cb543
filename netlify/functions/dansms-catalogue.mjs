@@ -5,7 +5,7 @@ export async function handler(event){
  try{
   const token=String(event.queryStringParameters?.token||'');
   if(!await customerSession(token))return json(401,{error:'Please log in again.'});
-  const country=String(event.queryStringParameters?.country||'').trim();
+  const country=String(event.queryStringParameters?.country??'187').trim();
   if(!/^\d{1,5}$/.test(country))return json(400,{error:'Choose a valid DanSMS country code.'});
   const raw=await dansms({action:'getServicesAndCost',country});
   const parsed=typeof raw==='string'?JSON.parse(raw):raw;
