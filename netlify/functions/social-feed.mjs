@@ -91,7 +91,7 @@ export async function handler(event){
    const body=String(b.body||'').trim().slice(0,2200),background=String(b.background_color||'#172554');
    const allowed=new Set(['#172554','#0f766e','#be123c','#7c3aed','#f59e0b','#111827','#fce7f3','#dcfce7']);
    if(!body)return json(400,{error:'Write something first.'});if(!allowed.has(background))return json(400,{error:'Choose a valid background.'});
-   const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:customerId,author_role:'customer',media_type:'text',media_path:null,caption:body,background_color:background,moderation_status:'published'}])});
+   const soundId=String(b.sound_track_id||'').trim();if(soundId&&!/^[a-zA-Z0-9_-]{3,100}$/.test(soundId))return json(400,{error:'Choose a valid Audius sound.'});const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:customerId,author_role:'customer',media_type:'text',media_path:null,caption:body,background_color:background,sound_track_id:soundId||null,sound_title:String(b.sound_title||'').slice(0,180),sound_artist:String(b.sound_artist||'').slice(0,120),sound_artwork_url:String(b.sound_artwork_url||'').slice(0,500)||null,moderation_status:'published'}])});
    return json(200,{ok:true,post:rows[0]});
   }
   if(action==='sign_upload'){
@@ -106,7 +106,7 @@ export async function handler(event){
    const path=String(b.media_path||''),mime=String(b.mime_type||''),ext=mimeExt[mime],prefix=admin?'admin/':customerId+'/';
    const thumb=String(b.thumbnail_path||'');if(!ext||!path.startsWith(prefix)||path.includes('..')||(thumb&&(!thumb.startsWith('thumbnails/'+customerId+'/')||thumb.includes('..'))))return json(400,{error:'Invalid uploaded media.'});
    const caption=String(b.caption||'').trim().slice(0,2200),type=mime.startsWith('video/')?'video':'image';
-   const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:customerId,author_role:admin?'admin':'customer',media_type:type,media_path:path,thumbnail_path:thumb||null,caption,moderation_status:'published',is_locked:admin&&type==='video'&&b.is_locked===true}])});
+   const soundId=String(b.sound_track_id||'').trim();if(soundId&&!/^[a-zA-Z0-9_-]{3,100}$/.test(soundId))return json(400,{error:'Choose a valid Audius sound.'});const rows=await db('aam_social_posts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify([{customer_id:customerId,author_role:admin?'admin':'customer',media_type:type,media_path:path,thumbnail_path:thumb||null,caption,sound_track_id:soundId||null,sound_title:String(b.sound_title||'').slice(0,180),sound_artist:String(b.sound_artist||'').slice(0,120),sound_artwork_url:String(b.sound_artwork_url||'').slice(0,500)||null,moderation_status:'published',is_locked:admin&&type==='video'&&b.is_locked===true}])});
    return json(200,{ok:true,post:rows[0]});
   }
   return json(400,{error:'Unsupported feed action.'});
