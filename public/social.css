@@ -173,3 +173,18 @@ input,select,textarea{border:1px solid #dfe5ef!important;border-radius:13px!impo
 .aam-social-chat-screen .aam-chat-recording-status.recording{font-weight:800;animation:aamRecordingPulse .9s ease-in-out infinite}
 .aam-social-chat-screen .aam-chat-attach-row{display:flex;flex:0 0 auto;gap:8px}
 .aam-social-chat-screen .aam-chat-attach-row .aam-social-btn{flex:1;min-height:40px}
+
+/* Full-screen conversation shell: remove every layer of app chrome */
+body.aam-full-chat-open{overflow:hidden!important;background:#f7f5f0!important}
+body.aam-full-chat-open .topbar,body.aam-full-chat-open #aamSocialDock,body.aam-full-chat-open #aamSocialToolsDock,body.aam-full-chat-open #aamAdminSocialLauncher{display:none!important}
+body.aam-full-chat-open .container{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#f7f5f0!important}
+body.aam-full-chat-open #aamSocialRoot{padding:0!important}
+body.aam-full-chat-open .aam-social-wrap{width:100%!important;max-width:none!important;height:100%!important;margin:0!important}
+.aam-social-chat-screen{padding:calc(env(safe-area-inset-top) + 8px) 0 calc(env(safe-area-inset-bottom) + 8px)!important;gap:0!important}
+.aam-social-chat-screen .aam-chat-back{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:10px;z-index:2}
+.aam-social-chat-screen .aam-chat-title{min-height:48px;width:100%;padding:7px 58px 9px 62px!important;display:flex;align-items:center;border-bottom:1px solid #e5e7eb;font-size:17px!important}
+.aam-social-chat-screen .aam-social-chat-messages{border-radius:0!important;padding:12px!important}
+.aam-social-chat-screen .aam-chat-composer{flex:0 0 auto;display:flex;align-items:flex-end;gap:7px;width:100%;padding:8px 9px;background:#f7f5f0;border-top:1px solid #e4e1dc}
+.aam-social-chat-screen #aamChatBody{flex:1 1 auto!important;width:0;min-width:0;min-height:42px!important;max-height:120px!important;padding:10px 14px!important;border:1px solid #d9ded9!important;border-radius:22px!important;resize:none!important;font:16px/1.35 system-ui,sans-serif!important}
+.aam-social-chat-screen .aam-chat-media-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.aam-social-chat-screen .aam-chat-recording-status{flex:0 0 auto;padding:0 12px;color:#087443;font-size:12px}
