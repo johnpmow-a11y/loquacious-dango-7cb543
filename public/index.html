@@ -353,11 +353,24 @@ function readyAccountCategoryIcon(name){
  if(n.includes('twitter')||n.includes('x account'))return '<span aria-hidden="true" style="font-size:20px;font-weight:800">𝕏</span>';
  return '<span aria-hidden="true" style="font-size:20px">👤</span>';
 }
+function readyAccountGroupName(item){
+ const categories=Array.isArray(window.rediprofilesCategories)?window.rediprofilesCategories:[];
+ const categoryId=String(item?.category_id??'');
+ const category=categories.find(x=>String(x.id??'')===categoryId);
+ const raw=String(item?.category_name||item?.category?.name||category?.name||item?.category||item?.type||'').trim();
+ const searchable=(raw+' '+String(item?.name||'')+' '+String(item?.description||'')).toLowerCase();
+ if(/\\bvpn\\b/.test(searchable))return 'VPN';
+ for(const name of ['Instagram','Facebook','TikTok','Snapchat','LinkedIn','Twitter','X','WhatsApp','Telegram','YouTube','Netflix']){
+  if(searchable.includes(name.toLowerCase()))return name;
+ }
+ return raw||'Other Accounts';
+}
 function renderReadyAccountCategoryButtons(){
  const box=document.getElementById('readyAccountCategoryButtons'),select=document.getElementById('readyAccountCategory');if(!box||!select)return;
- const cats=Array.isArray(window.rediprofilesCategories)?window.rediprofilesCategories:[];
+ const services=Array.isArray(window.rediprofilesServices)?window.rediprofilesServices:[];
+ const groups=[...new Set(services.map(readyAccountGroupName).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const selected=select.value||'';
- const items=[{id:'',name:'All Accounts',services_in_stock:(window.rediprofilesServices||[]).length},...cats];
+ const items=[{id:'',name:'All Accounts'},...groups.map(name=>({id:'group:'+name,name}))];
  box.innerHTML=items.map(c=>{
   const id=String(c.id??''),name=String(c.name||'Accounts'),active=id===selected;
   return '<button type="button" class="btn '+(active?'':'secondary')+'" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px" onclick="setReadyAccountCategory(\''+esc(id)+'\')">'+readyAccountCategoryIcon(name)+'<span>'+esc(name)+'</span></button>';
@@ -402,7 +415,7 @@ function filterReadyAccounts(){
   const aliases={usa:['usa','us','united states','america'],uk:['uk','gb','great britain','united kingdom','britain']};
   const searchTerms=[query,...(aliases[query]||[])];
   const text=[item.name,item.category_name,item.description,item.country,item.country_name,item.country_code].join(' ').toLowerCase();
-  const categoryMatch=!category||String(item.category_id??item.category??'')===category;
+  const categoryMatch=!category||(category.startsWith('group:')&&readyAccountGroupName(item)===category.slice(6));
   const countryMatch=!selectedCountry||String(item.country_code||item.country||item.country_name||'').toLowerCase()===selectedCountry||countryText.includes(selectedCountry);
   const accountMatch=!query||searchTerms.some(term=>term&&text.includes(term));
   return categoryMatch&&countryMatch&&accountMatch;
