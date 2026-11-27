@@ -21,7 +21,7 @@ export async function handler(event){
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   const b=JSON.parse(event.body||'{}'),s=await customer(String(b.token||''));if(!s)return json(401,{error:'Please log in again.'});
   const existing=await activeWindow(s.customer_id);if(existing)return json(200,{unlocked:true,unlocked_at:existing.unlocked_at,expires_at:existing.expires_at,platform:existing.platform});
-  const email=String(b.email||'').trim().toLowerCase(),method=String(b.method||'bank_transfer'),platform=['facebook','instagram','tiktok'].includes(String(b.platform||'').toLowerCase())?String(b.platform).toLowerCase():'facebook';
+  const email=String(b.email||'').trim().toLowerCase(),method=String(b.method||'bank_transfer'),platform=['facebook','instagram','tiktok','snapchat','whatsapp'].includes(String(b.platform||'').toLowerCase())?String(b.platform).toLowerCase():'facebook';
   if(!/^\S+@\S+\.\S+$/.test(email))return json(400,{error:'Enter a valid receipt email.'});if(!['card','bank_transfer'].includes(method))return json(400,{error:'Choose a supported payment method.'});
   const customerId=s.customer_id,attemptId=randomUUID(),reference='aamunlock'+randomUUID().replace(/-/g,'').slice(0,28);
   const secret=process.env.PAYSTACK_SECRET_KEY;if(!secret||!secret.startsWith('sk_live_'))throw new Error('Live Paystack payments are required for advertising unlock.');
