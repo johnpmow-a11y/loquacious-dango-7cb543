@@ -15,10 +15,32 @@ function showTimer(availableAt){
 }
 function showMediaTimer(minutes,service){const end=Date.now()+minutes*60000;function tick(){const left=Math.max(0,end-Date.now());if(left<=0){count.textContent='';title.textContent='Processing time complete';message.textContent='Go back to All Ads Manager and open History to see the administrator confirmation and completed result for '+service+'.';document.getElementById('back').textContent='Go back to All Ads Manager History';return;}const mins=Math.floor(left/60000),secs=Math.floor((left%60000)/1000);count.textContent=String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');message.textContent='Your payment is verified. Your '+service+' order is with the administrator. Please allow '+minutes+' minutes; you can leave this page and check History later.';setTimeout(tick,1000);}tick();}
 function showTikTokFundingTimer(availableAt){const end=new Date(availableAt).getTime();function tick(){const left=Math.max(0,end-Date.now());if(left<=0){count.textContent='';title.textContent='Five-minute waiting period complete';message.textContent='Open Locker Card in All Ads Manager. If your card details are still masked, the administrator has not revealed your card yet.';document.getElementById('back').textContent='Open All Ads Manager Locker Card';document.getElementById('back').href='/';return;}const mins=Math.floor(left/60000),secs=Math.floor((left%60000)/1000);count.textContent=String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');message.textContent='Payment verified. Please wait five minutes while the administrator prepares your Dollar Card. You may leave this page; the timer continues.';setTimeout(tick,1000);}tick();}
+async function requestServicePaymentStatus(){
+ let lastMessage='Paystack has not confirmed this payment yet.';
+ for(let attempt=1;attempt<=5;attempt++){
+  title.textContent=attempt===1?'Verifying your payment…':'Checking payment status…';
+  message.textContent='Secure verification attempt '+attempt+' of 5. Please wait. Do not pay again while this check is running.';
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{
+   let r,d;
+   try{
+    r=await fetch('/.netlify/functions/paystack-service-verify?reference='+encodeURIComponent(reference)+'&token='+encodeURIComponent(token),{cache:'no-store',signal:controller.signal});
+    d=await r.json().catch(()=>({}));
+   }finally{clearTimeout(timer);}
+   if(d.status==='paid')return d;
+   lastMessage=d.message||d.error||'Paystack has not confirmed the payment yet.';
+   if([400,401,404].includes(r.status))return d;
+  }catch(e){
+   lastMessage=e.name==='AbortError'?'The verification service took too long to respond.':(e.message||'Verification is temporarily unavailable.');
+  }
+  if(attempt<5)await new Promise(resolve=>setTimeout(resolve,2000));
+ }
+ return {error:lastMessage};
+}
 async function verify(){
  if(!reference||!token){title.textContent='Sign in required';message.textContent='Return to All Ads Manager, sign in, and open History to check your service payment.';return;}
  try{
-  const r=await fetch('/.netlify/functions/paystack-service-verify?reference='+encodeURIComponent(reference)+'&token='+encodeURIComponent(token),{cache:'no-store'}),d=await r.json();
+  const d=await requestServicePaymentStatus();
   if(d.status==='paid'){
    title.textContent='Payment verified';
    if(d.service==='Document Editor Save'){if(d.project_id)sessionStorage.setItem('btDocumentEditorPaidProject',d.project_id);if(d.editor_mode)sessionStorage.setItem('btDocumentEditorPaidMode',d.editor_mode);message.textContent='Your ₦5,000 payment is confirmed. Full-quality saving is unlocked for this editing project.';const link=document.createElement('a');link.className='btn';link.href='/?documentEditorProject='+encodeURIComponent(d.project_id||'');link.textContent='Return to All Ads Manager and Save';document.querySelector('.box').insertBefore(link,document.getElementById('back'));return;}if(d.service==='Professional Working Picture'){message.textContent=d.message||'Payment verified.';const link=document.createElement('a');link.className='btn';link.href=d.telegram_url||'https://t.me/kwanjong6';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Contact Admin on Telegram';document.querySelector('.box').insertBefore(link,document.getElementById('back'));document.getElementById('back').textContent='Return to All Ads Manager History';return;}if(d.service==='Gift Card'){message.textContent='Your gift-card order has been sent to the administrator. Please wait; the gift-card code will appear in your History when it is delivered.';return;}
