@@ -22,8 +22,8 @@ set search_path = public, extensions
 as $$
 declare
   v_auth_id uuid := auth.uid();
-  v_email text := lower(trim(coalesce(auth.jwt() ->> 'email', '')));
-  v_email_verified boolean := coalesce((auth.jwt() ->> 'email_verified')::boolean, false);
+  v_email text;
+  v_email_verified boolean := false;
   v_name text;
   v_customer_id uuid;
   v_customer_name text;
@@ -36,7 +36,15 @@ begin
   if v_auth_id is null then
     raise exception 'Google sign-in session is missing.';
   end if;
-  if v_email = '' or not v_email_verified then
+
+  -- Read the authoritative verified email from Supabase Auth rather than
+  -- relying on an email_verified claim that may not be present in the JWT.
+  select lower(trim(coalesce(u.email, ''))), (u.email_confirmed_at is not null)
+    into v_email, v_email_verified
+  from auth.users u
+  where u.id = v_auth_id;
+
+  if v_email = '' or not coalesce(v_email_verified, false) then
     raise exception 'Google must provide a verified email address.';
   end if;
 
