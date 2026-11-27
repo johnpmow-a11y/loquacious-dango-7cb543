@@ -2,7 +2,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import { URLSearchParams } from 'node:url';
 const json=(statusCode,body)=>({statusCode,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify(body)});
 const uuid=/^[0-9a-f-]{36}$/i;
-const toolkits={facebook:'metaads',instagram:'metaads',meta:'metaads',tiktok:'tiktok_ads',snapchat:'snapchat'};
+const toolkits={facebook:'metaads',instagram:'metaads',whatsapp:'metaads',meta:'metaads',tiktok:'tiktok_ads',snapchat:'snapchat'};
 const allowedTools={metaads:['METAADS_GET_AD_ACCOUNTS','METAADS_CREATE_CAMPAIGN','METAADS_CREATE_AD_SET','METAADS_CREATE_AD_CREATIVE','METAADS_CREATE_AD'],tiktok_ads:['TIKTOK_ADS_GET_ADVERTISER_ACCOUNTS','TIKTOK_ADS_CREATE_CAMPAIGN','TIKTOK_ADS_CREATE_AD_GROUP','TIKTOK_ADS_CREATE_ADGROUP','TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'],snapchat:['SNAPCHAT_CREATE_CAMPAIGN','SNAPCHAT_CREATE_AD_SQUAD','SNAPCHAT_CREATE_CREATIVES','SNAPCHAT_CREATE_ADS']};
 function h(key,extra={}){return { 'x-api-key':key,'Content-Type':'application/json',...extra };}
 async function db(path,options={}){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error('Customer session service is not configured.');const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||'Customer session lookup failed.');return d;}
@@ -117,7 +117,7 @@ export async function handler(event){
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   const b=JSON.parse(event.body||'{}'),s=await session(String(b.token||''));if(!s)return json(401,{error:'Please log in again.'});
-  const platform=String(b.platform||'').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Choose Facebook, Instagram, TikTok or Snapchat Ads.'});
+  const platform=String(b.platform||'').toLowerCase(),slug=toolkits[platform];if(!slug)return json(400,{error:'Choose Facebook, Instagram, WhatsApp, TikTok or Snapchat Ads.'});
   const userId='aam_customer_'+s.customer_id;
 
   if(b.action==='performance'){
@@ -146,7 +146,7 @@ export async function handler(event){
     }
     return json(200,{platform,start_date:startDate,end_date:endDate,reports});
    }
-   const reportSlug=platform==='facebook'||platform==='instagram'?'metaads':platform==='tiktok'?'tiktok_ads':'';
+   const reportSlug=platform==='facebook'||platform==='instagram'||platform==='whatsapp'?'metaads':platform==='tiktok'?'tiktok_ads':'';
    if(!reportSlug)return json(400,{error:'Choose Facebook, Instagram or TikTok.'});
    const accounts=await userAccounts(userId,reportSlug);if(!accounts.length)return json(409,{error:'Connect your advertising account first.'});
    const assets=await db('aam_ad_campaign_assets?select=id,platform,connected_account_id,ad_account_id,campaign_id,ad_set_id,ad_group_id,ad_id&customer_id=eq.'+encodeURIComponent(s.customer_id)+'&platform=eq.'+encodeURIComponent(platform)+'&order=updated_at.desc&limit=200');
@@ -157,7 +157,7 @@ export async function handler(event){
      accountIds=providerRows(discovered).map(x=>String(x.advertiser_id||x.advertiserId||x.account_id||x.id||'')).filter(Boolean);
     }catch(error){return json(200,{platform,rows:[],message:'TikTok connected, but advertiser accounts could not be discovered automatically: '+error.message});}
    }
-   if(!accountIds.length&&(platform==='facebook'||platform==='instagram')){
+   if(!accountIds.length&&(platform==='facebook'||platform==='instagram'||platform==='whatsapp')){
     try{
      const discovered=await executeNamedTool(accounts[0],userId,'METAADS_GET_AD_ACCOUNTS',{});
      accountIds=providerRows(discovered).map(x=>String(x.account_id||x.ad_account_id||x.id||'')).filter(Boolean).map(x=>x.startsWith('act_')?x:'act_'+x);
