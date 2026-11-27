@@ -24,7 +24,9 @@ export async function handler(event){
    const rows=await r.json().catch(()=>[]);
    if(!r.ok)throw new Error('Could not read the Genflo connection.');
    const row=rows[0];
-   return json(200,{connected:!!row?.api_key,updated_at:row?.updated_at||null,key_hint:row?.api_key?'••••'+String(row.api_key).slice(-4):null});
+   const envKey=String(process.env.GENFLO_API_KEY||'').trim();
+   const activeKey=envKey||String(row?.api_key||'');
+   return json(200,{connected:!!activeKey,source:envKey?'netlify':'secure_settings',updated_at:envKey?null:(row?.updated_at||null),key_hint:activeKey?'••••'+activeKey.slice(-4):null});
   }
   const apiKey=String(body.api_key||'').trim();
   if(apiKey.length<12||apiKey.length>300)return json(400,{error:'Enter a valid Genflo API key.'});
