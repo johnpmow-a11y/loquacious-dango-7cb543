@@ -1,4 +1,3 @@
-const {randomUUID}=await import('node:crypto');
 const json=(status,body,headers={})=>({statusCode:status,headers:{'Content-Type':'application/json','Cache-Control':'no-store',...headers},body:JSON.stringify(body)});
 const h=(key,extra={})=>({apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:`Bearer ${key}`}),...extra});
 async function db(path){const u=process.env.SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!u||!k)throw new Error('Social service is not configured.');const r=await fetch(`${u}/rest/v1/${path}`,{headers:h(k)});const d=await r.json().catch(()=>[]);if(!r.ok)throw new Error(d.message||'Session validation failed.');return d;}
