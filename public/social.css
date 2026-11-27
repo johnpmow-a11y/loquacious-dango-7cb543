@@ -161,3 +161,15 @@ input,select,textarea{border:1px solid #dfe5ef!important;border-radius:13px!impo
 @media(max-width:420px){#app{padding:13px!important}.profile-card{padding:16px!important}.profile-buttons{grid-template-columns:1fr}.customer-wallet-card{align-items:flex-start;flex-direction:column}.wallet-add-btn{width:100%}.car-key-grid{gap:10px}.car-key-card{padding:10px!important}.aam-profile-hero{padding:14px}.aam-profile-hero h2{font-size:19px}}
 
 .aam-social-chat-row{position:relative;padding-right:58px!important}.aam-chat-unread-count{position:absolute;right:14px;top:50%;transform:translateY(-50%);min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#16a34a;color:#fff;font-size:12px;font-weight:800;line-height:1}
+
+/* Full-screen WhatsApp-style message composer */
+.aam-social-chat-screen .aam-chat-composer{display:flex;align-items:flex-end;gap:8px;flex:0 0 auto;width:100%;padding:7px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:28px;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+.aam-social-chat-screen .aam-chat-composer #aamChatBody{flex:1 1 auto;min-width:0;min-height:42px;max-height:112px;resize:none;overflow-y:auto;margin:0;padding:11px 8px;border:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;border-radius:18px;font-size:16px;line-height:1.35}
+.aam-social-chat-screen .aam-chat-mic,.aam-social-chat-screen .aam-chat-send{flex:0 0 42px;width:42px;height:42px;border:0;border-radius:50%;display:grid;place-items:center;font-size:21px;font-weight:800;cursor:pointer}
+.aam-social-chat-screen .aam-chat-mic{background:#eef2f7;color:#243447}
+.aam-social-chat-screen .aam-chat-send{background:#087443;color:#fff;font-size:20px}
+.aam-social-chat-screen .aam-chat-recording-status{min-height:0;flex:0 0 auto;padding:0 12px;color:#b91c1c;font-size:12px}
+.aam-social-chat-screen .aam-chat-recording-status:not(:empty){min-height:18px}
+.aam-social-chat-screen .aam-chat-recording-status.recording{font-weight:800;animation:aamRecordingPulse .9s ease-in-out infinite}
+.aam-social-chat-screen .aam-chat-attach-row{display:flex;flex:0 0 auto;gap:8px}
+.aam-social-chat-screen .aam-chat-attach-row .aam-social-btn{flex:1;min-height:40px}
