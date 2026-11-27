@@ -48,7 +48,7 @@ export function customerPriceUsd(cost){
  return {supplier_usd:supplierUsd,exchange_rate:rate,markup_kobo:markupKobo,customer_charge_kobo:customerChargeKobo,customer_price_ngn:customerChargeKobo/100};
 }
 export function activationResponse(value){
- const s=String(value||'').trim(),m=s.match(/^ACCESS_NUMBER:(\\d+):(\\+?\\d+)$/);
+ const s=String(value||'').trim(),m=s.match(/^ACCESS_NUMBER:([0-9]+):([+]?[0-9]+)$/);
  if(!m)throw Object.assign(new Error('DanSMS did not return a valid activation ID and phone number.'),{status:502});
  return {activation_id:m[1],phone_number:m[2].startsWith('+')?m[2]:'+'+m[2]};
 }
