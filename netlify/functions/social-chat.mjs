@@ -21,15 +21,16 @@ export async function handler(event){
     const part=await db(`aam_chat_participants?select=conversation_id&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`);
     if(!part.length)return json(404,{error:'Conversation not found.'});
     const [conversationRows,groupMember,otherParticipants]=await Promise.all([db(`aam_chat_conversations?select=id,conversation_type,title&id=eq.${conv}&limit=1`),db(`aam_chat_group_members?select=group_role&conversation_id=eq.${conv}&customer_id=eq.${s.customer_id}&limit=1`),db(`aam_chat_participants?select=customer_id&conversation_id=eq.${conv}&customer_id=neq.${s.customer_id}&limit=1`)]);
-    const messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);
+    const messages=await db(`aam_chat_messages?select=id,sender_id,message_type,body,media_path,shared_post_id,created_at,edited_at,deleted_at&conversation_id=eq.${conv}&order=created_at.desc&limit=100`);
     messages.reverse();
     const reads=messages.length?await db(`aam_chat_message_reads?select=message_id,customer_id,read_at&message_id=in.(${messages.map(m=>m.id).join(',')})`):[];
+    const reactions=messages.length?await db(`aam_chat_message_reactions?select=message_id,customer_id,emoji&message_id=in.(${messages.map(m=>m.id).join(',')})`):[];
     const ids=[...new Set(messages.map(m=>m.sender_id))];
     const profiles=ids.length?await db(`aam_social_profiles?select=customer_id,display_name,avatar_path&customer_id=in.(${ids.join(',')})`):[];
     const senderNames=new Map(profiles.map(p=>[p.customer_id,p]));
     const pm=new Map(profiles.map(p=>[p.customer_id,p]));
     await rpc('aam_chat_mark_read',{p_token:token,p_conversation:conv});
-    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,group_role:groupMember[0]?.group_role||null,messages:await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id)}}))});
+    return json(200,{conversation:conversationRows[0]||{id:conv,conversation_type:'direct',title:'Conversation'},other_customer_id:otherParticipants[0]?.customer_id||null,group_role:groupMember[0]?.group_role||null,messages:await Promise.all(messages.map(async m=>{const {media_path,...publicMessage}=m;return {...publicMessage,body:m.deleted_at?'This message was deleted':publicMessage.body,media_url:media_path?await signedRead(media_path):null,creator:pm.get(m.sender_id)||{display_name:'Creator'},read_by:reads.filter(r=>r.message_id===m.id),reactions:reactions.filter(r=>r.message_id===m.id)}}))});
    }
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
    if(!parts.length)return json(200,{conversations:[]});
@@ -62,6 +63,18 @@ export async function handler(event){
    const r=await fetch(`${u}/storage/v1/object/upload/sign/aam-social-voice/${path}`,{method:'POST',headers:headers(k,{'Content-Type':'application/json'}),body:'{}'});
    const d=await r.json().catch(()=>({}));if(!r.ok)return json(502,{error:d.message||'Could not prepare the voice note.'});
    return json(200,{path,token:d.token});
+  }
+  if(b.action==='edit_message'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   return json(200,await rpc('aam_chat_edit_message',{p_token:token,p_message_id:b.message_id,p_body:String(b.body||'')}));
+  }
+  if(b.action==='delete_message'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   return json(200,await rpc('aam_chat_delete_message',{p_token:token,p_message_id:b.message_id}));
+  }
+  if(b.action==='react_message'){
+   if(!uuid.test(String(b.message_id||'')))return json(400,{error:'Invalid message.'});
+   return json(200,await rpc('aam_chat_toggle_reaction',{p_token:token,p_message_id:b.message_id,p_emoji:String(b.emoji||'')}));
   }
   if(b.action==='touch'){if(!uuid.test(String(b.conversation_id||'')))return json(400,{error:'Invalid conversation.'});return json(200,await rpc('aam_chat_touch',{p_token:token,p_conversation:b.conversation_id}));}
   if(b.action==='start'){if(!uuid.test(String(b.target_customer_id||'')))return json(400,{error:'Choose a valid profile.'});return json(200,await rpc('aam_chat_start',{p_token:token,p_target:b.target_customer_id}));}
