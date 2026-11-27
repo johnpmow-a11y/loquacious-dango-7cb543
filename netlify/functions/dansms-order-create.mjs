@@ -5,7 +5,7 @@ export async function handler(event){
  if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
  let reference='';
  try{
-  const b=JSON.parse(event.body||'{}'),token=String(b.token||''),country=String(b.country||'').trim(),serviceCode=String(b.service_code||'').trim();
+  const b=JSON.parse(event.body||'{}'),token=String(b.token||''),country=String(b.country??'187').trim(),serviceCode=String(b.service_code||'').trim();
   if(!/^\d{1,5}$/.test(country)||!/^[a-z0-9_-]{1,20}$/i.test(serviceCode))return json(400,{error:'Choose a valid DanSMS country and service.'});
   const session=await customerSession(token);if(!session)return json(401,{error:'Please log in again.'});
   const raw=await dansms({action:'getServicesAndCost',country}),catalog=typeof raw==='string'?JSON.parse(raw):raw;
@@ -21,7 +21,7 @@ export async function handler(event){
   let provider,supplierCreated=false;
   try{provider=await dansms({action:'getNumber',service:serviceCode,country});}
   catch(e){
-   if(!e.status||e.status>=500||e.status===429){
+   if(!e.status||e.definitive!==true&&(e.status>=500||e.status===429)){
     try{await db('dansms_orders?wallet_reference=eq.'+encodeURIComponent(reference),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'supplier_pending',provider_response:{uncertain:true,error:e.message},updated_at:new Date().toISOString()})});}catch(saveError){console.error('DanSMS uncertain reservation needs reconciliation:',reference,saveError.message);}
     return json(202,{pending:true,reference,message:'DanSMS confirmation is uncertain. Your wallet funds are held safely. Do not purchase again.'});
    }
