@@ -389,3 +389,104 @@ body.aam-full-status-open .aam-status-viewer>.aam-social-actions:last-child{padd
 .aam-profile-camera-panel header{flex:0 0 auto;padding:calc(env(safe-area-inset-top) + 8px) 14px 10px}
 .aam-profile-camera-panel video{flex:1 1 0!important;min-height:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;border-radius:0!important}
 .aam-profile-camera-actions{flex:0 0 auto;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#050914}
+
+
+/* App interaction guard: prevent accidental text selection, copy menus and pinch zoom.
+   Explicit copy buttons remain the only copy action; editable fields stay selectable. */
+html,body,#app{
+  -webkit-touch-callout:none!important;
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-tap-highlight-color:transparent;
+}
+body{
+  touch-action:pan-y;
+  overscroll-behavior:none!important;
+}
+body input,body textarea,body select,[contenteditable="true"]{
+  -webkit-user-select:text!important;
+  user-select:text!important;
+  -webkit-touch-callout:default;
+}
+body button,body a,[role="button"]{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+  touch-action:manipulation;
+}
+body.aam-full-chat-open,
+body.aam-full-chat-open #app,
+body.aam-full-chat-open .container,
+body.aam-full-chat-open .aam-social-wrap,
+body.aam-full-chat-open .aam-social-chat-screen{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+body.aam-full-chat-open .aam-social-chat-screen{
+  z-index:9500!important;
+  display:flex!important;
+  flex-direction:column!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  background:#f7f5f0!important;
+  padding-top:env(safe-area-inset-top)!important;
+  padding-bottom:env(safe-area-inset-bottom)!important;
+  touch-action:pan-y;
+}
+body.aam-full-chat-open .aam-chat-header{
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:58px!important;
+}
+body.aam-full-chat-open .aam-social-chat-messages{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  width:100%!important;
+  margin:0!important;
+  border-radius:0!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+}
+body.aam-full-chat-open .aam-chat-composer,
+body.aam-full-chat-open .aam-chat-emoji-panel,
+body.aam-full-chat-open .aam-chat-recording-status{
+  flex:0 0 auto!important;
+  width:100%!important;
+}
+body.aam-full-chat-open .aam-social-message,
+body.aam-full-chat-open .aam-social-message *:not(input):not(textarea){
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+}
+body.aam-full-chat-open .aam-social-message{
+  touch-action:pan-y!important;
+}
+body.aam-full-chat-open #aamChatOverlay{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100dvh!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:pan-y!important;
+}
+body.aam-full-chat-open .aam-chat-viewer .aam-viewer-stage,
+body.aam-full-chat-open .aam-chat-viewer .aam-view-once-media{
+  max-width:100vw!important;
+  max-height:100dvh!important;
+}
