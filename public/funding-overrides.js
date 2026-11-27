@@ -9,6 +9,8 @@
     <button class="btn" onclick="serviceForm('Facebook Ads')">CREATE FACEBOOK ADS</button>
     <button class="btn" onclick="serviceForm('Instagram Ads')">INSTAGRAM ADS</button>
     <button class="btn" onclick="serviceForm('TikTok Ads')">TIKTOK ADS</button>
+    <button class="btn" onclick="serviceForm('Snapchat Ads')">SNAPCHAT ADS</button>
+    <button class="btn" onclick="serviceForm('WhatsApp Ads')">WHATSAPP ADS</button>
     <button class="btn" onclick="serviceForm('TikTok Funding')">TIKTOK DOLLAR CARD FUNDING</button>
     <button class="btn" onclick="serviceForm('Netflix Login')">NETFLIX LOGIN</button>
     <button class="btn" onclick="serviceForm('International Gift Delivery')">INTERNATIONAL GIFT DELIVERY</button>
@@ -19,7 +21,6 @@
     <button class="btn" onclick="mediaEditForm(0)">REMOVE CLOTHES · 18+</button>
     <button class="btn" onclick="mediaEditForm(1)">PICTURE-TO-VIDEO EDITOR</button>
     <button class="btn" onclick="serviceForm('Zangi Ads')">ZANGI ADS</button>
-    <button class="btn" onclick="adsScreen()">FUND FACEBOOK ADS</button>
     <button class="btn" onclick="nexotpPage()">📱 Virtual Verification Numbers</button>
     <button class="btn" onclick="shadowOtpEmailPage()">✉️ Temporary Email OTP</button>`;
   };
@@ -29,14 +30,14 @@
   const legacyServiceForm=window.serviceForm;
   window.openAamAdWorkspace=function(platform){
     if(!guard())return;
-    const label=platform==='tiktok'?'TikTok Ads':platform==='instagram'?'Instagram Ads':'Facebook Ads';sessionStorage.setItem('aamAdPlatform',platform);
-    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div id="aamAdConnectionStatus" class="payment-note" role="status">Checking your account connection…</div><div id="aamAdUnlockArea"></div><div id="aamAdAccountsArea"></div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
+    const label=platform==='tiktok'?'TikTok Ads':platform==='instagram'?'Instagram Ads':platform==='snapchat'?'Snapchat Ads':platform==='whatsapp'?'WhatsApp Ads':'Facebook Ads';sessionStorage.setItem('aamAdPlatform',platform);
+    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER</span><h2>'+label+'</h2><p class="muted">Connect your own advertising account securely. All Ads Manager never asks for your social-media password.</p><div class="payment-note" style="margin:12px 0"><strong>Why use Ads Manager?</strong><br>Ads Manager gives you more control over campaign goals, audiences, placements, budgets and performance reporting than the simple Promote option inside an app. That control can help you optimize for viewers, clicks and messages. Results still depend on your content, audience and budget.</div><div id="aamAdConnectionStatus class="payment-note" role="status">Checking your account connection…</div><div id="aamAdUnlockArea"></div><div id="aamAdAccountsArea"></div><button class="btn" id="aamAdConnectButton" onclick="connectAamAdAccount(\''+platform+'\')">Connect '+label+' account</button><button class="btn secondary" style="margin-top:10px" onclick="openAamAdWorkspace(\''+platform+'\')">Refresh connection status</button></section>');
     refreshAamAdConnection(platform);
   };
   window.refreshAamAdConnection=async function(platform){
     const box=document.getElementById('aamAdConnectionStatus'),btn=document.getElementById('aamAdConnectButton');if(!box)return;
     try{const r=await fetch('/.netlify/functions/composio-ads?action=status&platform='+encodeURIComponent(platform)+'&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check the connection.');
-      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':'Meta Ads')+' account is connected.';if(btn)btn.textContent='Reconnect account';refreshAamAdUnlock();refreshAamAdAccounts(platform);}
+      if(d.connected){box.textContent='Your '+(platform==='tiktok'?'TikTok Ads':platform==='snapchat'?'Snapchat Ads':'Meta Ads')+' account is connected.';if(btn)btn.textContent='Reconnect account';refreshAamAdUnlock();refreshAamAdAccounts(platform);}
       else if(d.pending){box.textContent='Your account authorization is still processing. Refresh this page in a moment.';}
       else{box.textContent='No account connected yet. Select Connect to authorize your own account.';}
     }catch(e){box.textContent=e.message||'Connection status is temporarily unavailable.';}
@@ -71,13 +72,13 @@
     if(note)note.innerHTML+=' <button class="btn" style="margin-top:10px" onclick="openAamAdCampaign()">Create campaign</button>';
   };
   const aamAdEsc=value=>{const el=document.createElement('span');el.textContent=String(value??'');return el.innerHTML;};
-  const aamAdStages={metaads:[['METAADS_CREATE_CAMPAIGN','1 · Campaign'],['METAADS_CREATE_AD_SET','2 · Ad set and audience'],['METAADS_CREATE_AD_CREATIVE','3 · Ad creative'],['METAADS_CREATE_AD','4 · Ad']],tiktok_ads:[['TIKTOK_ADS_CREATE_CAMPAIGN','1 · Campaign'],['TIKTOK_ADS_CREATE_AD_GROUP','2 · Ad group and audience'],['TIKTOK_ADS_CREATE_AD','3 · Ad']]};
+  const aamAdStages={metaads:[['METAADS_CREATE_CAMPAIGN','1 · Campaign'],['METAADS_CREATE_AD_SET','2 · Ad set and audience'],['METAADS_CREATE_AD_CREATIVE','3 · Ad creative'],['METAADS_CREATE_AD','4 · Ad']],tiktok_ads:[['TIKTOK_ADS_CREATE_CAMPAIGN','1 · Campaign'],['TIKTOK_ADS_CREATE_AD_GROUP','2 · Ad group and audience'],['TIKTOK_ADS_CREATE_AD','3 · Ad']],snapchat:[['SNAPCHAT_CREATE_CAMPAIGN','1 · Campaign'],['SNAPCHAT_CREATE_AD_SQUAD','2 · Ad squad and audience'],['SNAPCHAT_CREATE_CREATIVES','3 · Creative'],['SNAPCHAT_CREATE_ADS','4 · Ad']]};
   window.openAamAdCampaign=async function(platform){
     platform=platform||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);
     const status=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const unlock=await status.json();
     if(!status.ok)throw new Error(unlock.error||'Could not check your payment unlock.');
     const paymentStatus=unlock.unlocked?'Payment method unlocked until '+new Date(unlock.expires_at).toLocaleString()+'.':'Payment is required only at the final Ad step. Prepare your campaign, audience and creative first.';
-    const toolkit=platform==='tiktok'?'tiktok_ads':'metaads',stages=aamAdStages[toolkit];
+    const toolkit=platform==='tiktok'?'tiktok_ads':platform==='snapchat'?'snapchat':'metaads',stages=aamAdStages[toolkit];
     shell('<button class="btn secondary back" onclick="openAamAdWorkspace(\''+platform+'\')">← Back</button><section class="form" style="max-width:700px"><span class="eyebrow">ALL ADS MANAGER</span><h2>Create your campaign</h2><button class="btn secondary" type="button" style="margin:8px 0" onclick="resetAamAdCampaign()">＋ New campaign</button><p class="muted">'+paymentStatus+' Multiple campaigns are allowed during the 20-minute window. New campaigns are created paused or disabled, so they cannot spend until you review and activate them in your advertising platform.</p><div id="aamAdStageButtons">'+stages.map(x=>'<button class="btn secondary" style="margin:5px" onclick="loadAamAdStage(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div id="aamAdStageForm" class="payment-note" style="margin-top:14px">Choose a campaign step above to begin.</div><div id="aamAdStageResult"></div></section>');
   };
   window.resetAamAdCampaign=function(){
@@ -112,7 +113,7 @@
   window.submitAamAdStage=async function(event,toolSlug){
     event.preventDefault();const form=event.currentTarget,platform=sessionStorage.getItem('aamAdPlatform')||'facebook',args={};
     for(const el of form.elements){if(!el.name||el.value==='')continue;const value=el.value;try{args[el.name]=(value.startsWith('{')||value.startsWith('['))?JSON.parse(value):el.type==='number'?Number(value):value;}catch(_){return toast('Check the JSON entered for '+el.name+'.');}}
-    const finalAd=(platform==='tiktok'&&['TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))||(platform!=='tiktok'&&toolSlug==='METAADS_CREATE_AD');
+    const finalAd=(platform==='tiktok'&&['TIKTOK_ADS_CREATE_AD','TIKTOK_ADS_CREATE_ADS'].includes(toolSlug))||(platform==='snapchat'&&toolSlug==='SNAPCHAT_CREATE_ADS')||(!['tiktok','snapchat'].includes(platform)&&toolSlug==='METAADS_CREATE_AD');
     if(finalAd){try{const check=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const state=await check.json();if(!check.ok)throw new Error(state.error||'Could not check payment unlock.');if(!state.unlocked){window.openAamAdWorkspace(platform);setTimeout(()=>window.openAamAdUnlock(),150);return;}}catch(e){toast(e.message||'Could not verify payment unlock.');return;}}
     const button=form.querySelector('button[type=submit]');if(button){button.disabled=true;button.textContent='Creating paused draft…';}
     try{
@@ -127,13 +128,13 @@
   window.refreshAamAdUnlock=async function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
     try{const r=await fetch('/.netlify/functions/ads-unlock-create?action=status&token='+encodeURIComponent(sessionStorage.getItem('btToken')||''));const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not check payment unlock.');
-      if(d.unlocked){const started=new Date(d.unlocked_at),expires=new Date(d.expires_at);area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ Payment method unlocked for 20 minutes.<br><small>Paid: '+started.toLocaleString()+'<br>Expires: '+expires.toLocaleString()+'</small><br><strong>Run multiple ads during this window without another ₦3,800 unlock.</strong><button class="btn" style="margin-top:10px" onclick="openAamAdCampaign()">Continue to ADS</button></div>';}
-      else{area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>Advertising payment method locked</strong><br>₦3,800 unlocks it for 20 minutes.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Unlock payment method</button></div>';}
+      if(d.unlocked){const started=new Date(d.unlocked_at),expires=new Date(d.expires_at);area.innerHTML='<div class="payment-note" style="margin-top:14px;border-color:#16834a">✓ Payment method unlocked for 20 minutes.<br><small>Paid: '+started.toLocaleString()+'<br>Expires: '+expires.toLocaleString()+'</small><br><strong>Run multiple ads during this window without another ₦3,000 unlock.</strong><button class="btn" style="margin-top:10px" onclick="openAamAdCampaign()">Continue to ADS</button></div>';}
+      else{area.innerHTML='<div class="payment-note" style="margin-top:14px"><strong>Advertising payment method locked</strong><br>₦3,000 unlocks it for 20 minutes.<br><button class="btn" style="margin-top:10px" onclick="openAamAdUnlock()">Unlock payment method</button></div>';}
     }catch(e){area.textContent=e.message||'Payment unlock status is unavailable.';}
   };
   window.openAamAdUnlock=function(){
     const area=document.getElementById('aamAdUnlockArea');if(!area)return;
-    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">₦3,800 unlocks your advertising payment method for 20 minutes. You can run multiple ads during that time without paying this fee again. After 20 minutes, a new unlock is required. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock(this)">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="profile()">No, go back to dashboard</button></div>';
+    area.innerHTML='<div class="confirm-card" style="margin-top:14px"><h3>Please unlock your payment method first.</h3><p class="muted">₦3,000 unlocks your advertising payment method for 20 minutes. You can run multiple ads during that time without paying this fee again. After 20 minutes, a new unlock is required. This fee is separate from your advertising budget.</p><label for="aamAdUnlockEmail">Receipt email</label><input class="field" id="aamAdUnlockEmail" type="email" autocomplete="email" placeholder="Enter your email"><label for="aamAdUnlockMethod">Payment method</label><select class="field" id="aamAdUnlockMethod"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select><button class="btn" style="margin-top:12px" onclick="confirmAamAdUnlock(this)">Yes, unlock</button><button class="btn secondary" style="margin-top:8px" onclick="profile()">No, go back to dashboard</button></div>';
   };
   window.confirmAamAdUnlock=async function(button){
     if(window.aamUnlockSubmitting)return;window.aamUnlockSubmitting=true;if(button){button.disabled=true;button.textContent='Starting payment…';}
@@ -152,13 +153,10 @@
     if(service==='Facebook Ads')return window.openAamAdWorkspace('facebook');
     if(service==='TikTok Ads')return window.openAamAdWorkspace('tiktok');
     if(service==='Instagram Ads')return window.openAamAdWorkspace('instagram');
+    if(service==='Snapchat Ads')return window.openAamAdWorkspace('snapchat');
+    if(service==='WhatsApp Ads')return window.openAamAdWorkspace('whatsapp');
     return legacyServiceForm.apply(this,arguments);
   };
-  window.openAllAdsManagerPromotion=function(){
-    if(!guard())return;
-    shell('<button class="btn secondary back" onclick="profile()">← Back</button><section class="form" style="max-width:620px"><span class="eyebrow">ALL ADS MANAGER PROMOTION</span><h2>Choose an advertising platform</h2><p class="muted">Connect your own advertising account, choose your audience and campaign settings, and manage your promotions from All Ads Manager.</p><button class="btn" onclick="openAamAdWorkspace(\'facebook\')">Facebook Ads</button><button class="btn" style="margin-top:10px" onclick="openAamAdWorkspace(\'instagram\')">Instagram Ads</button><button class="btn" style="margin-top:10px" onclick="openAamAdWorkspace(\'tiktok\')">TikTok Ads</button></section>');
-  };
-
   const unlockReturn=new URLSearchParams(location.search);
   if(unlockReturn.get('ads_unlock')==='success'){const platform=unlockReturn.get('platform')||sessionStorage.getItem('aamAdPlatform')||'facebook';sessionStorage.setItem('aamAdPlatform',platform);setTimeout(()=>{window.openAamAdCampaign(platform);toast('Payment successful. Your advertising payment method is unlocked for 20 minutes. Start your next campaign here.');},800);history.replaceState({},'',location.pathname);}
   else if(unlockReturn.get('ads_unlock')==='pending'){setTimeout(()=>toast('Payment is not confirmed yet. Your advertising payment method remains locked.'),800);history.replaceState({},'',location.pathname);}
