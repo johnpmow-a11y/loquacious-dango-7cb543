@@ -149,7 +149,37 @@ async function loadAdminWorkingPictures(reset=false){const box=document.getEleme
 function addFundsPage(){if(!guard())return;shell(`<button class="btn secondary back" onclick="profile()">←</button><div class="form"><span class="eyebrow">ADS MANAGER WALLET</span><h2>Add Funds</h2><label>Amount (₦100 – ₦3,000,000)</label><input id="walletAmount" type="number" min="100" max="3000000" step="100" value="100"><label>Email for payment receipt</label><input id="walletEmail" type="email" autocomplete="email" placeholder="you@example.com"><label>Payment method</label><select id="walletMethod"><option value="bank_transfer">Bank Transfer</option><option value="card">ATM / Card Payment</option></select><p class="muted">Bank Transfer opens Paystack's secure transfer checkout. ATM/Card Payment opens Paystack's secure card checkout. Card details are entered only on Paystack.</p><button class="btn" style="margin-top:12px" onclick="startWalletPayment()">Continue to Paystack</button></div>`)}
 async function startWalletPayment(){if(!guard()||window.walletPaymentStarting)return;const amount=Number(document.getElementById('walletAmount').value),email=document.getElementById('walletEmail').value.trim(),method=document.getElementById('walletMethod').value;if(!Number.isInteger(amount)||amount<100||amount>3000000)return toast('Choose an amount from ₦100 to ₦3,000,000.');if(!/^\S+@\S+\.\S+$/.test(email))return toast('Enter a valid email address.');window.walletPaymentStarting=true;const button=document.querySelector('.form .btn');if(button){button.disabled=true;button.textContent='Connecting to Paystack…'}completeWalletPayment(amount,email,method);}
 async function completeWalletPayment(amount,email,method){try{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);let response;try{response=await fetch('/.netlify/functions/paystack-create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:sessionStorage.getItem('btToken'),amount,email,method}),signal:controller.signal});}finally{clearTimeout(timer)}const result=await response.json();if(!response.ok||!result.authorization_url)throw new Error(result.error||'Could not start payment.');sessionStorage.setItem('btPendingPaymentReference',result.reference);location.href=result.authorization_url}catch(e){window.walletPaymentStarting=false;addFundsPage();toast(e.name==='AbortError'?'Paystack did not respond within 25 seconds. Please try again.':e.message||'Payment could not be started.');}}
-async function walletHistoryPage(){if(!guard())return;shell('<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><div class="loader"><div class="spinner"></div><p>Loading all payments…</p></div></div>');try{const token=sessionStorage.getItem('btToken'),[w,r]=await Promise.all([rpc('bt_customer_wallet_get',{p_token:token}),fetch('/.netlify/functions/customer-service-payments?token='+encodeURIComponent(token),{cache:'no-store'})]);const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not load direct service payments.');const wallet=(w.transactions||[]).map(t=>({time:t.created_at,title:t.description,amount:t.amount,status:t.status,reference:t.reference,kind:'Wallet'}));const direct=(d.payments||[]).map(t=>({time:t.paid_at||t.created_at,title:t.service,amount:t.amount,status:t.status,reference:t.reference,kind:'Direct Paystack',method:t.method}));const all=[...wallet,...direct].sort((a,b)=>new Date(b.time)-new Date(a.time));shell(`<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><h3>Available balance: ${money(w.balance||0)}</h3><p class="muted">Wallet deposits, wallet purchases/refunds and direct Paystack service payments.</p>${all.map(t=>`<article class="history-item"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>${esc(t.title)}</strong><span class="muted">${esc(t.kind)}</span></div><p>${money(t.amount)} · ${esc(t.status)}</p>${t.method?`<div class="muted">Method: ${esc(t.method)}</div>`:''}<div class="muted">${t.time?new Date(t.time).toLocaleString():'Date unavailable'}</div><div class="muted">Reference: ${esc(t.reference)}</div></article>`).join('')||'<p class="muted">No payments found yet.</p>'}</div>`)}catch(e){shell('<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><p class="payment-note">'+esc(e.message||'Could not load payment history.')+'</p></div>')}}
+let walletHistoryRequestId=0;
+async function walletHistoryPage(){
+ if(!guard())return;
+ const requestId=++walletHistoryRequestId;
+ const token=sessionStorage.getItem('btToken');
+ const controller=new AbortController();
+ let timer;
+ shell('<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><div class="loader"><div class="spinner"></div><p>Loading payments…</p></div></div>');
+ try{
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('Payment History is taking too long. Please retry.'));},15000);});
+  const load=(async()=>{
+   const [w,r]=await Promise.all([
+    rpc('bt_customer_wallet_get',{p_token:token}),
+    fetch('/.netlify/functions/customer-service-payments?token='+encodeURIComponent(token),{cache:'no-store',signal:controller.signal})
+   ]);
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||'Could not load direct service payments.');
+   if(requestId!==walletHistoryRequestId)return;
+   const wallet=(w.transactions||[]).map(t=>({time:t.created_at,title:t.description,amount:t.amount,status:t.status,reference:t.reference,kind:'Wallet'}));
+   const direct=(d.payments||[]).map(t=>({time:t.paid_at||t.created_at,title:t.service,amount:t.amount,status:t.status,reference:t.reference,kind:'Direct Paystack',method:t.method}));
+   const all=[...wallet,...direct].sort((a,b)=>new Date(b.time)-new Date(a.time));
+   shell(`<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><h3>Available balance: ${money(w.balance||0)}</h3><p class="muted">Wallet deposits, wallet purchases/refunds and direct Paystack service payments.</p>${all.map(t=>`<article class="history-item"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>${esc(t.title)}</strong><span class="muted">${esc(t.kind)}</span></div><p>${money(t.amount)} · ${esc(t.status)}</p>${t.method?`<div class="muted">Method: ${esc(t.method)}</div>`:''}<div class="muted">${t.time?new Date(t.time).toLocaleString():'Date unavailable'}</div><div class="muted">Reference: ${esc(t.reference)}</div></article>`).join('')||'<p class="muted">No payments found yet.</p>'}</div>`);
+  })();
+  await Promise.race([load,timeout]);
+ }catch(e){
+  if(requestId===walletHistoryRequestId){
+   walletHistoryRequestId++;
+   shell('<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><p class="payment-note">'+esc(e.message||'Could not load payment history.')+'</p><button class="btn" onclick="walletHistoryPage()">Retry Payment History</button></div>');
+  }
+ }finally{clearTimeout(timer);}
+}
 
 let shadowOtpPollTimer=null;
 function shadowOtpEmailPage(){
