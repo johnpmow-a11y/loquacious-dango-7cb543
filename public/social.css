@@ -439,7 +439,7 @@ body.aam-full-chat-open .aam-social-chat-screen{
   box-shadow:none!important;
   background:#f7f5f0!important;
   padding-top:env(safe-area-inset-top)!important;
-  padding-bottom:env(safe-area-inset-bottom)!important;
+  padding-bottom:0!important;
   touch-action:pan-y;
 }
 body.aam-full-chat-open .aam-chat-header{
