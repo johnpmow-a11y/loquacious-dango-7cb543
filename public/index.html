@@ -785,7 +785,63 @@ async function adminSocialDeletePost(id){if(!confirm('Delete this social post?')
 async function adminSocialDeleteComment(id){if(!confirm('Delete this comment?'))return;try{await adminSocialCall({action:'delete_comment',comment_id:id});adminSocialPanel();}catch(e){toast(e.message);}}
 async function checkAdmin(){const input=document.getElementById('apass'),button=document.querySelector('.form .btn');const p=input?.value||'';if(!p)return toast('Enter the administrator password.');if(button){button.disabled=true;button.textContent='Signing in…'}try{const raw=await rpc('admin_login',{p_password:p});const r=Array.isArray(raw)?raw[0]:raw;const token=r?.token||r?.admin_login?.token||null;if(!token)throw new Error('The password was not accepted or the database did not return an administrator session.');sessionStorage.removeItem('btCustomer');sessionStorage.removeItem('btToken');sessionStorage.setItem('btAdminToken',token);await admin()}catch(e){toast(e.message||'Administrator login failed.');if(button){button.disabled=false;button.textContent='Log In'}}}
 function adminLogout(){sessionStorage.removeItem('btAdminToken');entry()}
-async function restoreSession(){const adminToken=sessionStorage.getItem('btAdminToken');if(adminToken){showPageLoading('Restoring management session…');await admin();return;}try{const {data:{session}}=await db.auth.getSession();if(session?.user){showPageLoading('Signing you in with Google…');const c=await rpc('bt_customer_google_login',{});if(c?.locked){sessionStorage.removeItem('btCustomer');sessionStorage.removeItem('btToken');localStorage.removeItem('aamCustomerSession');sessionStorage.setItem('btSubscriptionToken',c.subscription_token);history.replaceState({},document.title,location.pathname);showSubscriptionPlans(c);return;}if(!c?.id||!c?.token)throw new Error('Google account could not be connected to a customer profile.');persistCustomerSession(c.id,c.token);store.customers[c.id]={id:c.id,name:c.name||session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Member',email:session.user.email||'',created:c.created_at||new Date().toISOString()};history.replaceState({},document.title,location.pathname);await loadCustomerCloud();profile();return;}}catch(e){console.error('Google session restore:',e);toast(e.message||'Google sign-in could not be completed.');}const customerId=sessionStorage.getItem('btCustomer'),customerToken=sessionStorage.getItem('btToken');if(customerId&&customerToken){showPageLoading('Restoring your account…');try{await loadCustomerCloud();profile();return}catch(e){sessionStorage.removeItem('btCustomer');sessionStorage.removeItem('btToken');localStorage.removeItem('aamCustomerSession');}}entry()}
+function googleManagerEmailPage(currentEmail,message=''){
+ const value=String(currentEmail||'').trim();
+ shell('<div class="form"><span class="eyebrow">GOOGLE ACCOUNT VERIFIED</span><h2>Confirm your manager email</h2><p class="muted">Google sign-in is complete. Enter the correct email address you want All Ads Manager to use for your manager account information. We will verify it before opening your dashboard.</p>'+(message?'<div class="payment-note" role="status">'+esc(message)+'</div>':'')+'<label for="aamManagerEmail">Manager email address</label><input id="aamManagerEmail" type="email" autocomplete="email" maxlength="190" value="'+esc(value)+'" placeholder="Enter your correct email address"><button class="btn" style="margin-top:16px" onclick="submitGoogleManagerEmail()">Verify email and continue</button><button class="btn secondary" style="margin-top:10px" onclick="db.auth.signOut().then(()=>entry())">Use another Google account</button></div>');
+}
+async function completeGoogleCustomerLogin(){
+ const {data:{user}}=await db.auth.getUser();
+ if(!user||!user.email||!user.email_confirmed_at)throw new Error('Your manager email must be verified before you continue.');
+ showPageLoading('Connecting your Google account…');
+ const c=await rpc('bt_customer_google_login',{});
+ if(c?.locked){sessionStorage.removeItem('btCustomer');sessionStorage.removeItem('btToken');localStorage.removeItem('aamCustomerSession');sessionStorage.setItem('btSubscriptionToken',c.subscription_token);history.replaceState({},document.title,location.pathname);showSubscriptionPlans(c);return;}
+ if(!c?.id||!c?.token)throw new Error('Google account could not be connected to a customer profile.');
+ persistCustomerSession(c.id,c.token);
+ store.customers[c.id]={id:c.id,name:c.name||user.user_metadata?.full_name||user.email?.split('@')[0]||'Member',email:user.email||'',created:c.created_at||new Date().toISOString()};
+ history.replaceState({},document.title,location.pathname);
+ await loadCustomerCloud();profile();
+}
+async function submitGoogleManagerEmail(){
+ const input=document.getElementById('aamManagerEmail'),email=String(input?.value||'').trim().toLowerCase();
+ if(!/^\S+@\S+\.\S+$/.test(email))return toast('Enter a valid manager email address.');
+ const button=document.querySelector('.form .btn');if(button){button.disabled=true;button.textContent='Verifying email…';}
+ try{
+  const {data:{user}}=await db.auth.getUser();if(!user)throw new Error('Your Google session has expired. Sign in again.');
+  if(email===String(user.email||'').toLowerCase()&&user.email_confirmed_at){
+   const {error}=await db.auth.updateUser({data:{...user.user_metadata,aam_manager_email:email,aam_manager_email_verified:true,aam_manager_email_pending:null}});
+   if(error)throw error;
+   await completeGoogleCustomerLogin();return;
+  }
+  const {error}=await db.auth.updateUser({email,data:{...user.user_metadata,aam_manager_email_pending:email,aam_manager_email_verified:false}},{emailRedirectTo:window.location.origin});
+  if(error)throw error;
+  localStorage.setItem('aamGoogleManagerEmailPending',email);
+  shell('<div class="form"><span class="eyebrow">EMAIL VERIFICATION REQUIRED</span><h2>Check your inbox</h2><p class="muted">We sent a verification link to <strong>'+esc(email)+'</strong>. Open that message and confirm the address. Your All Ads Manager dashboard will continue after the email is verified.</p><button class="btn" onclick="restoreSession()">I have verified my email</button><button class="btn secondary" style="margin-top:10px" onclick="googleManagerEmailPage(\''+esc(email)+'\',\'Enter the correct email if you need to change it.\')">Change email address</button></div>');
+ }catch(e){if(button){button.disabled=false;button.textContent='Verify email and continue';}toast(e.message||'Could not verify the manager email.');}
+}
+async function restoreSession(){
+ const adminToken=sessionStorage.getItem('btAdminToken');
+ if(adminToken){showPageLoading('Restoring management session…');await admin();return;}
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(session?.user){
+   const user=session.user,pending=String(user.user_metadata?.aam_manager_email_pending||localStorage.getItem('aamGoogleManagerEmailPending')||'').toLowerCase();
+   if(pending&&String(user.email||'').toLowerCase()===pending&&user.email_confirmed_at){
+    const {error}=await db.auth.updateUser({data:{...user.user_metadata,aam_manager_email:pending,aam_manager_email_verified:true,aam_manager_email_pending:null}});
+    if(error)throw error;
+    localStorage.removeItem('aamGoogleManagerEmailPending');
+    await completeGoogleCustomerLogin();return;
+   }
+   if(user.user_metadata?.aam_manager_email_verified!==true||!user.email_confirmed_at){
+    googleManagerEmailPage(pending||user.email||'');return;
+   }
+   localStorage.removeItem('aamGoogleManagerEmailPending');
+   await completeGoogleCustomerLogin();return;
+  }
+ }catch(e){console.error('Google session restore:',e);toast(e.message||'Google sign-in could not be completed.');}
+ const customerId=sessionStorage.getItem('btCustomer'),customerToken=sessionStorage.getItem('btToken');
+ if(customerId&&customerToken){showPageLoading('Restoring your account…');try{await loadCustomerCloud();profile();return}catch(e){sessionStorage.removeItem('btCustomer');sessionStorage.removeItem('btToken');localStorage.removeItem('aamCustomerSession');}}
+ entry();
+}
 const originalAdminDashboard=window.admin;
 window.admin=async function(){await originalAdminDashboard.apply(this,arguments);if(sessionStorage.getItem('btAdminToken'))startAdminNotifications();};
 restoreSession();
