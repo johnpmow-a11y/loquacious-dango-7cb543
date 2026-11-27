@@ -490,3 +490,13 @@ body.aam-full-chat-open .aam-chat-viewer .aam-view-once-media{
   max-width:100vw!important;
   max-height:100dvh!important;
 }
+
+
+/* Compact, visible advertising platform shortcuts */
+.ad-services-panel{margin:12px 0 16px;padding:12px;border:1px solid rgba(148,163,184,.24);border-radius:16px;background:rgba(15,23,42,.035)}
+.ad-services-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ad-service-button{display:flex!important;align-items:center;justify-content:flex-start;gap:9px;min-height:48px;padding:8px 10px!important;margin:0!important;text-align:left;font-size:13px!important;line-height:1.15;white-space:normal}
+.ad-service-button span:last-child{min-width:0}
+.ad-services-note{font-size:11px;line-height:1.45;margin:10px 2px 0}
+@media(min-width:560px){.ad-services-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:360px){.ad-service-button{font-size:12px!important;padding:7px!important;gap:7px}.ad-brand-mark{width:24px}}
