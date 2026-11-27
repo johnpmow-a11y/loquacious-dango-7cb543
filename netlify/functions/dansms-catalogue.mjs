@@ -1,4 +1,5 @@
-import {json,dansms,adminSession} from './_dansms.mjs';
+import {json,dansms} from './_dansms.mjs';
+import {adminSession} from './_nexotp.mjs';
 
 export async function handler(event){
   if(event.httpMethod!=='GET')return json(405,{error:'Method not allowed.'});
