@@ -16,9 +16,9 @@ export function json(statusCode,body){return{statusCode,headers:{'Content-Type':
 export async function dansms(params){
  const key=process.env.DANSMS_API_KEY;
  if(!key)throw Object.assign(new Error('DANSMS_API_KEY is missing in Netlify.'),{status:503});
- const url=new URL(BASE);url.searchParams.set('api_key',key);
+ const url=new URL(BASE);
  for(const [k,v] of Object.entries(params||{}))if(v!==undefined&&v!==null&&String(v)!=='')url.searchParams.set(k,String(v));
- const r=await fetch(url,{method:'GET',cache:'no-store',signal:AbortSignal.timeout(12000),headers:{Accept:'application/json,text/plain'}});
+ const r=await fetch(url,{method:'GET',cache:'no-store',signal:AbortSignal.timeout(12000),headers:{Accept:'application/json,text/plain',Authorization:'Bearer '+key}});
  const raw=(await r.text()).trim();
  if(!r.ok)throw Object.assign(new Error('DanSMS request failed ('+r.status+').'),{status:r.status});
  let data=raw;try{data=JSON.parse(raw)}catch{}
