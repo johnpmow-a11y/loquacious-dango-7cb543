@@ -19,7 +19,11 @@ export function customerPriceUsd(cost){
  const supplierUsd=Number(cost);
  if(!Number.isFinite(supplierUsd)||supplierUsd<=0)throw Object.assign(new Error('DanSMS returned an invalid service price.'),{status:502});
  const markupKobo=Math.round(markup*100);
- const customerChargeKobo=Math.ceil(supplierUsd*rate*100)+markupKobo;
+ const supplierScaled=BigInt(supplierUsd.toFixed(4).replace('.',''));
+ const rateScaled=BigInt(rate.toFixed(4).replace('.',''));
+ const supplierCostKobo=(supplierScaled*rateScaled*100n+99999999n)/100000000n;
+ if(supplierCostKobo>BigInt(Number.MAX_SAFE_INTEGER-markupKobo))throw Object.assign(new Error('DanSMS price is outside the supported range.'),{status:502});
+ const customerChargeKobo=Number(supplierCostKobo)+markupKobo;
  return {supplier_usd:supplierUsd,exchange_rate:rate,markup_kobo:markupKobo,customer_charge_kobo:customerChargeKobo,customer_price_ngn:customerChargeKobo/100};
 }
 export function activationResponse(value){
