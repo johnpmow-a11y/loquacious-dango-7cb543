@@ -169,7 +169,8 @@ async function walletHistoryPage(){
    if(requestId!==walletHistoryRequestId)return;
    const wallet=(w.transactions||[]).map(t=>({time:t.created_at,title:t.description,amount:t.amount,status:t.status,reference:t.reference,kind:'Wallet'}));
    const direct=(d.payments||[]).map(t=>({time:t.paid_at||t.created_at,title:t.service,amount:t.amount,status:t.status,reference:t.reference,kind:'Direct Paystack',method:t.method}));
-   const all=[...wallet,...direct].sort((a,b)=>new Date(b.time)-new Date(a.time));
+   const deposits=(d.deposits||[]).map(t=>({time:t.paid_at||t.created_at,title:'Wallet deposit',amount:t.amount,status:t.status,reference:t.reference,kind:'Paystack wallet deposit',method:t.method}));
+   const all=[...wallet,...direct,...deposits].sort((a,b)=>new Date(b.time)-new Date(a.time));
    shell(`<button class="btn secondary back" onclick="profile()">←</button><div class="profile-card"><h2>Payment History</h2><h3>Available balance: ${money(w.balance||0)}</h3><p class="muted">Wallet deposits, wallet purchases/refunds and direct Paystack service payments.</p>${all.map(t=>`<article class="history-item"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>${esc(t.title)}</strong><span class="muted">${esc(t.kind)}</span></div><p>${money(t.amount)} · ${esc(t.status)}</p>${t.method?`<div class="muted">Method: ${esc(t.method)}</div>`:''}<div class="muted">${t.time?new Date(t.time).toLocaleString():'Date unavailable'}</div><div class="muted">Reference: ${esc(t.reference)}</div></article>`).join('')||'<p class="muted">No payments found yet.</p>'}</div>`);
   })();
   await Promise.race([load,timeout]);
