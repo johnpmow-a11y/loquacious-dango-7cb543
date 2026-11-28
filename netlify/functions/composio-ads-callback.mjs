@@ -29,7 +29,7 @@ export async function handler(event){
    const a=Buffer.from(expected),z=Buffer.from(parts[1]);if(a.length!==z.length||!timingSafeEqual(a,z))throw new Error('The account verification signature is invalid.');
    let claims;try{claims=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'));}catch{throw new Error('The account verification state is invalid.');}
    if(!claims.customer_id||!claims.platform||Number(claims.expires_at)<Date.now())throw new Error('The account verification link has expired.');
-   customerId=String(claims.customer_id);callbackPlatform=String(claims.platform);slug=callbackPlatform==='tiktok'?'tiktok_ads':callbackPlatform==='facebook_replies'?'facebook':callbackPlatform==='snapchat'?'snapchat':'metaads';connectedId=accountId;
+   customerId=String(claims.customer_id);callbackPlatform=String(claims.platform);slug=callbackPlatform==='tiktok'?'tiktok_ads':callbackPlatform==='facebook_replies'?'facebook':callbackPlatform==='snapchat'?'snapchat':callbackPlatform==='whatsapp'?'whatsapp':'metaads';connectedId=accountId;
    if(!s||String(s.customer_id)!==customerId){
     await fetch('https://backend.composio.dev/api/v3.1/connected_accounts/'+encodeURIComponent(connectedId)+'/revoke',{method:'POST',headers:h(key)}).catch(()=>{});
     return json(403,{error:'This advertising account was authorized in a different customer session. The connection was revoked for your protection. Sign in to the correct account and reconnect.'});
