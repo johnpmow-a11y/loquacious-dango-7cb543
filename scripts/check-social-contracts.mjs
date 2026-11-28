@@ -56,6 +56,10 @@ const xTerms=read('public/terms.html');
 const xPrivacy=read('public/privacy.html');
 const xMigration=read('supabase/migrations/202611260005_aam_x_ads_oauth.sql');
 const netlifyConfig=read('netlify.toml');
+const flyServer=read('server.mjs');
+const dockerfile=read('Dockerfile');
+const flyConfig=read('fly.toml');
+const flyGuide=read('FLY_DEPLOYMENT_README.txt');
 checks.push(
  ['Home feed keeps its full-screen swipe layout with right-side icon-only actions',ui.includes('aam-feed-action-rail')&&ui.includes('AAMSocial.like')&&ui.includes('AAMSocial.comments')&&ui.includes('AAMSocial.sharePost')&&css.includes('.aam-feed-action-rail')&&css.includes('scroll-snap-type:y mandatory')&&css.includes('env(safe-area-inset-top')],
  ['X Ads workspace starts a customer-authenticated OAuth 1.0a connection',index.includes("x:{name:'X Ads'")&&index.includes("fetch('/.netlify/functions/x-ads-connect'")&&xConnect.includes('customer_sessions?select=customer_id')],
@@ -64,7 +68,10 @@ checks.push(
  ['X OAuth callback consumes temporary state once before exchanging credentials',xCallback.includes("method:'DELETE',headers:{Prefer:'return=representation'}")&&xCallback.includes('consumed.length!==1')],
  ['X access credentials are encrypted with AES-256-GCM before storage',xCallback.includes("createCipheriv('aes-256-gcm'")&&xCallback.includes('X_ADS_TOKEN_ENCRYPTION_KEY')&&xCallback.includes('access_secret_tag:es.tag')],
  ['X Terms and Privacy pages exist and Netlify routes resolve to their HTML files',xTerms.includes('Terms of Service')&&xPrivacy.includes('Privacy Policy')&&netlifyConfig.includes('to = "/terms.html"')&&netlifyConfig.includes('to = "/privacy.html"')],
- ['X OAuth database tables restrict access to service role only',xMigration.includes('aam_x_oauth_states')&&xMigration.includes('aam_x_ad_connections')&&xMigration.includes('enable row level security')&&xMigration.includes('revoke all')&&xMigration.includes('grant all')&&xMigration.includes('service_role')]
+ ['X OAuth database tables restrict access to service role only',xMigration.includes('aam_x_oauth_states')&&xMigration.includes('aam_x_ad_connections')&&xMigration.includes('enable row level security')&&xMigration.includes('revoke all')&&xMigration.includes('grant all')&&xMigration.includes('service_role')],
+ ['Fly runtime serves the app and routes existing Netlify function URLs',flyServer.includes("const functionPrefix = '/.netlify/functions/'")&&flyServer.includes('invokeFunction(req, res, url, functionName)')&&flyServer.includes("url.pathname === '/_healthz'")],
+ ['Fly container uses Node 22 and starts the runtime adapter',dockerfile.includes('FROM node:22')&&dockerfile.includes('CMD ["node", "server.mjs"]')],
+ ['Fly configuration defines HTTPS, health checks and the app port',flyConfig.includes('internal_port = 8080')&&flyConfig.includes('force_https = true')&&flyConfig.includes('path = "/_healthz"')&&flyGuide.includes('fly deploy')]
 );
 let failed=0;
 for(const [name,ok] of checks){console.log((ok?'PASS ':'FAIL ')+name);if(!ok)failed++;}
