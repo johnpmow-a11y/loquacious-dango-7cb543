@@ -147,8 +147,12 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/_healthz') {
       return send(res, 200, JSON.stringify({ ok: true, service: 'all-ads-manager' }), { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     }
-    const match = url.pathname.match(/^\\/\\.netlify\\/functions\\/([^/]+)\\/?$/);
-    if (match) return await invokeFunction(req, res, url, match[1]);
+    const functionPrefix = '/.netlify/functions/';
+    if (url.pathname.startsWith(functionPrefix)) {
+      let functionName = url.pathname.slice(functionPrefix.length);
+      if (functionName.endsWith('/')) functionName = functionName.slice(0, -1);
+      return await invokeFunction(req, res, url, functionName);
+    }
     return await serveStatic(req, res, url);
   } catch (error) {
     const status = Number(error?.statusCode || 500);
