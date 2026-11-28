@@ -55,6 +55,12 @@ function unwrapOrder(payload) {
   return payload.order || payload.data?.order || payload.data || payload;
 }
 
+function isEmailAccount(item) {
+  const text = [item.category_name, item.category?.name, item.category, item.type, item.name, item.description]
+    .filter(Boolean).join(' ').toLowerCase();
+  return /\\b(email|mailbox|hotmail|gmail|yahoo|gmx|mail\\.com|rambler)\\b/.test(text);
+}
+
 function servicePriceNgn(item) {
   const value = item.price_ngn ?? (String(item.currency || '').toUpperCase() === 'NGN' ? item.price : null);
   const price = Number(value);
@@ -153,9 +159,10 @@ export async function handler(event) {
 
     const supplierPrice = servicePriceNgn(item);
     if (supplierPrice === null) return json(502, { ok: false, error: 'The supplier did not provide a valid naira price. No money has been deducted.' });
-    // Customer price = supplier price + ₦700 (owner's corrected pricing).
+    // Social accounts and VPN: supplier price + ₦700. Email accounts are excluded.
     const supplierKobo = Math.round(supplierPrice * 100);
-    const customerKobo = Math.round((supplierPrice + 700) * 100);
+    const markupNgn = isEmailAccount(item) ? 0 : 700;
+    const customerKobo = Math.round((supplierPrice + markupNgn) * 100);
     if (!Number.isSafeInteger(supplierKobo) || !Number.isSafeInteger(customerKobo) || customerKobo <= 0) {
       return json(502, { ok: false, error: 'The supplier price is invalid.' });
     }
