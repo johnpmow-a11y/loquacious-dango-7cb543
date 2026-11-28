@@ -32,5 +32,5 @@ export async function handler(event){
    return json(200,{order:{reference,status:'cancelled',number:order.phone_number,otp:null},refunded:true});
   }
   return json(200,{order:{reference,status,number:order.phone_number,otp:null},pending:true});
- }catch(e){return json(e.status||502,{error:e.message||'Could not refresh DanSMS OTP.'});}
+ }catch(e){return json(e.status||502,{error:e.message||'Could not refresh DanSMS OTP.',provider_code:e.providerCode||null,pending:e.providerCode==='TOO_MANY_REQUESTS'||e.providerCode==='ERROR_PROVIDER'});}
 }
