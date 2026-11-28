@@ -27,6 +27,16 @@ function messageText(m){
   const type=String(m.type||'message');
   return '['+type+' message]';
 }
+async function persistStatus(customerId,status,phoneNumberId,wabaId){
+  const messageId=String(status.id||'').trim(),state=String(status.status||'').toLowerCase();
+  if(!messageId||!['sent','delivered','read','failed'].includes(state))return false;
+  const rows=await db('aam_ad_inbox_messages?select=id,provider_metadata&customer_id=eq.'+encodeURIComponent(customerId)+'&provider_message_id=eq.'+encodeURIComponent(messageId)+'&limit=1');
+  const row=rows[0];if(!row)return false;
+  const metadata=row.provider_metadata&&typeof row.provider_metadata==='object'?row.provider_metadata:{};
+  const next={...metadata,delivery_status:state,status_timestamp:status.timestamp?new Date(Number(status.timestamp)*1000).toISOString():new Date().toISOString(),status_recipient_id:status.recipient_id||null,status_phone_number_id:phoneNumberId,status_waba_id:wabaId,status_errors:Array.isArray(status.errors)?status.errors:[]};
+  await db('aam_ad_inbox_messages?id=eq.'+encodeURIComponent(row.id)+'&customer_id=eq.'+encodeURIComponent(customerId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({provider_metadata:next})});
+  return true;
+}
 async function persistMessage(customerId,phoneNumberId,displayPhone,wabaId,message,profileName){
   const sender=String(message.from||'').trim(),messageId=String(message.id||'').trim();
   if(!sender||!messageId)return false;
@@ -70,6 +80,9 @@ export async function handler(event){
         const profiles=new Map((value.contacts||[]).map(c=>[String(c.wa_id||''),c.profile?.name||'']));
         for(const message of value.messages||[]){
           if(await persistMessage(mapping.customer_id,phoneNumberId,mapping.display_phone_number,wabaId||mapping.waba_id,message,profiles.get(String(message.from||''))))imported++;
+        }
+        for(const status of value.statuses||[]){
+          if(await persistStatus(mapping.customer_id,status,phoneNumberId,wabaId||mapping.waba_id))imported++;
         }
       }
     }
