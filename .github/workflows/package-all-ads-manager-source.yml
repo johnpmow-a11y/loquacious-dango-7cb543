@@ -56,7 +56,7 @@ jobs:
         run: node scripts/check-social-contracts.mjs
 
   package:
-    if: github.event_name == 'workflow_dispatch'
+    # Package on every push after verification, so the latest tested source is downloadable.
     needs: verify
     runs-on: ubuntu-latest
     steps:
