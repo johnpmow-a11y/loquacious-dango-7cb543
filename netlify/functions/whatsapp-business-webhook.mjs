@@ -68,7 +68,7 @@ export async function handler(event){
     if(!validSignature(raw,event.headers?.['x-hub-signature-256']||event.headers?.['X-Hub-Signature-256'],secret))return json(401,{error:'Invalid webhook signature.'});
     const payload=JSON.parse(raw.toString('utf8'));
     if(payload.object!=='whatsapp_business_account')return json(200,{ok:true,ignored:true});
-    let imported=0;
+    let imported=0,status_updates=0;
     for(const entry of payload.entry||[]){
       const wabaId=String(entry.id||'');
       for(const change of entry.changes||[]){
@@ -82,10 +82,10 @@ export async function handler(event){
           if(await persistMessage(mapping.customer_id,phoneNumberId,mapping.display_phone_number,wabaId||mapping.waba_id,message,profiles.get(String(message.from||''))))imported++;
         }
         for(const status of value.statuses||[]){
-          if(await persistStatus(mapping.customer_id,status,phoneNumberId,wabaId||mapping.waba_id))imported++;
+          if(await persistStatus(mapping.customer_id,status,phoneNumberId,wabaId||mapping.waba_id))status_updates++;
         }
       }
     }
-    return json(200,{ok:true,imported});
+    return json(200,{ok:true,imported,status_updates});
   }catch(error){console.error('WhatsApp Business webhook:',error);return json(error.status||500,{error:'Could not process WhatsApp Business event.'});}
 }
