@@ -75,8 +75,11 @@ export async function handler(event){
         if(change.field!=='messages')continue;
         const value=change.value||{},phoneNumberId=String(value.metadata?.phone_number_id||'');
         if(!phoneNumberId)continue;
-        const mappings=await db('aam_whatsapp_business_numbers?select=customer_id,waba_id,display_phone_number,connection_status&phone_number_id=eq.'+encodeURIComponent(phoneNumberId)+'&connection_status=eq.ACTIVE&limit=1');
-        const mapping=mappings[0];if(!mapping)continue;
+        const mappings=await db('aam_whatsapp_business_numbers?select=customer_id,waba_id,display_phone_number,connection_status&phone_number_id=eq.'+encodeURIComponent(phoneNumberId)+'&waba_id=eq.'+encodeURIComponent(wabaId)+'&connection_status=eq.ACTIVE&limit=2');
+        // Bind each webhook event to both the registered business phone and its WABA.
+        // A phone-number match alone must never route another business account's event.
+        if(mappings.length!==1)continue;
+        const mapping=mappings[0];if(!mapping||String(mapping.waba_id)!==wabaId)continue;
         const profiles=new Map((value.contacts||[]).map(c=>[String(c.wa_id||''),c.profile?.name||'']));
         for(const message of value.messages||[]){
           if(await persistMessage(mapping.customer_id,phoneNumberId,mapping.display_phone_number,wabaId||mapping.waba_id,message,profiles.get(String(message.from||''))))imported++;
