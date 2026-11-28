@@ -24,9 +24,18 @@ export async function handler(event){
   let customerId,slug,connectedId,callbackPlatform='',wabaId='';
   if(uri){
    if(!s)return json(401,{error:'Please sign in to the same All Ads Manager account that started this connection.'});
+   if(state){
+    const parts=state.split('.');if(parts.length!==2)throw new Error('The account verification signature is invalid.');
+    const expected=createHmac('sha256',key).update(parts[0]).digest('base64url'),a=Buffer.from(expected),z=Buffer.from(parts[1]);
+    if(a.length!==z.length||!timingSafeEqual(a,z))throw new Error('The account verification signature is invalid.');
+    let claims;try{claims=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'));}catch{throw new Error('The account verification state is invalid.');}
+    if(!claims.customer_id||!claims.platform||Number(claims.expires_at)<Date.now())throw new Error('The account verification link has expired.');
+    if(String(claims.customer_id)!==String(s.customer_id))throw new Error('This connection was started by a different customer session.');
+    customerId=String(claims.customer_id);callbackPlatform=String(claims.platform);wabaId=String(claims.waba_id||'');
+   }
    const r=await fetch('https://backend.composio.dev/api/v3.1/connected_accounts/complete_auth',{method:'POST',headers:h(key),body:JSON.stringify({session_uri:uri,user_id:'aam_customer_'+s.customer_id})});
    const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error?.message||d.message||'The advertising account could not be verified.');
-   customerId=s.customer_id;slug=d.toolkit_slug||d.toolkit?.slug||'';connectedId=d.connected_account_id||d.id;
+   customerId=customerId||s.customer_id;slug=d.toolkit_slug||d.toolkit?.slug||'';connectedId=d.connected_account_id||d.id;
   }else{
    const parts=state.split('.');if(parts.length!==2)throw new Error('The account verification signature is invalid.');
    const expected=createHmac('sha256',key).update(parts[0]).digest('base64url');
