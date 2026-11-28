@@ -15,14 +15,14 @@ export async function handler(event){
   if(event.httpMethod==='POST')return json(409,{error:'Cancellation is disabled until DanSMS cancellation status codes are confirmed. Your number remains active.'});
   if(!order.activation_id)return json(202,{order:{reference,status:order.status,number:order.phone_number||null,otp:null},pending:true});
   if(order.otp_code)return json(200,{order:{reference,status:order.status,number:order.phone_number,otp:order.otp_code,customer_price_ngn:Number(order.customer_charge_kobo)/100}});
-  const result=await dansms('getStatus',{activation:order.activation_id});
+  const result=await dansms('getStatus',{id:order.activation_id});
   const raw=typeof result==='string'?result:String(result?.status||result?.response||'');
   if(raw.startsWith('STATUS_OK:')){
    const otp=raw.slice('STATUS_OK:'.length).trim();
    if(!otp)return json(502,{error:'DanSMS returned an empty OTP.'});
    await db('dansms_orders?wallet_reference=eq.'+encodeURIComponent(reference),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({otp_code:otp,status:'received',updated_at:new Date().toISOString()})});
    // Mark activation complete only after the OTP has been safely saved.
-   try{await dansms('setStatus',{activation:order.activation_id,status:6});}
+   try{await dansms('setStatus',{id:order.activation_id,status:6});}
    catch(e){console.error('DanSMS activation completion pending:',order.activation_id,e.message);}
    return json(200,{order:{reference,status:'received',number:order.phone_number,otp,customer_price_ngn:Number(order.customer_charge_kobo)/100}});
   }
