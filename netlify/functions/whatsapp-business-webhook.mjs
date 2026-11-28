@@ -30,11 +30,11 @@ function messageText(m){
 async function persistStatus(customerId,status,phoneNumberId,wabaId){
   const messageId=String(status.id||'').trim(),state=String(status.status||'').toLowerCase();
   if(!messageId||!['sent','delivered','read','failed'].includes(state))return false;
-  const rows=await db('aam_ad_inbox_messages?select=id,provider_metadata&customer_id=eq.'+encodeURIComponent(customerId)+'&provider_message_id=eq.'+encodeURIComponent(messageId)+'&limit=1');
-  const row=rows[0];if(!row)return false;
+  const rows=await db('aam_ad_inbox_messages?select=id,provider_metadata&customer_id=eq.'+encodeURIComponent(customerId)+'&provider_message_id=eq.'+encodeURIComponent(messageId)+'&provider_metadata->>provider=eq.whatsapp&provider_metadata->>phone_number_id=eq.'+encodeURIComponent(phoneNumberId)+'&provider_metadata->>waba_id=eq.'+encodeURIComponent(wabaId)+'&limit=2');
+  // Require one exact match; never update an ambiguous provider message ID.
+  if(rows.length!==1)return false;
+  const row=rows[0];
   const metadata=row.provider_metadata&&typeof row.provider_metadata==='object'?row.provider_metadata:{};
-  // A status event may update only a WhatsApp message belonging to this exact business phone and WABA.
-  if(metadata.provider!=='whatsapp'||String(metadata.phone_number_id||'')!==String(phoneNumberId)||String(metadata.waba_id||'')!==String(wabaId))return false;
   const next={...metadata,delivery_status:state,status_timestamp:status.timestamp?new Date(Number(status.timestamp)*1000).toISOString():new Date().toISOString(),status_recipient_id:status.recipient_id||null,status_phone_number_id:phoneNumberId,status_waba_id:wabaId,status_errors:Array.isArray(status.errors)?status.errors:[]};
   await db('aam_ad_inbox_messages?id=eq.'+encodeURIComponent(row.id)+'&customer_id=eq.'+encodeURIComponent(customerId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({provider_metadata:next})});
   return true;
