@@ -9,7 +9,7 @@ export const DANSMS_WHATSAPP_PRICES_NGN = Object.freeze({
   DK:{supplier:13000,markup:2700,customer:15700}
 });
 
-export const DANSMS_DEFAULT_VERIFICATION_MARKUP_NGN=1500;
+export const DANSMS_DEFAULT_VERIFICATION_MARKUP_NGN=500;
 
 // DanSMS account prices recovered from the owner's earlier instructions.
 // Apply the newly requested additional ₦500 to each product markup.
