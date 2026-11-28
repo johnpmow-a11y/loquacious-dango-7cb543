@@ -25,9 +25,9 @@ export async function handler(event){
   let response;
   try{response=await dansms('getNumber',{service:code,country:countryId});}
   catch(e){
-   if(['BAD_KEY','BAD_ACTION','BAD_SERVICE','NO_BALANCE','NO_NUMBERS','ACCESS_DISABLED','TOO_MANY_REQUESTS'].includes(e.providerCode)){
+   if(['BAD_KEY','BAD_ACTION','BAD_SERVICE','BAD_STATUS','NO_BALANCE','NO_NUMBERS','NO_ACTIVATION','ACCESS_DISABLED','TOO_MANY_REQUESTS'].includes(e.providerCode)){
     await db('rpc/bt_dansms_refund_order',{method:'POST',body:JSON.stringify({p_reference:reference,p_status:'failed',p_provider_response:{provider_code:e.providerCode}})});
-    return json(409,{error:'DanSMS could not issue a number. Your wallet has been refunded.'});
+    return json(e.status||409,{error:e.message||'DanSMS could not issue a number. Your wallet has been refunded.',provider_code:e.providerCode||null,refunded:true});
    }
    await db('dansms_orders?wallet_reference=eq.'+encodeURIComponent(reference),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'supplier_pending',provider_response:{uncertain:true,message:e.message},updated_at:new Date().toISOString()})});
    return json(202,{pending:true,reference,message:'DanSMS confirmation is uncertain. Your funds are held safely while the order is checked. Do not buy again.'});
@@ -50,6 +50,6 @@ export async function handler(event){
    try{await db('rpc/bt_dansms_refund_order',{method:'POST',body:JSON.stringify({p_reference:reference,p_status:'failed',p_provider_response:{error:e.message}})});}
    catch(refundError){console.error('DanSMS refund recovery required:',reference,refundError.message);}
   }
-  return json(e.status||500,{error:e.message||'Could not create DanSMS order.'});
+  return json(e.status||500,{error:e.message||'Could not create DanSMS order.',provider_code:e.providerCode||null});
  }
 }
