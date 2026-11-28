@@ -23,7 +23,13 @@ export async function handler(event) {
     });
   }
 
-  const base = "https://rediprofiles.com/api/v1";
+  function isEmailAccount(item) {
+  const text = [item.category_name, item.category?.name, item.category, item.type, item.name, item.description]
+    .filter(Boolean).join(" ").toLowerCase();
+  return /\\b(email|mailbox|hotmail|gmail|yahoo|gmx|mail\\.com|rambler)\\b/.test(text);
+}
+
+const base = "https://rediprofiles.com/api/v1";
   const options = {
     method: "GET",
     headers: {
@@ -69,7 +75,7 @@ export async function handler(event) {
       : [];
 
     // Keep catalogue display identical to the amount charged by rediprofiles-order.mjs.
-    // Customer price = supplier price + ₦700.
+    // Social accounts and VPN: +₦700. Email accounts: no added markup.
     const pricedServices = services.map(item => {
       const supplierValue = item.price_ngn ?? (String(item.currency || "").toUpperCase() === "NGN" ? item.price : null);
       const supplierPrice = Number(supplierValue);
@@ -77,7 +83,7 @@ export async function handler(event) {
       return {
         ...item,
         supplier_price_ngn: supplierPrice,
-        customer_price_ngn: Math.round((supplierPrice + 700) * 100) / 100
+        customer_price_ngn: Math.round((supplierPrice + (isEmailAccount(item) ? 0 : 700)) * 100) / 100
       };
     });
 
@@ -86,7 +92,7 @@ export async function handler(event) {
       services: pricedServices,
       categories,
       currency: "NGN",
-      pricing_rule: "supplier price + ₦700",
+      pricing_rule: "social accounts/VPN: supplier price + ₦700; email accounts: supplier price",
       count: pricedServices.length
     });
   } catch (error) {
