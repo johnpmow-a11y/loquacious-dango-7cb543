@@ -1,6 +1,6 @@
 ALL ADS MANAGER — PROJECT NOTES
 
-This file is a short project overview. For deployment steps, migration order, and environment-variable guidance, follow DEPLOYMENT_README.txt. If older notes conflict with that file, DEPLOYMENT_README.txt is authoritative.
+This file is a short project overview. For Fly.io deployment, use FLY_DEPLOYMENT_README.txt. For the existing Netlify deployment, use DEPLOYMENT_README.txt. Keep the current Supabase project and customer data whichever hosting target is used.
 
 BRAND AND CUSTOMER ACCOUNTS
 - Product name: All Ads Manager. Customer-facing service labels use ADS, not “demo”.
