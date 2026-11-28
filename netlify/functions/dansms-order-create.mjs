@@ -25,7 +25,7 @@ export async function handler(event){
   let response;
   try{response=await dansms('getNumber',{service:code,country:countryId});}
   catch(e){
-   if(e.providerCode==='NO_NUMBERS'||e.providerCode==='BAD_SERVICE'||e.providerCode==='NO_BALANCE'){
+   if(['BAD_KEY','BAD_ACTION','BAD_SERVICE','NO_BALANCE','NO_NUMBERS','ACCESS_DISABLED','TOO_MANY_REQUESTS'].includes(e.providerCode)){
     await db('rpc/bt_dansms_refund_order',{method:'POST',body:JSON.stringify({p_reference:reference,p_status:'failed',p_provider_response:{provider_code:e.providerCode}})});
     return json(409,{error:'DanSMS could not issue a number. Your wallet has been refunded.'});
    }
