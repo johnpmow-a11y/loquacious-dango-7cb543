@@ -11,6 +11,13 @@ export const DANSMS_WHATSAPP_PRICES_NGN = Object.freeze({
 
 export const DANSMS_DEFAULT_VERIFICATION_MARKUP_NGN=1500;
 
+// DanSMS account prices recovered from the owner's earlier instructions.
+// Apply the newly requested additional ₦500 to each product markup.
+export const DANSMS_ACCOUNT_PRICE_RULES_NGN = Object.freeze({
+  '711 account / 200 IPs': { supplier: 35000, markup: 3500, customer: 38500 },
+  'Twitter account': { supplier: 7000, markup: 3000, customer: 10000 }
+});
+
 // Numeric IDs from the owner's earlier DanSMS dashboard/API details.
 // Keep these for the legacy handler only; v1 uses ISO alpha-2 country codes.
 export const DANSMS_LEGACY_COUNTRY_IDS=Object.freeze({US:187,IN:22});
