@@ -37,8 +37,8 @@ export async function handler(event){
    const check=await fetch('https://backend.composio.dev/api/v3.1/connected_accounts/'+encodeURIComponent(connectedId),{headers:h(key)});
    const account=await check.json().catch(()=>({}));if(!check.ok||account.user_id!=='aam_customer_'+customerId||account.toolkit?.slug!==slug||account.status!=='ACTIVE')throw new Error('The provider connection does not match this customer or is not active.');
   }
-  if(!connectedId||!['metaads','tiktok_ads','facebook','snapchat'].includes(slug))throw new Error('The provider returned an unsupported advertising connection.');
-  const platform=slug==='tiktok_ads'?'tiktok':slug==='snapchat'?'snapchat':callbackPlatform==='instagram'?'instagram':callbackPlatform==='whatsapp'?'whatsapp':'facebook',base=process.env.SUPABASE_URL,keyDb=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if(!connectedId||!['metaads','tiktok_ads','facebook','snapchat','whatsapp'].includes(slug))throw new Error('The provider returned an unsupported advertising connection.');
+  const platform=slug==='tiktok_ads'?'tiktok':slug==='snapchat'?'snapchat':slug==='whatsapp'||callbackPlatform==='whatsapp'?'whatsapp':callbackPlatform==='instagram'?'instagram':'facebook',base=process.env.SUPABASE_URL,keyDb=process.env.SUPABASE_SERVICE_ROLE_KEY;
   const saved=await fetch(base+'/rest/v1/aam_ad_connections?on_conflict=connected_account_id',{method:'POST',headers:{apikey:keyDb,...(keyDb.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+keyDb}),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({customer_id:customerId,platform,toolkit_slug:slug,connected_account_id:connectedId,connection_status:'ACTIVE',updated_at:new Date().toISOString()})});
   if(!saved.ok)throw new Error('Account connected but its status could not be saved. Please refresh your connection status.');
   return json(200,{ok:true,platform,connected_account_id:connectedId});
