@@ -350,7 +350,12 @@ function readyAccountCategoryIcon(name){
  if(n.includes('vpn'))return '<span aria-hidden="true" style="font-size:21px;line-height:1">🛡️</span>';
  if(n.includes('linkedin'))return '<span aria-hidden="true" style="font-size:20px;color:#0a66c2;font-weight:800">in</span>';
  if(n.includes('snapchat'))return '<span aria-hidden="true" style="font-size:20px">👻</span>';
- if(n.includes('twitter')||n.includes('x account'))return '<span aria-hidden="true" style="font-size:20px;font-weight:800">𝕏</span>';
+ if(n.includes('twitter')||n==='x'||n.includes('x account'))return '<span aria-hidden="true" style="font-size:20px;font-weight:800">𝕏</span>';
+ if(n.includes('youtube'))return '<span aria-hidden="true" style="font-size:20px;color:#e11d48">▶</span>';
+ if(n.includes('discord'))return '<span aria-hidden="true" style="font-size:20px">◉</span>';
+ if(n.includes('reddit'))return '<span aria-hidden="true" style="font-size:20px">●</span>';
+ if(n.includes('twitch'))return '<span aria-hidden="true" style="font-size:20px">▣</span>';
+ if(n.includes('quora'))return '<span aria-hidden="true" style="font-size:20px;font-weight:800">Q</span>';
  return '<span aria-hidden="true" style="font-size:20px">👤</span>';
 }
 function readyAccountGroupName(item){
@@ -359,10 +364,10 @@ function readyAccountGroupName(item){
  const category=categories.find(x=>String(x.id??'')===categoryId);
  const raw=String(item?.category_name||item?.category?.name||category?.name||item?.category||item?.type||'').trim();
  const searchable=(raw+' '+String(item?.name||'')+' '+String(item?.description||'')).toLowerCase();
- if(/\\bvpn\\b/.test(searchable))return 'VPN';
- for(const name of ['Instagram','Facebook','TikTok','Snapchat','LinkedIn','Twitter','X','WhatsApp','Telegram','YouTube','Netflix']){
-  if(searchable.includes(name.toLowerCase()))return name;
- }
+ if(/\bvpn\b/.test(searchable))return 'VPN';
+ const platforms=['Instagram','Facebook','TikTok','Snapchat','LinkedIn','Twitter','WhatsApp','Telegram','YouTube','Netflix','Discord','Quora','Twitch','Reddit','Pinterest','Threads','Google Voice'];
+ for(const name of platforms){if(searchable.includes(name.toLowerCase()))return name;}
+ if(/(^|[^a-z0-9])x( account)?([^a-z0-9]|$)/.test(searchable))return 'X';
  return raw||'Other Accounts';
 }
 function renderReadyAccountCategoryButtons(){
