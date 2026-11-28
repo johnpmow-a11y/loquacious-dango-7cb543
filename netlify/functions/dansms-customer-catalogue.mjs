@@ -21,5 +21,5 @@ export async function handler(event){
     customer_price_ngn:fixed?.customer??null,orderable:Boolean(fixed&&Number(item?.count||0)>0)};
   });
   return json(200,{country:country.code,countries:COUNTRIES,services});
- }catch(e){return json(e.status||502,{error:e.message||'Could not load DanSMS services.'});}
+ }catch(e){return json(e.status||502,{error:e.message||'Could not load DanSMS services.',provider_code:e.providerCode||null});}
 }
