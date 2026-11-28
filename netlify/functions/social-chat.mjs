@@ -45,7 +45,7 @@ export async function handler(event){
    }
    const adThreads=await db(`aam_ad_inbox_threads?select=id,platform,thread_title,sender_name,last_message,last_message_at,unread_count,provider_ad_id,provider_post_id&customer_id=eq.${encodeURIComponent(s.customer_id)}&order=last_message_at.desc&limit=100`).catch(error=>{if(error.code==='42P01'||error.code==='PGRST205')return [];throw error;});
    const parts=await db(`aam_chat_participants?select=conversation_id,last_seen_at&customer_id=eq.${s.customer_id}`);
-   if(!parts.length)return json(200,{conversations:[],ad_threads:adThreads.map(t=>({...t,conversation_type:'ad',last_message:{body:t.last_message,created_at:t.last_message_at},other:{display_name:t.sender_name||t.platform+' ad reply',is_ad:true,unread_count:t.unread_count}}))});
+   if(!parts.length)return json(200,{conversations:adThreads.map(t=>({...t,conversation_type:'ad',title:t.thread_title,last_message:{body:t.last_message,created_at:t.last_message_at},other:{display_name:t.sender_name||t.platform+' message',is_ad:true,platform:t.platform,unread_count:t.unread_count}}))});
    const ids=parts.map(p=>p.conversation_id);
    const [conversations,messages,allParts]=await Promise.all([
     db(`aam_chat_conversations?select=id,updated_at,conversation_type,title&id=in.(${ids.join(',')})&order=updated_at.desc`),
@@ -67,7 +67,7 @@ export async function handler(event){
     const avatar_url=avatar_path?await signedRead(avatar_path):null;
     return {...c,other:{...publicProfile,avatar_url,last_seen_at:otherPart?.last_seen_at||null,is_typing:!!otherPart?.typing_at&&(Date.now()-new Date(otherPart.typing_at).getTime()<6000)},last_message:lastMessage};
    }));
-   return json(200,{conversations:conversationItems,ad_threads:adThreads.map(t=>({...t,conversation_type:'ad',last_message:{body:t.last_message,created_at:t.last_message_at},other:{display_name:t.sender_name||t.platform+' ad reply',is_ad:true,unread_count:t.unread_count}}))});
+   const unifiedItems=[...conversationItems,...adThreads.map(t=>({...t,conversation_type:'ad',title:t.thread_title,updated_at:t.last_message_at,last_message:{body:t.last_message,created_at:t.last_message_at},other:{display_name:t.sender_name||t.platform+' message',is_ad:true,platform:t.platform,unread_count:t.unread_count}}))].sort((a,b)=>new Date(b.last_message?.created_at||b.updated_at||0)-new Date(a.last_message?.created_at||a.updated_at||0));return json(200,{conversations:unifiedItems});
   }
   if(event.httpMethod!=='POST')return json(405,{error:'Method not allowed.'});
   if(b.action==='sign_media_upload'){
