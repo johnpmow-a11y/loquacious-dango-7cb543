@@ -18,7 +18,7 @@ export function json(statusCode,body){return{statusCode,headers:{'Content-Type':
 
 function parseProviderError(value){
   if(typeof value!=='string')return null;
-  const code=value.trim().split(/[:\\s]/,1)[0].toUpperCase();
+  const code=value.trim().split(/[:\s]/,1)[0].toUpperCase();
   return Object.hasOwn(PROVIDER_ERRORS,code)?{code,...PROVIDER_ERRORS[code]}:null;
 }
 
