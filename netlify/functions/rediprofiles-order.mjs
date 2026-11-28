@@ -58,7 +58,7 @@ function unwrapOrder(payload) {
 function isEmailAccount(item) {
   const text = [item.category_name, item.category?.name, item.category, item.type, item.name, item.description]
     .filter(Boolean).join(' ').toLowerCase();
-  return /\\b(email|mailbox|hotmail|gmail|yahoo|gmx|mail\\.com|rambler)\\b/.test(text);
+  return /\b(email|mailbox|hotmail|gmail|yahoo|gmx|mail\.com|rambler)\b/.test(text);
 }
 
 function servicePriceNgn(item) {
