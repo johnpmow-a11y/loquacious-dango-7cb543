@@ -54,6 +54,8 @@ jobs:
           PY
       - name: Run current application contract checks
         run: node scripts/check-social-contracts.mjs
+      - name: Build Fly.io deployment image
+        run: docker build --tag all-ads-manager:ci .
 
   package:
     # Package on every push after verification, so the latest tested source is downloadable.
