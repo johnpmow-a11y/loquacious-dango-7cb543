@@ -14,8 +14,8 @@ export async function handler(event){
   const data=await dansms('getServicesAndCost',{country:country.id});
   const catalogue=data&&typeof data==='object'?data:{};
   const services=Object.entries(catalogue).map(([code,item])=>{
-   const name=String(item?.name||item?.service||code);
-   const wa=/whats ?app/i.test(name+' '+code);
+   const name=String(item?.name||item?.service||(code==='wa'?'WhatsApp':code));
+   const wa=code.toLowerCase()==='wa'||/whats ?app/i.test(name+' '+code);
    const fixed=wa?DANSMS_WHATSAPP_PRICES_NGN[country.code]:null;
    return {service_code:String(code),name,country:country.code,available:Number(item?.count||0),
     customer_price_ngn:fixed?.customer??null,orderable:Boolean(fixed&&Number(item?.count||0)>0)};
