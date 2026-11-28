@@ -1,15 +1,15 @@
 // Prices explicitly supplied by the All Ads Manager owner.
 // Amounts are NGN. Do not derive customer prices from live USD catalogue values.
 export const DANSMS_WHATSAPP_PRICES_NGN = Object.freeze({
-  US:{supplier:4000,markup:1300,customer:5300},
-  CA:{supplier:3000,markup:3500,customer:6500},
-  GB:{supplier:4000,markup:1500,customer:5500},
-  DE:{supplier:13000,markup:3000,customer:16000},
-  IT:{supplier:7000,markup:2000,customer:9000},
-  DK:{supplier:13000,markup:2200,customer:15200}
+  US:{supplier:4000,markup:1800,customer:5800},
+  CA:{supplier:3000,markup:4000,customer:7000},
+  GB:{supplier:4000,markup:2000,customer:6000},
+  DE:{supplier:13000,markup:3500,customer:16500},
+  IT:{supplier:7000,markup:2500,customer:9500},
+  DK:{supplier:13000,markup:2700,customer:15700}
 });
 
-export const DANSMS_DEFAULT_VERIFICATION_MARKUP_NGN=1000;
+export const DANSMS_DEFAULT_VERIFICATION_MARKUP_NGN=1500;
 
 // Numeric IDs from the owner's earlier DanSMS dashboard/API details.
 // Keep these for the legacy handler only; v1 uses ISO alpha-2 country codes.
