@@ -9,6 +9,7 @@ async function db(path,options={}) {
   if(!r.ok){const e=new Error(d.message||'Database request failed.');e.status=r.status;e.code=d.code;throw e;}
   return d;
 }
+function providerTime(value){const seconds=Number(value);if(!Number.isFinite(seconds)||seconds<=0)return new Date().toISOString();const date=new Date(seconds*1000);return Number.isFinite(date.getTime())?date.toISOString():new Date().toISOString();}
 function rawBody(event){const body=event.body||'';return event.isBase64Encoded?Buffer.from(body,'base64'):Buffer.from(body,'utf8');}
 function validSignature(raw,header,secret){
   if(!header||!secret||!/^sha256=[a-f0-9]{64}$/i.test(header))return false;
@@ -35,7 +36,7 @@ async function persistStatus(customerId,status,phoneNumberId,wabaId){
   if(rows.length!==1)return false;
   const row=rows[0];
   const metadata=row.provider_metadata&&typeof row.provider_metadata==='object'?row.provider_metadata:{};
-  const next={...metadata,delivery_status:state,status_timestamp:status.timestamp?new Date(Number(status.timestamp)*1000).toISOString():new Date().toISOString(),status_recipient_id:status.recipient_id||null,status_phone_number_id:phoneNumberId,status_waba_id:wabaId,status_errors:Array.isArray(status.errors)?status.errors:[]};
+  const next={...metadata,delivery_status:state,status_timestamp:providerTime(status.timestamp),status_recipient_id:status.recipient_id||null,status_phone_number_id:phoneNumberId,status_waba_id:wabaId,status_errors:Array.isArray(status.errors)?status.errors:[]};
   await db('aam_ad_inbox_messages?id=eq.'+encodeURIComponent(row.id)+'&customer_id=eq.'+encodeURIComponent(customerId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({provider_metadata:next})});
   return true;
 }
@@ -43,7 +44,7 @@ async function persistMessage(customerId,phoneNumberId,displayPhone,wabaId,messa
   const sender=String(message.from||'').trim(),messageId=String(message.id||'').trim();
   if(!sender||!messageId)return false;
   const threadKey=phoneNumberId+':'+sender;
-  const at=message.timestamp?new Date(Number(message.timestamp)*1000).toISOString():new Date().toISOString();
+  const at=providerTime(message.timestamp);
   const body=messageText(message);
   const found=await db('aam_ad_inbox_threads?select=id,unread_count&customer_id=eq.'+encodeURIComponent(customerId)+'&platform=eq.whatsapp&provider_thread_id=eq.'+encodeURIComponent(threadKey)+'&limit=1');
   let thread=found[0];
